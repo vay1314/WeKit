@@ -165,10 +165,10 @@ object HookStatus {
                 if (isElderDriverXposed) {
                     return "EdXposed"
                 }
-                return "Unknown(Zygote)"
+                return "Unknown (Zygote)"
             }
             if (expCpResult) {
-                return "Taichi"
+                return "TaiChi"
             }
             return "None"
         }

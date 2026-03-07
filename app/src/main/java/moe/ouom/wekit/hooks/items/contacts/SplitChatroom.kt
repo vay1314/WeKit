@@ -3,15 +3,10 @@ package moe.ouom.wekit.hooks.items.contacts
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -35,35 +30,38 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.highcapable.kavaref.extension.toClass
+import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.config.RuntimeConfig
 import moe.ouom.wekit.core.model.BaseClickableFunctionHookItem
 import moe.ouom.wekit.hooks.core.annotation.HookItem
 import moe.ouom.wekit.hooks.sdk.base.WeDatabaseApi
 import moe.ouom.wekit.hooks.sdk.base.model.WeGroup
-import moe.ouom.wekit.ui.content.BaseHooksSettingsDialogContent
+import moe.ouom.wekit.ui.content.AlertDialogContent
 import moe.ouom.wekit.ui.utils.showComposeDialog
-import moe.ouom.wekit.utils.Initiator.loadClass
 import moe.ouom.wekit.utils.common.ToastUtils
 import moe.ouom.wekit.utils.log.WeLogger
 
 @HookItem(path = "联系人与群组/分裂群组", desc = "让群聊一分为二")
 object SplitChatroom : BaseClickableFunctionHookItem() {
 
+    private val TAG = nameof(SplitChatroom)
+
     override fun onClick(context: Context) {
         val groups = try {
             WeDatabaseApi.getGroups()
         } catch (e: Exception) {
-            WeLogger.e("WeSchemeInvocation", "获取群聊列表失败", e)
+            WeLogger.e(TAG, "获取群聊列表失败", e)
             ToastUtils.showToast(context, "获取数据失败: ${e.message}")
             return
         }
 
         if (groups.isEmpty()) {
-            ToastUtils.showToast(context, "未获取到群聊列表，请确认是否已登录或数据是否同步")
+            ToastUtils.showToast(context, "未获取到群聊列表, 请确认是否已登录或数据是否同步")
             return
         }
 
-        showComposeDialog(context) { onDismiss ->
+        showComposeDialog(context, true) { onDismiss ->
             SplitChatroomDialog(
                 allGroups = groups,
                 onDismiss = onDismiss,
@@ -79,24 +77,24 @@ object SplitChatroom : BaseClickableFunctionHookItem() {
         try {
             val activity = RuntimeConfig.getLauncherUIActivity()
             if (activity == null) {
-                WeLogger.e("WeSchemeInvocation", "LauncherUI Activity is null")
+                WeLogger.e(TAG, "LauncherUI Activity is null")
                 return
             }
 
-            val chattingUIClass = loadClass("com.tencent.mm.ui.chatting.ChattingUI")
+            val chattingUIClass = "com.tencent.mm.ui.chatting.ChattingUI".toClass()
             val intent = Intent(activity, chattingUIClass)
 
             val rawId = chatroomId.substringBefore("@")
             val targetSplitId = "${rawId}@@chatroom"
 
-            WeLogger.i("WeSchemeInvocation", "Launching ChattingUI for chatroom: $chatroomId")
+            WeLogger.i(TAG, "Launching ChattingUI for chatroom: $chatroomId")
 
             intent.putExtra("Chat_User", targetSplitId)
             intent.putExtra("Chat_Mode", 1)
 
             activity.startActivity(intent)
         } catch (e: Exception) {
-            WeLogger.e("WeSchemeInvocation", "跳转失败", e)
+            WeLogger.e(TAG, "跳转失败", e)
         }
     }
 
@@ -159,38 +157,31 @@ private fun SearchStep(
     var keyword by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
 
-    BaseHooksSettingsDialogContent("分裂群组 - 搜索", onDismiss) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            OutlinedTextField(
-                value = keyword,
-                onValueChange = { keyword = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
-                placeholder = { Text("输入群名 / 拼音 / ID（留空显示全部）") },
-                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onQuery(keyword.trim()) }),
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                TextButton(onClick = onDismiss) { Text("取消") }
-                Spacer(Modifier.width(8.dp))
-                Button(onClick = { onQuery(keyword.trim()) }) { Text("查询") }
-            }
-        }
-    }
-
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
+    AlertDialogContent(
+        title = { Text("搜索群组") },
+        text = {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                OutlinedTextField(
+                    value = keyword,
+                    onValueChange = { keyword = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
+                    placeholder = { Text("输入群名 / 拼音 / ID (留空显示全部)") },
+                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onQuery(keyword.trim()) }),
+                )
+            }
+        },
+        confirmButton = { Button(onClick = { onQuery(keyword.trim()) }) { Text("查询") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } })
 }
 
 // ---------------------------------------------------------------------------
-//  Step 2 – filtered results list
+//  Step 2 – filter results list
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -200,54 +191,46 @@ private fun ResultsStep(
     onBack: () -> Unit,
     onSelect: (chatroomId: String) -> Unit,
 ) {
-    BaseHooksSettingsDialogContent("选择目标群聊（${filtered.size}）", onDismiss) {
-        if (filtered.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "未找到匹配的群聊",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            filtered.forEach { group ->
-                val name = group.nickname.ifBlank { "未命名群聊" }
-                Column(
+    AlertDialogContent(
+        title = { Text("选择目标群组 (共匹配到 ${filtered.size} 个)") },
+        text = {
+            if (filtered.isEmpty()) {
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSelect(group.username) }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text(text = name, style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        text = group.username,
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "未找到匹配的群组",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                )
+            } else {
+                filtered.forEach { group ->
+                    val name = group.nickname.ifBlank { "未命名群组" }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(group.username) }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                    ) {
+                        Text(text = name, style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            text = group.username,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                }
             }
-        }
-
-        Spacer(Modifier.height(4.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            TextButton(onClick = onBack) { Text("返回搜索") }
-            Spacer(Modifier.width(8.dp))
-            TextButton(onClick = onDismiss) { Text("取消") }
-        }
-    }
+        },
+        dismissButton = { TextButton(onClick = onBack) { Text("返回搜索") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("关闭") } })
 }

@@ -7,7 +7,7 @@ import moe.ouom.wekit.core.model.BaseClickableFunctionHookItem
 import moe.ouom.wekit.hooks.core.annotation.HookItem
 import moe.ouom.wekit.hooks.sdk.protocol.WePkgManager
 import moe.ouom.wekit.hooks.sdk.protocol.intf.IWePkgInterceptor
-import moe.ouom.wekit.ui.content.BaseRikkaDialog
+import moe.ouom.wekit.ui.content.BasePrefDialog
 import moe.ouom.wekit.utils.WeProtoData
 import moe.ouom.wekit.utils.log.WeLogger
 import org.json.JSONArray
@@ -118,7 +118,7 @@ object ModifyTransferWalletBalanceDisplay : BaseClickableFunctionHookItem(), IWe
         }
     }
 
-    private class ConfigDialog(context: Context) : BaseRikkaDialog(context, "收银台余额配置") {
+    private class ConfigDialog(context: Context) : BasePrefDialog(context, "收银台余额配置") {
         override fun initPreferences() {
             addCategory("金额设置")
 

@@ -33,12 +33,12 @@ import moe.ouom.wekit.BuildConfig
 import moe.ouom.wekit.R
 import moe.ouom.wekit.constants.Constants
 import moe.ouom.wekit.ui.utils.showComposeDialog
-import moe.ouom.wekit.utils.common.Utils.jumpUrl
+import moe.ouom.wekit.utils.common.Utils.openUrl
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class MainSettingsDialog(context: Context) : BaseRikkaDialog(context, "WeKit") {
+class MainSettingsDialog(context: Context) : BasePrefDialog(context, "WeKit") {
     // 定义优先级 映射关系 (值 -> 显示文本)
     private val priorityMap = mapOf(
         10000 to "高优先级",
@@ -87,7 +87,7 @@ class MainSettingsDialog(context: Context) : BaseRikkaDialog(context, "WeKit") {
             useFullKey = true
         )
 
-        val dbVerboseLogView = addSwitchPreference(
+        val dependentKey = addSwitchPreference(
             key = Constants.PrekDatabaseVerboseLog,
             title = "数据库详细日志",
             summary = "输出完整的数据库插入事件详情（ContentValues）",
@@ -97,7 +97,7 @@ class MainSettingsDialog(context: Context) : BaseRikkaDialog(context, "WeKit") {
 
         // 数据库详细日志依赖于详细日志
         setDependency(
-            dependentView = dbVerboseLogView,
+            dependentKey = dependentKey,
             dependencyKey = Constants.PrekVerboseLog,
             enableWhen = true,
             useFullKey = true
@@ -178,13 +178,13 @@ class MainSettingsDialog(context: Context) : BaseRikkaDialog(context, "WeKit") {
             title = "GitHub",
             summary = "修改于 Ujhhgtg/WeKit (原始: cwuom/WeKit)",
             iconName = "ic_github",
-            onClick = { jumpUrl(context, "https://github.com/Ujhhgtg/WeKit") }
+            onClick = { openUrl(context, "https://github.com/Ujhhgtg/WeKit") }
         )
         addPreference(
             title = "Telegram",
             summary = "@ouom_pub",
             iconName = "ic_telegram",
-            onClick = { jumpUrl(context, "https://t.me/ouom_pub") }
+            onClick = { openUrl(context, "https://t.me/ouom_pub") }
         )
     }
 }

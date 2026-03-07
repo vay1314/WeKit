@@ -85,10 +85,8 @@ fun AlertDialogContent(
             ) {
                 val buttonTextStyle = MaterialTheme.typography.labelLarge
                 CompositionLocalProvider(LocalTextStyle provides buttonTextStyle) {
-                    Row {
-                        dismissButton?.invoke()
-                        confirmButton?.invoke()
-                    }
+                    dismissButton?.invoke()
+                    confirmButton?.invoke()
                 }
             }
         }

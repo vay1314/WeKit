@@ -18,7 +18,7 @@ import moe.ouom.wekit.hooks.core.annotation.HookItem
 import moe.ouom.wekit.hooks.sdk.base.WeDatabaseListenerApi
 import moe.ouom.wekit.hooks.sdk.base.WeNetworkApi
 import moe.ouom.wekit.ui.content.AlertDialogContent
-import moe.ouom.wekit.ui.content.BaseRikkaDialog
+import moe.ouom.wekit.ui.content.BasePrefDialog
 import moe.ouom.wekit.ui.utils.showComposeDialog
 import moe.ouom.wekit.utils.log.WeLogger
 import org.json.JSONObject
@@ -219,7 +219,7 @@ object AutoOpenRedPacket : BaseClickableFunctionHookItem(), WeDatabaseListenerAp
         super.unload(classLoader)
     }
 
-    private class ConfigDialog(context: Context) : BaseRikkaDialog(context, "自动抢红包") {
+    private class ConfigDialog(context: Context) : BasePrefDialog(context, "自动抢红包") {
 
         override fun initPreferences() {
             addCategory("通用设置")

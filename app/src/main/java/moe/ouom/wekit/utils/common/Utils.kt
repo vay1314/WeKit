@@ -25,7 +25,7 @@ object Utils {
         return allChildren
     }
 
-    fun jumpUrl(context: Context, webUrl: String?) {
+    fun openUrl(context: Context, webUrl: String?) {
         val intent = Intent(Intent.ACTION_VIEW)
         intent.data = webUrl?.toUri()
         context.startActivity(intent)

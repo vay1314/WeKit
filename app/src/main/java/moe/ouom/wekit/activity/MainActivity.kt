@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             AppTheme {
                 AppContent(
-                    onUrlClick = { url -> Utils.jumpUrl(this, url) }
+                    onUrlClick = { url -> Utils.openUrl(this, url) }
                 )
             }
         }

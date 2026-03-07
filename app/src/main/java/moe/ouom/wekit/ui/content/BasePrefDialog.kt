@@ -1,7 +1,6 @@
 package moe.ouom.wekit.ui.content
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.text.InputType
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
@@ -58,15 +57,6 @@ import moe.ouom.wekit.constants.Constants
 import moe.ouom.wekit.ui.utils.showComposeDialog
 import moe.ouom.wekit.utils.common.ModuleRes
 import moe.ouom.wekit.utils.log.WeLogger
-
-// ---------------------------------------------------------------------------
-//  Lightweight "View" shim so the public API surface (returning View, taking
-//  View parameters) compiles unchanged.  Each shim wraps a stable string key
-//  that identifies the preference row inside the Compose state.
-// ---------------------------------------------------------------------------
-
-/** Opaque handle returned by addXxxPreference / accepted by setDependency. */
-class PreferenceViewShim internal constructor(internal val rowKey: String)
 
 // ---------------------------------------------------------------------------
 //  Internal state model
@@ -129,7 +119,7 @@ private data class DepInfo(
 //  Abstract base class – public API is identical to the original
 // ---------------------------------------------------------------------------
 
-abstract class BaseRikkaDialog(
+abstract class BasePrefDialog(
     protected val context: Context,
     private val title: String,
 ) {
@@ -166,18 +156,12 @@ abstract class BaseRikkaDialog(
                 title = title,
                 rows = rows,
                 dependencies = dependencies,
-                context = context,
                 onDismiss = {
                     _dismissCallback?.invoke()
                     _dismissCallback = null
                 }
             )
         }
-    }
-
-    open fun dismiss() {
-        _dismissCallback?.invoke()
-        _dismissCallback = null
     }
 
     // -----------------------------------------------------------------------
@@ -194,11 +178,11 @@ abstract class BaseRikkaDialog(
         summary: String,
         iconName: String? = null,
         useFullKey: Boolean = false,
-    ): PreferenceViewShim {
+    ): String {
         val configKey = resolveKey(key, useFullKey)
         val rk = nextKey("sw_$configKey")
         rows += PrefRow.Switch(rk, configKey, title, summary, iconName)
-        return PreferenceViewShim(rk)
+        return rk
     }
 
     protected fun addEditTextPreference(
@@ -251,7 +235,7 @@ abstract class BaseRikkaDialog(
     }
 
     protected fun setDependency(
-        dependentView: PreferenceViewShim,
+        dependentKey: String,
         dependencyKey: String,
         enableWhen: Boolean = true,
         hideWhenDisabled: Boolean = false,
@@ -260,7 +244,7 @@ abstract class BaseRikkaDialog(
         val configKey = resolveKey(dependencyKey, useFullKey)
         dependencies
             .getOrPut(configKey) { mutableListOf() }
-            .add(DepInfo(dependentView.rowKey, enableWhen, hideWhenDisabled))
+            .add(DepInfo(dependentKey, enableWhen, hideWhenDisabled))
     }
 
     // -----------------------------------------------------------------------
@@ -277,13 +261,14 @@ abstract class BaseRikkaDialog(
 //  Compose UI
 // ---------------------------------------------------------------------------
 
+private const val TAG = "BasePrefDialog"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DialogContent(
     title: String,
     rows: List<PrefRow>,
     dependencies: Map<String, List<DepInfo>>,
-    context: Context,
     onDismiss: () -> Unit,
 ) {
     // Per-switch live state: configKey -> checked
@@ -423,7 +408,7 @@ private fun DialogContent(
                                             switchStates[row.configKey] = checked
                                             WeConfig.getDefaultConfig().edit()
                                                 .putBoolean(row.configKey, checked).apply()
-                                            WeLogger.d("BaseRikkaDialog: Config changed [${row.configKey}] -> $checked")
+                                            WeLogger.d(TAG, "Config changed [${row.configKey}] -> $checked")
                                         },
                                     )
                                 }
@@ -494,7 +479,7 @@ private fun DialogContent(
                 val display = row.summaryFormatter?.invoke(newValue)
                     ?: if (newValue.isEmpty()) row.baseSummary else "${row.baseSummary}: $newValue"
                 summaryStates[row.configKey] = display
-                WeLogger.d("BaseRikkaDialog: Config changed [${row.configKey}] -> $newValue")
+                WeLogger.d(TAG, "Config changed [${row.configKey}] -> $newValue")
                 inputDialogRow = null
             },
             onDismiss = { inputDialogRow = null },
@@ -508,7 +493,7 @@ private fun DialogContent(
             onSelect = { value, displayText ->
                 WeConfig.getDefaultConfig().edit().putInt(row.configKey, value).apply()
                 summaryStates[row.configKey] = displayText
-                WeLogger.d("BaseRikkaDialog: Config changed [${row.configKey}] -> $value")
+                WeLogger.d(TAG, "Config changed [${row.configKey}] -> $value")
                 selectDialogRow = null
             },
             onDismiss = { selectDialogRow = null },
@@ -722,15 +707,8 @@ private fun SelectDialog(
                 }
             }
         },
-        confirmButton = {},
-        dismissButton = {
+        confirmButton = {
             TextButton(onClick = onDismiss) { Text("取消") }
-        },
+        }
     )
 }
-
-// ---------------------------------------------------------------------------
-//  Shim: keep getBooleanOrFalse extension consistent with rest of codebase
-// ---------------------------------------------------------------------------
-private fun SharedPreferences.getBooleanOrFalse(key: String) =
-    getBoolean(key, false)
