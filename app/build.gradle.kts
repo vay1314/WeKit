@@ -1,4 +1,3 @@
-
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.gradle.internal.api.ApkVariantOutputImpl
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
@@ -77,10 +76,7 @@ fun setCargoClang() {
 }
 
 configure<ApplicationExtension> {
-    if (gradle.startParameter.taskNames.isEmpty()) {
-        logger.lifecycle("In Gradle Sync stage, configuring cargo...")
-        setCargoClang()
-    }
+    setCargoClang()
 
     namespace = libs.versions.namespace.get()
     compileSdk = libs.versions.targetSdk.get().toInt()
