@@ -53,6 +53,11 @@ jobs:
       - name: Grant execute permission
         run: chmod +x gradlew
 
+      - name: Install Android NDK 29.0.14206865
+        run: |
+          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "ndk;29.0.14206865"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/29.0.14206865" >> $GITHUB_ENV
+
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
