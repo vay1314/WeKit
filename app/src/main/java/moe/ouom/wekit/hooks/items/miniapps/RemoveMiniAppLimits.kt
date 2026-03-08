@@ -1,7 +1,6 @@
 package moe.ouom.wekit.hooks.items.miniapps
 
 import android.content.Context
-import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.BaseSwitchFunctionHookItem
 import moe.ouom.wekit.dexkit.intf.IDexFind
@@ -16,9 +15,9 @@ object RemoveMiniAppLimits : BaseSwitchFunctionHookItem(), IDexFind {
         methodGetCopyLinkButtonState.toDexMethod {
             hook {
                 beforeIfEnabled { param ->
-                    val returnType = methodGetCopyLinkButtonState.method.returnType
-                    val enumClickable = returnType.asResolver()
-                        .firstField { name = "SHOW_CLICKABLE" }
+                    val returnType  = methodGetCopyLinkButtonState.method.returnType
+                    @Suppress("UNCHECKED_CAST")
+                    val enumClickable = java.lang.Enum.valueOf(returnType as Class<out Enum<*>?>, "SHOW_CLICKABLE")
                     param.result = enumClickable
                 }
             }

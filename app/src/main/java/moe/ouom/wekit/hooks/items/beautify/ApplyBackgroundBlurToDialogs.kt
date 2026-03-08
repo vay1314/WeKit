@@ -23,28 +23,36 @@ object ApplyBackgroundBlurToDialogs : BaseClickableFunctionHookItem(), IDexFind 
     private val TAG = nameof(ApplyBackgroundBlurToDialogs)
 
     private val classMmAlertDialog by dexClass()
+    private val classMmProgressDialog by dexClass()
+    private val classMmQuickDialog by dexClass()
 
     override fun entry(classLoader: ClassLoader) {
-        classMmAlertDialog.clazz.asResolver()
-            .firstMethod {
-                name = "show"
-            }
-            .hookBefore { param ->
-                val dialog = param.thisObject as Dialog
-                dialog.window.apply {
-                    if (this == null) {
-                        WeLogger.w(TAG, "dialog.window is null, skipping")
-                        return@apply
-                    }
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-                        attributes.blurBehindRadius = 20
-                    } else {
-                        WeLogger.w(TAG, "sdk < 31, not applying blur behind dialog")
-                    }
+        listOf(classMmAlertDialog, classMmProgressDialog, classMmQuickDialog).forEach {
+            it.clazz.asResolver()
+                .firstMethod {
+                    name = "onCreate"
                 }
+                .hookBefore { param ->
+                    val dialog = param.thisObject as Dialog
+                    applyBlur(dialog)
+                }
+        }
+    }
+
+    private fun applyBlur(dialog: Dialog) {
+        dialog.window.apply {
+            if (this == null) {
+                WeLogger.w(TAG, "dialog.window is null, skipping")
+                return@apply
             }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                attributes.blurBehindRadius = 20
+            } else {
+                WeLogger.w(TAG, "sdk < 31, not applying blur behind dialog")
+            }
+        }
     }
 
     override fun dexFind(dexKit: DexKitBridge): Map<String, String> {
@@ -54,6 +62,22 @@ object ApplyBackgroundBlurToDialogs : BaseClickableFunctionHookItem(), IDexFind 
             searchPackages("com.tencent.mm.ui.widget.dialog")
             matcher {
                 usingEqStrings("MicroMsg.MMAlertDialog", "dialog dismiss error!")
+            }
+        }
+
+        classMmProgressDialog.find(dexKit, descriptors) {
+            searchPackages("com.tencent.mm.ui.widget.dialog")
+            matcher {
+                usingEqStrings($$"com/tencent/mm/ui/widget/dialog/MMProgressDialog$Builder", "show")
+            }
+        }
+
+        classMmQuickDialog.find(dexKit, descriptors) {
+            searchPackages("com.tencent.mm.ui.widget.dialog")
+            matcher {
+                addFieldForType("android.widget.TextView")
+                addFieldForType("com.tencent.mm.ui.widget.imageview.WeImageView")
+                addFieldForType("android.widget.ProgressBar")
             }
         }
 

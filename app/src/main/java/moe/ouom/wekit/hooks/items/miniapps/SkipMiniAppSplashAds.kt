@@ -1,5 +1,8 @@
 package moe.ouom.wekit.hooks.items.miniapps
 
+import android.app.Activity
+import com.highcapable.kavaref.KavaRef.Companion.asResolver
+import com.highcapable.kavaref.extension.toClass
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.BaseSwitchFunctionHookItem
 import moe.ouom.wekit.dexkit.intf.IDexFind
@@ -19,6 +22,16 @@ object SkipMiniAppSplashAds : BaseSwitchFunctionHookItem(), IDexFind {
                 }
             }
         }
+
+        "com.tencent.mm.plugin.appbrand.ad.ui.AppBrandAdUI".toClass().asResolver()
+            .firstMethod {
+                name = "onCreate"
+            }
+            .hookBefore { param ->
+                val activity = param.thisObject as Activity
+                activity.finish()
+                param.result = null
+            }
     }
 
     override fun dexFind(dexKit: DexKitBridge): Map<String, String> {
