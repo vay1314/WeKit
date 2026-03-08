@@ -57,6 +57,7 @@ fun setCargoClang() {
     val ext = if (isWindows) ".cmd" else ""
 
     val androidHome = gradleLocalProperties(rootDir, providers).getProperty("sdk.dir")
+        ?: System.getenv("ANDROID_HOME")
     val clangPath = findNdkClang(androidHome, minSdk) ?: error("No NDK >= $minSdk found in $androidHome/ndk")
     logger.lifecycle("Found NDK clang: $clangPath")
 
