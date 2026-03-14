@@ -49,10 +49,10 @@
 - **Xposed 最低版本**: 51
 
 ### 技术栈
-- **语言**: Kotlin (主要) + Java + C++
+- **语言**: Kotlin (主要) + Java + Rust
 - **UI 框架**: Jetpack Compose + Material Design 3
 - **Hook 框架**: Xposed API
-- **DEX 分析**: DexKit 2.0.7
+- **DEX 分析**: DexKit
 - **存储**: MMKV
 
 ---
@@ -66,13 +66,13 @@
 3. **Android SDK**:
    - Compile SDK: 36
    - Build Tools: 最新版本
-4. **NDK**: 最新版本 (用于 C++ 编译)
-5. **CMake**: 3.22.1 或更高版本
+4. **NDK**: 最新版本 (用于 Rust 编译)
+5. **Rust**: 最新版本
 
 ### 克隆项目
 
 ```bash
-git clone https://github.com/Ujhhgtg/wekit.git 
+git clone https://github.com/Ujhhgtg/wekit.git --recursive
 cd wekit
 ```
 

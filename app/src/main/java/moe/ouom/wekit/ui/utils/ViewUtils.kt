@@ -3,6 +3,7 @@ package moe.ouom.wekit.ui.utils
 import android.annotation.SuppressLint
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ListAdapter
 import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.constants.PackageNames
 import moe.ouom.wekit.utils.log.WeLogger
@@ -97,15 +98,32 @@ fun <T : View> View.findViewByChildIndexes(vararg indexes: Int): T? {
     return current as? T
 }
 
-fun debugViewGroup(view: View, indent: Int = 0) {
-    val prefix = "  ".repeat(indent)
+fun debugViewTree(view: View, connector: String = "", indent: String = "") {
     val idStr = if (view.id != View.NO_ID) {
         runCatching { view.resources.getResourceEntryName(view.id) }.getOrDefault("?")
     } else "NO_ID"
-    WeLogger.d(nameof(::debugViewGroup), "$prefix${view::class.simpleName} [$idStr / ${view.id}]")
+    WeLogger.d(nameof(::debugViewTree), "$indent$connector${view::class.simpleName} [$idStr / ${view.id}]")
     if (view is ViewGroup) {
-        for (i in 0 until view.childCount) {
-            view.getChildAt(i)?.let { debugViewGroup(it, indent + 1) }
+        val children = (0 until view.childCount).mapNotNull { view.getChildAt(it) }
+        children.forEachIndexed { i, child ->
+            val isLast = i == children.lastIndex
+            val childConnector = if (isLast) "└─ " else "├─ "
+            val childIndent = indent + if (connector.isEmpty()) "" else if (connector.startsWith("└")) "   " else "│  "
+            debugViewTree(child, childConnector, childIndent)
         }
     }
 }
+
+fun ListAdapter.iterator(parent: ViewGroup): Iterator<View> =
+    object : Iterator<View> {
+
+        private var index = 0
+        override fun hasNext() = index < count
+        override fun next(): View {
+            index++
+            return getView(index, null, parent)
+        }
+    }
+
+fun ListAdapter.iterable(parent: ViewGroup): Iterable<View> =
+    Iterable { iterator(parent) }

@@ -22,7 +22,6 @@ import moe.ouom.wekit.hooks.sdk.base.model.MessageInfo
 import moe.ouom.wekit.hooks.sdk.ui.WeChatMessageViewApi
 import moe.ouom.wekit.ui.utils.findViewWhich
 import moe.ouom.wekit.utils.LruCache
-import moe.ouom.wekit.utils.log.WeLogger
 import org.luckypray.dexkit.DexKitBridge
 import kotlin.math.PI
 import kotlin.math.abs
@@ -61,10 +60,7 @@ object SwipeToQuote : SwitchHookItem(), IResolvesDex,
         val messageView =
             viewGroup.findViewWhich<LinearLayout> { view ->
                 view::class == LinearLayout::class && view.id != View.NO_ID
-            } ?: run {
-                WeLogger.e(TAG, "failed to find message view")
-                return
-            }
+            }!!
 
         attachSwipeGesture(messageView, chattingContext, msgInfo)
     }
