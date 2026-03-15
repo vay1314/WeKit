@@ -37,6 +37,7 @@ object UnifiedEntryPoint {
                             )
                         } catch (t: Throwable) {
                             WeLogger.e(
+                                TAG,
                                 "failed to hook Instrumentation.callApplicationOnCreate",
                                 t
                             )
@@ -44,9 +45,9 @@ object UnifiedEntryPoint {
                     }
                 }
             )
-            WeLogger.i("waiting for Application.attachBaseContext")
+            WeLogger.i(TAG, "waiting for Application.attachBaseContext")
         } catch (t: Throwable) {
-            WeLogger.e("failed to hook shell Application", t)
+            WeLogger.e(TAG, "failed to hook shell Application", t)
         }
     }
 

@@ -1,34 +1,24 @@
-package moe.ouom.wekit.loader.modern;
+package moe.ouom.wekit.loader.modern
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import io.github.libxposed.api.XposedInterface
+import moe.ouom.wekit.loader.ModuleLoader
+import moe.ouom.wekit.loader.hookimpl.LibXposedApiByteCodeGenerator
+import moe.ouom.wekit.loader.modern.codegen.Lsp100ProxyClassMaker
+import java.lang.reflect.Method
 
-import java.lang.reflect.Method;
-import java.util.Objects;
+object Lsp100ExtCmd {
 
-import io.github.libxposed.api.XposedInterface;
-import moe.ouom.wekit.loader.ModuleLoader;
-import moe.ouom.wekit.loader.modern.codegen.Lsp100ProxyClassMaker;
-import moe.ouom.wekit.utils.common.CheckUtils;
-
-public class Lsp100ExtCmd {
-
-    private Lsp100ExtCmd() {
-    }
-
-    public static Object handleQueryExtension(@NonNull String cmd, @Nullable Object[] arg) {
-        CheckUtils.checkNonNull(cmd, "cmd");
-        return switch (cmd) {
-            case "GetXposedInterfaceClass" -> XposedInterface.class;
-            case "GetLoadPackageParam" -> null;
-            case "GetInitZygoteStartupParam" -> null;
-            case "GetInitErrors" -> ModuleLoader.getInitErrors();
-            case "SetLibXposedNewApiByteCodeGeneratorWrapper" -> {
-                Lsp100ProxyClassMaker.setWrapperMethod((Method) Objects.requireNonNull(arg)[0]);
-                yield Boolean.TRUE;
+    fun handleQueryExtension(cmd: String, arg: Array<Any?>?): Any? {
+        return when (cmd) {
+            "GetXposedInterfaceClass" -> XposedInterface::class.java
+            "GetLoadPackageParam" -> null
+            "GetInitZygoteStartupParam" -> null
+            "GetInitErrors" -> ModuleLoader.initErrors
+            LibXposedApiByteCodeGenerator.CMD_SET_WRAPPER -> {
+                Lsp100ProxyClassMaker.setWrapperMethod(checkNotNull(arg)[0] as Method)
+                true
             }
-            default -> null;
-        };
+            else -> null
+        }
     }
-
 }

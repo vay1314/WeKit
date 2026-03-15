@@ -1,52 +1,43 @@
-package moe.ouom.wekit.loader.modern.dyn;
+package moe.ouom.wekit.loader.modern.dyn
 
-import androidx.annotation.Keep;
-
-import io.github.libxposed.api.XposedInterface;
-import moe.ouom.wekit.loader.modern.Lsp100HookWrapper;
+import androidx.annotation.Keep
+import io.github.libxposed.api.XposedInterface
+import moe.ouom.wekit.loader.modern.Lsp100HookWrapper
 
 @Keep
-public class Lsp100CallbackProxy {
+class Lsp100CallbackProxy private constructor() {
 
-    private Lsp100CallbackProxy() {
+    @Keep
+    class P0000000050 : XposedInterface.Hooker {
+        companion object {
+            const val TAG = 50
+
+            @Keep
+            @JvmStatic
+            fun before(callback: XposedInterface.BeforeHookCallback): Lsp100HookWrapper.InvocationParamWrapper? =
+                Lsp100HookWrapper.Lsp100HookAgent.handleBeforeHookedMethod(callback, TAG)
+
+            @Keep
+            @JvmStatic
+            fun after(callback: XposedInterface.AfterHookCallback, param: Lsp100HookWrapper.InvocationParamWrapper?) =
+                Lsp100HookWrapper.Lsp100HookAgent.handleAfterHookedMethod(callback, param, TAG)
+        }
     }
 
-    /**
-     * The default priority for Xposed hooks.
-     */
     @Keep
-    public static class P0000000050 implements XposedInterface.Hooker {
+    class P0000000051 : XposedInterface.Hooker {
+        companion object {
+            const val TAG = 51
 
-        public static final int tag = 50;
+            @Keep
+            @JvmStatic
+            fun before(callback: XposedInterface.BeforeHookCallback): Lsp100HookWrapper.InvocationParamWrapper? =
+                Lsp100HookWrapper.Lsp100HookAgent.handleBeforeHookedMethod(callback, TAG)
 
-        @Keep
-        public static Lsp100HookWrapper.InvocationParamWrapper before(XposedInterface.BeforeHookCallback callback) {
-            return Lsp100HookWrapper.Lsp100HookAgent.handleBeforeHookedMethod(callback, tag);
-        }
-
-        @Keep
-        public static void after(XposedInterface.AfterHookCallback callback, Lsp100HookWrapper.InvocationParamWrapper param) {
-            Lsp100HookWrapper.Lsp100HookAgent.handleAfterHookedMethod(callback, param, tag);
-        }
-
-    }
-
-    /**
-     * LoadDex hook uses priority 51.
-     */
-    @Keep
-    public static class P0000000051 implements XposedInterface.Hooker {
-
-        public static final int tag = 51;
-
-        @Keep
-        public static Lsp100HookWrapper.InvocationParamWrapper before(XposedInterface.BeforeHookCallback callback) {
-            return Lsp100HookWrapper.Lsp100HookAgent.handleBeforeHookedMethod(callback, tag);
-        }
-
-        @Keep
-        public static void after(XposedInterface.AfterHookCallback callback, Lsp100HookWrapper.InvocationParamWrapper param) {
-            Lsp100HookWrapper.Lsp100HookAgent.handleAfterHookedMethod(callback, param, tag);
+            @Keep
+            @JvmStatic
+            fun after(callback: XposedInterface.AfterHookCallback, param: Lsp100HookWrapper.InvocationParamWrapper?) =
+                Lsp100HookWrapper.Lsp100HookAgent.handleAfterHookedMethod(callback, param, TAG)
         }
     }
 }

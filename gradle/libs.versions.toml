@@ -1,5 +1,7 @@
 [versions]
 # noinspection UnusedVersionCatalogEntry
+gif = "1.2.31"
+svg = "1.4"
 namespace = "moe.ouom.wekit"
 # noinspection UnusedVersionCatalogEntry
 minSdk = "29"
@@ -81,7 +83,8 @@ markwon-ext-tasklist = { module = "io.noties.markwon:ext-tasklist", version.ref 
 markwon-html = { module = "io.noties.markwon:html", version.ref = "markwon" }
 markwon-image = { module = "io.noties.markwon:image", version.ref = "markwon" }
 markwon-linkify = { module = "io.noties.markwon:linkify", version.ref = "markwon" }
-markwon-syntax-highlight = { module = "io.noties.markwon:syntax-highlight", version.ref = "markwon" }
+svg = { module = "com.caverock:androidsvg-aar", version.ref = "svg" }
+gif = { module = "pl.droidsonroids.gif:android-gif-drawable", version.ref = "gif" }
 
 material-dialogs-core = { module = "com.afollestad.material-dialogs:core", version.ref = "materialDialog" }
 material-dialogs-input = { module = "com.afollestad.material-dialogs:input", version.ref = "materialDialog" }

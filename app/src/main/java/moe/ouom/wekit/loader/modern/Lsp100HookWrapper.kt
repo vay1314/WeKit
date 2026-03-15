@@ -1,441 +1,264 @@
-package moe.ouom.wekit.loader.modern;
+package moe.ouom.wekit.loader.modern
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedModule
+import moe.ouom.wekit.loader.hookapi.IHookBridge
+import moe.ouom.wekit.loader.modern.codegen.Lsp100ProxyClassMaker
+import moe.ouom.wekit.loader.modern.dyn.Lsp100CallbackProxy
+import moe.ouom.wekit.utils.common.CheckUtils
+import moe.ouom.wekit.utils.log.WeLogger
+import java.lang.reflect.Constructor
+import java.lang.reflect.Member
+import java.lang.reflect.Method
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Member;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+object Lsp100HookWrapper {
 
-import io.github.libxposed.api.XposedInterface;
-import io.github.libxposed.api.XposedModule;
-import moe.ouom.wekit.loader.hookapi.IHookBridge;
-import moe.ouom.wekit.loader.modern.codegen.Lsp100ProxyClassMaker;
-import moe.ouom.wekit.loader.modern.dyn.Lsp100CallbackProxy;
-import moe.ouom.wekit.utils.common.CheckUtils;
-import moe.ouom.wekit.utils.log.WeLogger;
+    private val EMPTY_CALLBACKS = arrayOfNulls<CallbackWrapper>(0).filterNotNull().toTypedArray()
+    private val sNextHookId = AtomicLong(1)
+    private val sRegistryWriteLock = Any()
+    private val DEFAULT_PROXY: Class<*> = Lsp100CallbackProxy.P0000000050::class.java
+    private const val DEFAULT_PRIORITY = 50
 
-public class Lsp100HookWrapper {
-
-    private static final CallbackWrapper[] EMPTY_CALLBACKS = new CallbackWrapper[0];
-    private static final AtomicLong sNextHookId = new AtomicLong(1);
-    private static final Object sRegistryWriteLock = new Object();
-    private static final Class<?> DEFAULT_PROXY = Lsp100CallbackProxy.P0000000050.class;
-    private static final int DEFAULT_PRIORITY = 50;
     // WARNING: This will only work for Android 7.0 and above.
     // Since SDK 24, Method.equals() and Method.hashCode() can correctly compare hooked methods.
-    // Before SDK 24, equals() uses AbstractMethod which is not safe for hooked methods.
-    // If you need to support lower versions, go and read cs.android.com.
-    private static final ConcurrentHashMap<Integer, ConcurrentHashMap<Class<?>, ConcurrentHashMap<Member, CallbackListHolder>>> sCallbackRegistry = new ConcurrentHashMap<>();
-    public static XposedModule self = null;
+    private val sCallbackRegistry = ConcurrentHashMap<Int, ConcurrentHashMap<Class<*>, ConcurrentHashMap<Member, CallbackListHolder>>>()
 
-    private Lsp100HookWrapper() {
-    }
+    @JvmField
+    var self: XposedModule? = null
 
-    @SuppressWarnings("unchecked")
-    public static UnhookHandle hookAndRegisterMethodCallback(
-            final @NonNull Member method,
-            final @NonNull IHookBridge.IMemberHookCallback callback,
-            final int priority
-    ) {
-        CheckUtils.checkNonNull(method, "method");
-        CheckUtils.checkNonNull(callback, "callback");
-        // select a proxy class
-        final int tag;
-        final Class<?> proxyClass;
-        {
-            Class<?> c;
-            int t;
-            try {
-                c = generateProxyClassForCallback(priority);
-                t = priority;
-            } catch (RuntimeException e) {
-                WeLogger.w("failed to generate proxy class, fallback to default", e);
-                c = DEFAULT_PROXY;
-                t = DEFAULT_PRIORITY;
-            }
-            proxyClass = c;
-            tag = t;
+    @Suppress("UNCHECKED_CAST")
+    fun hookAndRegisterMethodCallback(
+        method: Member,
+        callback: IHookBridge.IMemberHookCallback,
+        priority: Int
+    ): UnhookHandle {
+        CheckUtils.checkNonNull(method, "method")
+        CheckUtils.checkNonNull(callback, "callback")
+
+        val (proxyClass, tag) = try {
+            val c = generateProxyClassForCallback(priority)
+            c to priority
+        } catch (e: RuntimeException) {
+            WeLogger.w("failed to generate proxy class, fallback to default", e)
+            DEFAULT_PROXY to DEFAULT_PRIORITY
         }
-        var wrapper = new CallbackWrapper(callback, priority, tag);
-        var handle = new UnhookHandle(wrapper, method);
-        var declaringClass = method.getDeclaringClass();
-        CallbackListHolder holder;
-        synchronized (sRegistryWriteLock) {
-            // 1. select the callback list by tag
-            var taggedCallbackRegistry = sCallbackRegistry.get(tag);
-            if (taggedCallbackRegistry == null) {
-                taggedCallbackRegistry = new ConcurrentHashMap<>();
-                sCallbackRegistry.put(tag, taggedCallbackRegistry);
-            }
-            // 2. check if the method is already hooked
-            var callbackList = taggedCallbackRegistry.get(declaringClass);
-            if (callbackList == null) {
-                callbackList = new ConcurrentHashMap<>();
-                taggedCallbackRegistry.put(declaringClass, callbackList);
-            }
-            holder = callbackList.get(method);
-            if (holder == null) {
-                // 3. tell the underlying framework to hook the method
-                if (method instanceof Method) {
-                    self.hook((Method) method, tag, (Class<? extends XposedInterface.Hooker>) proxyClass);
-                } else if (method instanceof Constructor) {
-                    self.hook((Constructor<?>) method, tag, (Class<? extends XposedInterface.Hooker>) proxyClass);
-                } else {
-                    throw new IllegalArgumentException("only method and constructor can be hooked, but got " + method);
+
+        val wrapper = CallbackWrapper(callback, priority, tag)
+        val handle = UnhookHandle(wrapper, method)
+        val declaringClass = method.declaringClass
+
+        val holder: CallbackListHolder
+        synchronized(sRegistryWriteLock) {
+            val taggedCallbackRegistry = sCallbackRegistry.getOrPut(tag) { ConcurrentHashMap() }
+            val callbackList = taggedCallbackRegistry.getOrPut(declaringClass) { ConcurrentHashMap() }
+            var h = callbackList[method]
+            if (h == null) {
+                when (method) {
+                    is Method -> self!!.hook(method, tag, proxyClass as Class<out XposedInterface.Hooker>)
+                    is Constructor<*> -> self!!.hook(method, tag, proxyClass as Class<out XposedInterface.Hooker>)
+                    else -> throw IllegalArgumentException("only method and constructor can be hooked, but got $method")
                 }
-                // 4. create a new holder
-                var newHolder = new CallbackListHolder();
-                callbackList.put(method, newHolder);
-                holder = newHolder;
+                h = CallbackListHolder()
+                callbackList[method] = h
             }
+            holder = h
         }
-        // 4. add the callback to the holder
-        synchronized (holder.lock) {
-            // add and sort descending
-            var newSize = holder.callbacks == null ? 1 : holder.callbacks.length + 1;
-            var newCallbacks = new CallbackWrapper[newSize];
-            if (holder.callbacks != null) {
-                var i = 0;
-                for (; i < holder.callbacks.length; i++) {
+
+        synchronized(holder.lock) {
+            val newSize = if (holder.callbacks.isEmpty()) 1 else holder.callbacks.size + 1
+            val newCallbacks = arrayOfNulls<CallbackWrapper>(newSize)
+            if (holder.callbacks.isNotEmpty()) {
+                var i = 0
+                while (i < holder.callbacks.size) {
                     if (holder.callbacks[i].priority > priority) {
-                        newCallbacks[i] = holder.callbacks[i];
-                    } else {
-                        break;
-                    }
+                        newCallbacks[i] = holder.callbacks[i]
+                        i++
+                    } else break
                 }
-                newCallbacks[i] = wrapper;
-                for (; i < holder.callbacks.length; i++) {
-                    newCallbacks[i + 1] = holder.callbacks[i];
+                newCallbacks[i] = wrapper
+                while (i < holder.callbacks.size) {
+                    newCallbacks[i + 1] = holder.callbacks[i]
+                    i++
                 }
             } else {
-                newCallbacks[0] = wrapper;
+                newCallbacks[0] = wrapper
             }
-            holder.callbacks = newCallbacks;
+            @Suppress("UNCHECKED_CAST")
+            holder.callbacks = newCallbacks as Array<CallbackWrapper>
         }
-        return handle;
+        return handle
     }
 
-    public static void removeMethodCallback(@NonNull Member method, final @NonNull CallbackWrapper callback) {
-        CheckUtils.checkNonNull(method, "method");
-        CheckUtils.checkNonNull(callback, "callback");
-        // find the callback holder
-        final var tag = callback.tag;
-        var taggedCallbackRegistry = sCallbackRegistry.get(tag);
-        if (taggedCallbackRegistry == null) {
-            return;
-        }
-        var callbackList = taggedCallbackRegistry.get(method.getDeclaringClass());
-        if (callbackList == null) {
-            return;
-        }
-        var holder = callbackList.get(method);
-        if (holder == null) {
-            return;
-        }
-        // remove the callback
-        synchronized (holder.lock) {
-            var newCallbacks = new ArrayList<CallbackWrapper>();
-            for (var cb : holder.callbacks) {
-                if (cb != callback) {
-                    newCallbacks.add(cb);
-                }
-            }
-            holder.callbacks = newCallbacks.toArray(new CallbackWrapper[0]);
+    fun removeMethodCallback(method: Member, callback: CallbackWrapper) {
+        CheckUtils.checkNonNull(method, "method")
+        CheckUtils.checkNonNull(callback, "callback")
+        val taggedCallbackRegistry = sCallbackRegistry[callback.tag] ?: return
+        val callbackList = taggedCallbackRegistry[method.declaringClass] ?: return
+        val holder = callbackList[method] ?: return
+        synchronized(holder.lock) {
+            holder.callbacks = holder.callbacks.filter { it !== callback }.toTypedArray()
         }
     }
 
-    public static boolean isMethodCallbackRegistered(@NonNull Member method, @NonNull CallbackWrapper callback) {
-        CheckUtils.checkNonNull(method, "method");
-        CheckUtils.checkNonNull(callback, "callback");
-        final var tag = callback.tag;
-        var taggedCallbackRegistry = sCallbackRegistry.get(tag);
-        if (taggedCallbackRegistry == null) {
-            return false;
-        }
-        // find the callback holder
-        var callbackList = taggedCallbackRegistry.get(method.getDeclaringClass());
-        if (callbackList == null) {
-            return false;
-        }
-        var holder = callbackList.get(method);
-        if (holder == null) {
-            return false;
-        }
-        // read only, not need to lock
-        var callbacks = holder.callbacks;
-        for (var cb : callbacks) {
-            if (cb == callback) {
-                return true;
-            }
-        }
-        return false;
+    fun isMethodCallbackRegistered(method: Member, callback: CallbackWrapper): Boolean {
+        CheckUtils.checkNonNull(method, "method")
+        CheckUtils.checkNonNull(callback, "callback")
+        val taggedCallbackRegistry = sCallbackRegistry[callback.tag] ?: return false
+        val callbackList = taggedCallbackRegistry[method.declaringClass] ?: return false
+        val holder = callbackList[method] ?: return false
+        return holder.callbacks.any { it === callback }
     }
 
-    private static CallbackWrapper[] copyCallbacks(@Nullable CallbackListHolder holder) {
-        if (holder == null) {
-            return EMPTY_CALLBACKS;
-        }
-        synchronized (holder.lock) {
-            if (holder.callbacks != null) {
-                return holder.callbacks.clone();
-            }
-        }
-        return EMPTY_CALLBACKS;
-    }
-
-    @NonNull
-    private static Class<?> generateProxyClassForCallback(int priority) throws UnsupportedOperationException {
-        var maker = Lsp100ProxyClassMaker.getInstance();
-        return maker.createProxyClass(priority);
-    }
-
-    public static int getHookCounter() {
-        return (int) (sNextHookId.get() - 1);
-    }
-
-    public static class CallbackWrapper {
-
-        public final IHookBridge.IMemberHookCallback callback;
-        public final long hookId = sNextHookId.getAndIncrement();
-        public final int priority;
-        public final int tag;
-
-        public CallbackWrapper(IHookBridge.IMemberHookCallback callback, int priority, int tag) {
-            this.callback = callback;
-            this.priority = priority;
-            this.tag = tag;
+    private fun copyCallbacks(holder: CallbackListHolder?): Array<CallbackWrapper> {
+        holder ?: return EMPTY_CALLBACKS
+        synchronized(holder.lock) {
+            return if (holder.callbacks.isNotEmpty()) holder.callbacks.clone() else EMPTY_CALLBACKS
         }
     }
 
-    public static class CallbackListHolder {
+    private fun generateProxyClassForCallback(priority: Int): Class<*> =
+        Lsp100ProxyClassMaker.getInstance().createProxyClass(priority)
 
-        public final Object lock = new Object();
+    fun getHookCounter(): Int = (sNextHookId.get() - 1).toInt()
+
+    class CallbackWrapper(
+        val callback: IHookBridge.IMemberHookCallback,
+        val priority: Int,
+        val tag: Int
+    ) {
+        val hookId: Long = sNextHookId.getAndIncrement()
+    }
+
+    class CallbackListHolder {
+        val lock = Any()
         // sorted by priority, descending
-        public CallbackWrapper[] callbacks = EMPTY_CALLBACKS;
-
+        var callbacks: Array<CallbackWrapper> = emptyArray()
     }
 
-    public static class InvocationParamWrapper implements IHookBridge.IMemberHookParam {
+    class InvocationParamWrapper : IHookBridge.IMemberHookParam {
+        var index: Int = -1
+        var isAfter: Boolean = false
+        var callbacks: Array<CallbackWrapper> = emptyArray()
+        var extras: Array<Any?>? = null
+        var before: XposedInterface.BeforeHookCallback? = null
+        var after: XposedInterface.AfterHookCallback? = null
 
-        // the index of the active callback
-        public int index = -1;
-        public boolean isAfter = false;
-        // sorted by priority, descending
-        public CallbackWrapper[] callbacks;
-        // create on demand
-        public Object[] extras;
-        XposedInterface.BeforeHookCallback before;
-        XposedInterface.AfterHookCallback after;
-
-        @NonNull
-        @Override
-        public Member getMember() {
-            checkLifecycle();
-            if (isAfter) {
-                return after.getMember();
-            } else {
-                return before.getMember();
-            }
+        override fun getMember(): Member {
+            checkLifecycle()
+            return if (isAfter) after!!.member else before!!.member
         }
 
-        @Nullable
-        @Override
-        public Object getThisObject() {
-            checkLifecycle();
-            if (isAfter) {
-                return after.getThisObject();
-            } else {
-                return before.getThisObject();
-            }
+        override fun getThisObject(): Any? {
+            checkLifecycle()
+            return if (isAfter) after!!.thisObject else before!!.thisObject
         }
 
-        @NonNull
-        @Override
-        public Object[] getArgs() {
-            checkLifecycle();
-            if (isAfter) {
-                return after.getArgs();
-            } else {
-                return before.getArgs();
-            }
+        override fun getArgs(): Array<Any?> {
+            checkLifecycle()
+            return if (isAfter) after!!.args else before!!.args
         }
 
-        @Nullable
-        @Override
-        public Object getResult() {
-            checkLifecycle();
-            if (isAfter) {
-                return after.getResult();
-            } else {
-                return null;
-            }
+        override fun getResult(): Any? {
+            checkLifecycle()
+            return if (isAfter) after!!.result else null
         }
 
-        @Override
-        public void setResult(@Nullable Object result) {
-            checkLifecycle();
-            if (isAfter) {
-                after.setResult(result);
-            } else {
-                before.returnAndSkip(result);
-            }
+        override fun setResult(result: Any?) {
+            checkLifecycle()
+            if (isAfter) after!!.setResult(result) else before!!.returnAndSkip(result)
         }
 
-        @Nullable
-        @Override
-        public Throwable getThrowable() {
-            checkLifecycle();
-            if (isAfter) {
-                return after.getThrowable();
-            } else {
-                return null;
-            }
+        override fun getThrowable(): Throwable? {
+            checkLifecycle()
+            return if (isAfter) after!!.throwable else null
         }
 
-        @Override
-        public void setThrowable(@NonNull Throwable throwable) {
-            checkLifecycle();
-            if (isAfter) {
-                after.setThrowable(throwable);
-            } else {
-                before.throwAndSkip(throwable);
-            }
+        override fun setThrowable(throwable: Throwable) {
+            checkLifecycle()
+            if (isAfter) after!!.setThrowable(throwable) else before!!.throwAndSkip(throwable)
         }
 
-        @Nullable
-        @Override
-        public Object getExtra() {
-            checkLifecycle();
-            if (extras == null) {
-                return null;
-            }
-            return extras[index];
+        override fun getExtra(): Any? {
+            checkLifecycle()
+            return extras?.get(index)
         }
 
-        @Override
-        public void setExtra(@Nullable Object extra) {
-            checkLifecycle();
-            if (extras == null) {
-                // create on demand
-                extras = new Object[callbacks.length];
-            }
-            extras[index] = extra;
+        override fun setExtra(extra: Any?) {
+            checkLifecycle()
+            if (extras == null) extras = arrayOfNulls(callbacks.size)
+            extras!![index] = extra
         }
 
-        private void checkLifecycle() {
+        private fun checkLifecycle() {
             if ((isAfter && after == null) || (!isAfter && before == null)) {
-                throw new IllegalStateException("attempt to access hook param after destroyed");
+                throw IllegalStateException("attempt to access hook param after destroyed")
             }
         }
-
     }
 
-    public static class Lsp100HookAgent implements XposedInterface.Hooker {
+    object Lsp100HookAgent : XposedInterface.Hooker {
 
-        public static InvocationParamWrapper handleBeforeHookedMethod(
-                final @NonNull XposedInterface.BeforeHookCallback callback,
-                final int tag
-        ) {
-            // lookup by tag
-            var taggedCallbackRegistry = sCallbackRegistry.get(tag);
-            if (taggedCallbackRegistry == null) {
-                return null;
+        fun handleBeforeHookedMethod(
+            callback: XposedInterface.BeforeHookCallback,
+            tag: Int
+        ): InvocationParamWrapper? {
+            val taggedCallbackRegistry = sCallbackRegistry[tag] ?: return null
+            val member = callback.member
+            val callbackList = taggedCallbackRegistry[member.declaringClass] ?: return null
+            val holder = callbackList[member] ?: return null
+            val callbacks = copyCallbacks(holder)
+            if (callbacks.isEmpty()) return null
+
+            val param = InvocationParamWrapper().apply {
+                this.callbacks = callbacks
+                this.before = callback
+                this.isAfter = false
             }
-            var member = callback.getMember();
-            // lookup callback list
-            var callbackList = taggedCallbackRegistry.get(member.getDeclaringClass());
-            if (callbackList == null) {
-                return null;
-            }
-            var holder = callbackList.get(member);
-            if (holder == null) {
-                return null;
-            }
-            // copy callbacks
-            var callbacks = copyCallbacks(holder);
-            if (callbacks.length == 0) {
-                return null;
-            }
-            // create invocation holder
-            var param = new InvocationParamWrapper();
-            param.callbacks = callbacks;
-            param.before = callback;
-            param.isAfter = false;
-            for (var i = 0; i < callbacks.length; i++) {
-                param.index = i;
+            for (i in callbacks.indices) {
+                param.index = i
                 try {
-                    callbacks[i].callback.beforeHookedMember(param);
-                } catch (Throwable t) {
-                    self.log(t.toString(), t);
+                    callbacks[i].callback.beforeHookedMember(param)
+                } catch (t: Throwable) {
+                    self!!.log(t.toString(), t)
                 }
             }
-            param.index = -1;
-            return param;
+            param.index = -1
+            return param
         }
 
-        public static void handleAfterHookedMethod(
-                final @NonNull XposedInterface.AfterHookCallback callback,
-                final @Nullable InvocationParamWrapper param,
-                final int tag
+        fun handleAfterHookedMethod(
+            callback: XposedInterface.AfterHookCallback,
+            param: InvocationParamWrapper?,
+            tag: Int
         ) {
-            if (param == null) {
-                throw new AssertionError("param is null");
-            }
-            param.isAfter = true;
-            param.after = callback;
-            // call in reserve order
-            for (var i = param.callbacks.length - 1; i >= 0; i--) {
-                param.index = i;
+            checkNotNull(param) { "param is null" }
+            param.isAfter = true
+            param.after = callback
+            for (i in param.callbacks.indices.reversed()) {
+                param.index = i
                 try {
-                    param.callbacks[i].callback.afterHookedMember(param);
-                } catch (Throwable t) {
-                    self.log(t.toString(), t);
+                    param.callbacks[i].callback.afterHookedMember(param)
+                } catch (t: Throwable) {
+                    self!!.log(t.toString(), t)
                 }
             }
-            // for gc
-            param.callbacks = null;
-            param.extras = null;
-            param.before = null;
-            param.after = null;
+            param.callbacks = emptyArray()
+            param.extras = null
+            param.before = null
+            param.after = null
         }
     }
 
-    public static class UnhookHandle implements IHookBridge.MemberUnhookHandle {
+    class UnhookHandle(
+        private val callback: CallbackWrapper,
+        private val method: Member
+    ) : IHookBridge.MemberUnhookHandle {
 
-        private final CallbackWrapper callback;
-        private final Member method;
-
-        public UnhookHandle(@NonNull CallbackWrapper callback, @NonNull Member method) {
-            this.callback = callback;
-            this.method = method;
-        }
-
-        @NonNull
-        @Override
-        public Member getMember() {
-            return method;
-        }
-
-        @NonNull
-        @Override
-        public IHookBridge.IMemberHookCallback getCallback() {
-            return callback.callback;
-        }
-
-        @Override
-        public boolean isHookActive() {
-            return isMethodCallbackRegistered(method, callback);
-        }
-
-        @Override
-        public void unhook() {
-            removeMethodCallback(method, callback);
-        }
-
+        override fun getMember(): Member = method
+        override fun getCallback(): IHookBridge.IMemberHookCallback = callback.callback
+        override fun isHookActive(): Boolean = isMethodCallbackRegistered(method, callback)
+        override fun unhook() = removeMethodCallback(method, callback)
     }
-
 }

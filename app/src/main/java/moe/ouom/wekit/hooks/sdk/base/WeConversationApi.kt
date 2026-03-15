@@ -55,15 +55,15 @@ object WeConversationApi : ApiHookItem(), IResolvesDex {
             "SELECT username FROM rconversation WHERE unReadCount>0 OR unReadMuteCount>0",
             arrayOf<String>()
         ) as Cursor
-        do {
-            val convId = cursor.getString(0)
+        while (cursor.moveToNext()) {
+            val talker = cursor.getString(0)
             try {
-                methodUpdateUnreadByTalker.method.invoke(conversationStorage, convId)
-                WeLogger.d(TAG, "marked $convId as read")
+                methodUpdateUnreadByTalker.method.invoke(conversationStorage, talker)
+                WeLogger.d(TAG, "marked $talker as read")
             } catch (ex: Exception) {
-                WeLogger.w(TAG, "exception while updating unread count for $convId", ex)
+                WeLogger.w(TAG, "exception while updating unread count for $talker", ex)
             }
-        } while (cursor.moveToNext())
+        }
         cursor.close()
     }
 

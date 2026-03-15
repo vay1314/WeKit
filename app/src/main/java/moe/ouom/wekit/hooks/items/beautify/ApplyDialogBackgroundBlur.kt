@@ -10,7 +10,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -113,15 +112,6 @@ object ApplyDialogBackgroundBlur : ClickableHookItem(), IResolvesDex {
                         )
                     }
 
-                    LaunchedEffect(blurRadius) {
-                        WePrefs.putInt(KEY_BLUR_RADIUS, blurRadius)
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            window.attributes.blurBehindRadius = blurRadius
-                        } else {
-                            WeLogger.w(TAG, "sdk < 31, not applying blur behind dialog")
-                        }
-                    }
-
                     Text("如果本对话框背景没有模糊, 说明系统 Android 版本过低 (SDK < 31) 或未在开发者选项中启用")
                     HorizontalDivider()
                     ListItem(
@@ -129,7 +119,15 @@ object ApplyDialogBackgroundBlur : ClickableHookItem(), IResolvesDex {
                         supportingContent = {
                             IntSlider(
                                 blurRadius,
-                                { blurRadius = it },
+                                {
+                                    blurRadius = it
+                                    WePrefs.putInt(KEY_BLUR_RADIUS, blurRadius)
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                        window.attributes.blurBehindRadius = blurRadius
+                                    } else {
+                                        WeLogger.w(TAG, "sdk < 31, not applying blur behind dialog")
+                                    }
+                                },
                                 5..30
                             )
                         }

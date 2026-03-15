@@ -5,6 +5,8 @@ import de.robv.android.xposed.XposedBridge
 import moe.ouom.wekit.config.WePrefs
 import moe.ouom.wekit.constants.PreferenceKeys
 import moe.ouom.wekit.core.model.ApiHookItem
+import moe.ouom.wekit.core.model.ClickableHookItem
+import moe.ouom.wekit.core.model.SwitchHookItem
 import moe.ouom.wekit.hooks.core.ExceptionFactory
 import moe.ouom.wekit.utils.log.WeLogger
 import java.lang.reflect.Method
@@ -36,15 +38,16 @@ class DexMethodHookBuilder(
             return true
         }
 
-        // 尝试将 hookItem 转换为 BaseSwitchFunctionHookItem 并检查状态
-        return try {
-            val hookItemClass = hookItem?.javaClass
-            val isEnabledMethod = hookItemClass?.getMethod("isEnabled")
-            isEnabledMethod?.invoke(hookItem) as? Boolean ?: true
-        } catch (e: Exception) {
-            WeLogger.w("failed to check enabled status, defaulting to true", e)
-            true
+        if (hookItem is SwitchHookItem) {
+            return hookItem.isEnabled
         }
+
+        if (hookItem is ClickableHookItem) {
+            return hookItem.isEnabled
+        }
+
+        WeLogger.w("failed to check enabled status, defaulting to true")
+        return true
     }
 
     /**

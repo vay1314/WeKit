@@ -294,11 +294,6 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
         methodGetEmojiGroupInfo.toDexMethod {
             hook {
                 afterIfEnabled { param ->
-                    WeLogger.i(
-                        TAG,
-                        "getEmojiGroupInfo called, result: ${param.result.javaClass.name}"
-                    )
-
                     if (param.result !is java.util.List<*>) {
                         WeLogger.d(TAG, "param result is not list, skipped")
                         return@afterIfEnabled

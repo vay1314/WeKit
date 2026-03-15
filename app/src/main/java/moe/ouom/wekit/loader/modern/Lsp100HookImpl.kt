@@ -1,136 +1,84 @@
-package moe.ouom.wekit.loader.modern;
+package moe.ouom.wekit.loader.modern
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedModule
+import moe.ouom.wekit.loader.hookapi.IClassLoaderHelper
+import moe.ouom.wekit.loader.hookapi.IHookBridge
+import moe.ouom.wekit.loader.hookapi.ILoaderService
+import java.lang.reflect.Constructor
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Member
+import java.lang.reflect.Method
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Member;
-import java.lang.reflect.Method;
+class Lsp100HookImpl private constructor() : IHookBridge, ILoaderService {
 
-import io.github.libxposed.api.XposedInterface;
-import io.github.libxposed.api.XposedModule;
-import moe.ouom.wekit.loader.hookapi.IClassLoaderHelper;
-import moe.ouom.wekit.loader.hookapi.IHookBridge;
-import moe.ouom.wekit.loader.hookapi.ILoaderService;
-import moe.ouom.wekit.utils.common.CheckUtils;
+    private var mClassLoaderHelper: IClassLoaderHelper? = null
 
-public class Lsp100HookImpl implements IHookBridge, ILoaderService {
+    override fun getApiLevel(): Int = XposedInterface.API
 
-    public static final Lsp100HookImpl INSTANCE = new Lsp100HookImpl();
-    public static XposedModule self = null;
-    private IClassLoaderHelper mClassLoaderHelper;
+    override fun getFrameworkName(): String = self!!.frameworkName
 
-    private Lsp100HookImpl() {
-    }
+    override fun getFrameworkVersion(): String = self!!.frameworkVersion
 
-    public static void init(@NonNull XposedModule base) {
-        self = base;
-        Lsp100HookWrapper.self = base;
-    }
+    override fun getFrameworkVersionCode(): Long = self!!.frameworkVersionCode
 
-    @Override
-    public int getApiLevel() {
-        return XposedInterface.API;
-    }
+    override fun hookMethod(member: Member, callback: IHookBridge.IMemberHookCallback, priority: Int): IHookBridge.MemberUnhookHandle =
+        Lsp100HookWrapper.hookAndRegisterMethodCallback(member, callback, priority)
 
-    @NonNull
-    @Override
-    public String getFrameworkName() {
-        return self.getFrameworkName();
-    }
+    override fun isDeoptimizationSupported(): Boolean = true
 
-    @NonNull
-    @Override
-    public String getFrameworkVersion() {
-        return self.getFrameworkVersion();
-    }
-
-    @Override
-    public long getFrameworkVersionCode() {
-        return self.getFrameworkVersionCode();
-    }
-
-    @NonNull
-    @Override
-    public MemberUnhookHandle hookMethod(@NonNull Member member, @NonNull IMemberHookCallback callback, int priority) {
-        return Lsp100HookWrapper.hookAndRegisterMethodCallback(member, callback, priority);
-    }
-
-    @Override
-    public boolean isDeoptimizationSupported() {
-        return true;
-    }
-
-    @Override
-    public boolean deoptimize(@NonNull Member member) {
-        CheckUtils.checkNonNull(member, "member");
-        if (member instanceof Method) {
-            return self.deoptimize((Method) member);
-        } else if (member instanceof Constructor) {
-            return self.deoptimize((Constructor<?>) member);
-        } else {
-            throw new IllegalArgumentException("only method and constructor can be deoptimized");
+    override fun deoptimize(member: Member): Boolean {
+        return when (member) {
+            is Method -> self!!.deoptimize(member)
+            is Constructor<*> -> self!!.deoptimize(member)
+            else -> throw IllegalArgumentException("only method and constructor can be deoptimized")
         }
     }
 
-    @Nullable
-    @Override
-    public Object invokeOriginalMethod(@NonNull Method method, @Nullable Object thisObject, @NonNull Object[] args)
-            throws NullPointerException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        CheckUtils.checkNonNull(method, "method");
-        CheckUtils.checkNonNull(args, "args");
-        return self.invokeOrigin(method, thisObject, args);
+    @Throws(NullPointerException::class, IllegalAccessException::class, IllegalArgumentException::class, InvocationTargetException::class)
+    override fun invokeOriginalMethod(method: Method, thisObject: Any?, args: Array<Any?>): Any? {
+        return self!!.invokeOrigin(method, thisObject, args)
     }
 
-    @NonNull
-    @Override
-    public <T> T newInstanceOrigin(@NonNull Constructor<T> constructor, @NonNull Object... args)
-            throws InvocationTargetException, IllegalArgumentException, IllegalAccessException, InstantiationException {
-        CheckUtils.checkNonNull(constructor, "constructor");
-        CheckUtils.checkNonNull(args, "args");
-        return self.newInstanceOrigin(constructor, args);
+    @Throws(InvocationTargetException::class, IllegalArgumentException::class, IllegalAccessException::class, InstantiationException::class)
+    override fun <T : Any> newInstanceOrigin(ctor: Constructor<T>, vararg args: Any?): T {
+        return self!!.newInstanceOrigin(ctor, args)
     }
 
-    @Override
-    public <T> void invokeOriginalConstructor(@NonNull Constructor<T> ctor, @NonNull T thisObject, @NonNull Object[] args)
-            throws NullPointerException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        CheckUtils.checkNonNull(ctor, "ctor");
-        CheckUtils.checkNonNull(thisObject, "thisObject");
-        CheckUtils.checkNonNull(args, "args");
-        self.invokeOrigin(ctor, thisObject, args);
+    @Throws(NullPointerException::class, IllegalAccessException::class, IllegalArgumentException::class, InvocationTargetException::class)
+    override fun <T> invokeOriginalConstructor(ctor: Constructor<T>, thisObject: T, args: Array<Any?>) {
+        checkNotNull(thisObject)
+        self!!.invokeOrigin(ctor, thisObject, args)
     }
 
-    @Nullable
-    @Override
-    public Object queryExtension(@NonNull String key, @Nullable Object... args) {
-        return Lsp100ExtCmd.handleQueryExtension(key, args);
+    @Suppress("UNCHECKED_CAST")
+    override fun queryExtension(key: String, vararg args: Any?): Any? {
+        return Lsp100ExtCmd.handleQueryExtension(
+            key,
+            (args as Array<Any?>?).takeIf { args.isNotEmpty() })
     }
 
-    @Override
-    public void log(@NonNull String msg) {
-        self.log(msg);
-    }
+    override fun log(msg: String) { self!!.log(msg) }
 
-    @Override
-    public void log(@NonNull Throwable tr) {
-        self.log(tr.toString(), tr);
-    }
+    override fun log(tr: Throwable) { self!!.log(tr.toString(), tr) }
 
-    @Nullable
-    @Override
-    public IClassLoaderHelper getClassLoaderHelper() {
-        return mClassLoaderHelper;
-    }
+    override fun getClassLoaderHelper(): IClassLoaderHelper? = mClassLoaderHelper
 
-    @Override
-    public void setClassLoaderHelper(@Nullable IClassLoaderHelper helper) {
-        mClassLoaderHelper = helper;
-    }
+    override fun setClassLoaderHelper(helper: IClassLoaderHelper?) { mClassLoaderHelper = helper }
 
-    @Override
-    public long getHookCounter() {
-        return Lsp100HookWrapper.getHookCounter();
-    }
+    override fun getHookCounter(): Long = Lsp100HookWrapper.getHookCounter().toLong()
 
+    companion object {
+        @JvmField
+        val INSTANCE = Lsp100HookImpl()
+
+        @JvmField
+        var self: XposedModule? = null
+
+        @JvmStatic
+        fun init(base: XposedModule) {
+            self = base
+            Lsp100HookWrapper.self = base
+        }
+    }
 }

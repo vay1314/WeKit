@@ -4,22 +4,45 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Typeface
+import android.graphics.text.LineBreaker
 import android.text.Html
 import android.text.Layout
+import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.text.StaticLayout
 import android.text.TextPaint
+import android.text.style.AbsoluteSizeSpan
+import android.text.style.RelativeSizeSpan
+import android.text.style.StyleSpan
 import android.util.TypedValue
 import android.view.View
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withTranslation
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.toClass
 import dev.ujhhgtg.nameof.nameof
+import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
-import io.noties.markwon.ext.latex.JLatexMathPlugin
+import io.noties.markwon.MarkwonSpansFactory
+import io.noties.markwon.core.spans.LastLineSpacingSpan
 import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
-import io.noties.markwon.inlineparser.MarkwonInlineParserPlugin
+import io.noties.markwon.ext.tables.TablePlugin
+import io.noties.markwon.ext.tasklist.TaskListPlugin
+import io.noties.markwon.image.ImagesPlugin
+import moe.ouom.wekit.config.WePrefs
 import moe.ouom.wekit.core.dsl.dexClass
 import moe.ouom.wekit.core.model.ClickableHookItem
 import moe.ouom.wekit.dexkit.intf.IResolvesDex
@@ -29,7 +52,13 @@ import moe.ouom.wekit.hooks.sdk.base.model.MessageInfo
 import moe.ouom.wekit.ui.content.AlertDialogContent
 import moe.ouom.wekit.ui.content.TextButton
 import moe.ouom.wekit.ui.utils.showComposeDialog
+import moe.ouom.wekit.utils.log.WeLogger
 import moe.ouom.wekit.utils.replaceEmojis
+import org.commonmark.node.BlockQuote
+import org.commonmark.node.BulletList
+import org.commonmark.node.Heading
+import org.commonmark.node.OrderedList
+import org.commonmark.node.Paragraph
 import org.luckypray.dexkit.DexKitBridge
 
 @HookItem(path = "聊天/Markdown 渲染", desc = "渲染 Markdown 消息")
@@ -38,47 +67,35 @@ object MarkdownRendering : ClickableHookItem(), IResolvesDex {
     private val TAG = nameof(MarkdownRendering)
 
     private const val KEY_USE_MARKWON = "use_markwon"
+    private const val KEY_COMPACT_HTML = "compact_html"
+    private const val KEY_NO_TEXT_SIZING = "no_text_sizing"
 
     private lateinit var markwon: Markwon
 
     private external fun convertMarkdownToHtmlNative(markdown: String): String?
 
+    // Apply a small compensation to the max width to prevent unnecessary text wrapping
+    private const val MAX_WIDTH_BUFFER = 40
+
     override fun onLoad() {
-        "com.tencent.mm.ui.widget.MMNeat7extView".toClass().asResolver().apply {
-            // path 2: draw HTML on canvas myself
-            firstMethod { name = "onDraw" }
-                .hookBefore { param ->
-                    val neatTextView = param.thisObject as View
-                    if (!::markwon.isInitialized) {
-                        markwon = Markwon.builder(neatTextView.context)
-                            .usePlugin(MarkwonInlineParserPlugin.create())
-                            .usePlugin(JLatexMathPlugin.create(15f) {
-                                it.inlinesEnabled(true)
-                            })
-                            .usePlugin(StrikethroughPlugin.create())
-                            .build()
-                    }
+        "com.tencent.mm.ui.widget.MMNeat7extView".toClass().asResolver()
+            .firstMethod { name = "onDraw" }
+            .hookBefore { param ->
+                val neatTextView = param.thisObject as View
+                if (!::markwon.isInitialized) {
+                    markwon = buildMarkwon(neatTextView.context)
+                }
 
-                    // path 1: disable WeChat's neat rendering and replace TextView
-                    // doesn't seem to work, idk why
-//                    neatTextView.asResolver()
-//                        .field {
-//                            type = Boolean::class
-//                            modifiers { !it.contains(Modifiers.STATIC) }
-//                            superclass()
-//                        }[2]
-//                        .set(true)
+                var origText = (neatTextView.asResolver()
+                    .firstField {
+                        type = CharSequence::class
+                        superclass()
+                    }.get()!! as CharSequence).toString()
+                if (origText.isBlank()) return@hookBefore
+                origText = origText.replaceEmojis()
 
-                    var origText = (neatTextView.asResolver()
-                        .firstField {
-                            type = CharSequence::class
-                            superclass()
-                        }.get()!! as CharSequence).toString()
-                    if (origText.isBlank()) return@hookBefore
-                    origText = origText.replaceEmojis()
-
-                    val msgInfo = MessageInfo(
-                        neatTextView.tag.asResolver()
+                val msgInfo = MessageInfo(
+                    neatTextView.tag.asResolver()
                         .firstField {
                             type = classMsgInfoWrapper.clazz
                             superclass()
@@ -90,117 +107,66 @@ object MarkdownRendering : ClickableHookItem(), IResolvesDex {
                         .get()!!.asResolver()
                         .firstField { type = WeMessageApi.classMsgInfo.clazz }
                         .get()!!)
-                    if (!msgInfo.isText) return@hookBefore
-                    val isSelfSender = msgInfo.isSelfSender()
+                if (!msgInfo.isText) return@hookBefore
+                val isSelfSender = msgInfo.isSelfSender()
 
-                    val canvas = param.args[0] as Canvas
-                    val context = neatTextView.context
+                val canvas = param.args[0] as Canvas
+                val context = neatTextView.context
 
-                    val isDarkMode = (context.resources.configuration.uiMode and
-                            Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+                val isDarkMode = (context.resources.configuration.uiMode and
+                        Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 
-                    val textPaint = TextPaint().apply {
-                        color = if (isDarkMode && !isSelfSender) "#CDCDCD".toColorInt() else "#282828".toColorInt()
+                val textPaint = TextPaint().apply {
+                    color =
+                        if (isDarkMode && !isSelfSender) "#CDCDCD".toColorInt() else "#282828".toColorInt()
 
-                        val spSize = 17f
-                        textSize = TypedValue.applyDimension(
-                            TypedValue.COMPLEX_UNIT_SP,
-                            spSize,
-                            context.resources.displayMetrics
-                        )
+                    val spSize = 17f
+                    textSize = TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_SP,
+                        spSize,
+                        context.resources.displayMetrics
+                    )
 
-                        isAntiAlias = true
-                        typeface = Typeface.DEFAULT
-                    }
+                    isAntiAlias = true
+                    typeface = Typeface.DEFAULT
+                }
 
-                    // Respecting bubble constraints
-                    val horizontalPadding = neatTextView.paddingLeft + neatTextView.paddingRight
-                    val maxWidth = neatTextView.width - horizontalPadding
+                // Respecting bubble constraints
+                val horizontalPadding = neatTextView.paddingLeft + neatTextView.paddingRight
+                val maxWidth = neatTextView.width - horizontalPadding + MAX_WIDTH_BUFFER
 
-                    if (maxWidth <= 0) return@hookBefore
+                if (maxWidth <= 0) return@hookBefore
 
-//                    val htmlString = convertMarkdownToHtmlNative(origText)
-//
-//                    if (htmlString != null) {
-//                        WeLogger.d(TAG, "html string:\n$htmlString")
-//                        drawHtmlOnCanvas(
-//                            canvas,
-//                            htmlString,
-//                            neatTextView.paddingLeft.toFloat(),
-//                            neatTextView.paddingTop.toFloat(),
-//                            maxWidth,
-//                            textPaint
-//                        )
-//                        param.result = null
-//                    }
-//                    else {
-//                        WeLogger.e(TAG, "convertMarkdownToHtmlNative returned nullptr, falling back to original rendering")
-//                    }
+                if (WePrefs.getBoolOrFalse(KEY_USE_MARKWON)) {
                     drawMarkdownWithMarkwon(
                         canvas,
-                    origText,
+                        origText,
                         neatTextView.paddingLeft.toFloat(),
                         neatTextView.paddingTop.toFloat(),
                         maxWidth,
-                        textPaint)
+                        textPaint
+                    )
                     param.result = null
                 }
+                else {
+                    val html = convertMarkdownToHtmlNative(origText)
 
-            // path 1: disable WeChat's neat rendering and replace TextView
-            // doesn't seem to work, idk why
-//            firstMethod {
-//                name = "getWrappedTextView"
-//                superclass()
-//            }.hookAfter { param ->
-//                val neatTextView = param.thisObject as View
-//                if (neatTextView.javaClass.simpleName != "MMNeat7extView") return@hookAfter
-//
-//                val origText = neatTextView.asResolver()
-//                    .firstField {
-//                        type = CharSequence::class
-//                        superclass()
-//                    }.get()!! as CharSequence
-//                if (origText.isEmpty()) return@hookAfter
-//                WeLogger.d(TAG, "original text: $origText")
-//                WeLogger.d(TAG, "tag: ${neatTextView.tag?.javaClass?.name ?: "null"}")
-//
-//                val textView = TextView(neatTextView.context).apply {
-//                    layoutParams = LinearLayout.LayoutParams(
-//                        LinearLayout.LayoutParams.MATCH_PARENT,
-//                        LinearLayout.LayoutParams.WRAP_CONTENT
-//                    )
-//                    textSize = 18f
-//                }
-//
-//                val content = "Bold, Italic, and Underlined"
-//                val spannable = SpannableString(content).apply {
-//                    // Bold "Bold" (indices 0-4)
-//                    setSpan(StyleSpan(Typeface.BOLD), 0, 4, 0)
-//
-//                    // Italic "Italic" (indices 6-12)
-//                    setSpan(StyleSpan(Typeface.ITALIC), 6, 12, 0)
-//
-//                    // Underline "Underlined" (indices 17-28)
-//                    setSpan(UnderlineSpan(), 17, 28, 0)
-//
-//                    // Add a color pop to "Underlined"
-//                    setSpan(ForegroundColorSpan(Color.MAGENTA), 17, 28, 0)
-//                }
-//
-//                textView.text = spannable
-//                textView.setTextColor(Color.WHITE)
-//
-//                param.result = textView
-//            }
-
-            // path 1: disable WeChat's neat rendering and replace TextView
-            // doesn't seem to work, idk why
-//            firstMethod { returnType = Boolean::class }
-//                .hookBefore { param ->
-//                    // disable WeChat's neat rendering
-//                    param.result = true
-//                }
-        }
+                    if (html != null) {
+                        drawHtmlOnCanvas(
+                            canvas,
+                            html,
+                            neatTextView.paddingLeft.toFloat(),
+                            neatTextView.paddingTop.toFloat(),
+                            maxWidth,
+                            textPaint
+                        )
+                        param.result = null
+                    }
+                    else {
+                        WeLogger.e(TAG, "convertMarkdownToHtmlNative returned nullptr, falling back to original rendering")
+                    }
+                }
+            }
     }
 
     private fun drawMarkdownWithMarkwon(
@@ -213,12 +179,7 @@ object MarkdownRendering : ClickableHookItem(), IResolvesDex {
     ) {
         val node = markwon.parse(markdownString)
         val spanned = markwon.render(node)
-        val staticLayout = StaticLayout.Builder
-            .obtain(spanned, 0, spanned.length, textPaint, maxWidth)
-            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-            .setLineSpacing(0f, 1.1f)
-            .setIncludePad(true)
-            .build()
+        val staticLayout = buildStaticLayout(spanned, textPaint, maxWidth)
 
         canvas.withTranslation(x, y) {
             staticLayout.draw(this)
@@ -233,62 +194,168 @@ object MarkdownRendering : ClickableHookItem(), IResolvesDex {
         maxWidth: Int,
         textPaint: TextPaint
     ) {
-//        // 1. Convert HTML string to Spanned text
-//        val spannedText = Html.fromHtml(htmlString,
-//            Html.FROM_HTML_MODE_LEGACY)
-//
-//        // 2. Create a StaticLayout to handle line wrapping and rendering
-//        val staticLayout = StaticLayout.Builder
-//            .obtain(spannedText, 0, spannedText.length, textPaint, maxWidth)
-//            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-//            .setLineSpacing(0f, 1.1f)
-//            .setIncludePad(true)
-//            .build()
-//
-//        // 3. Draw the layout onto the canvas
-//        canvas.withTranslation(x, y) {
-//            staticLayout.draw(this)
-//        }
+        var spanned = Html.fromHtml(htmlString,
+            if (WePrefs.getBoolOrFalse(KEY_COMPACT_HTML))
+                Html.FROM_HTML_MODE_COMPACT
+        else Html.FROM_HTML_MODE_LEGACY)
 
-        // prevent setting font size
+        if (WePrefs.getBoolOrFalse(KEY_NO_TEXT_SIZING))
+        {
+            spanned = SpannableStringBuilder(spanned)
 
-        // 1. Convert HTML to Spanned
-        val spannedText = Html.fromHtml(htmlString, Html.FROM_HTML_MODE_COMPACT)
+            val relativeSpans = spanned.getSpans(0, spanned.length,
+                RelativeSizeSpan::class.java)
+            for (span in relativeSpans) {
+                spanned.removeSpan(span)
+            }
 
-        // 2. Create a SpannableStringBuilder to mutate the spans
-//        val spannable = SpannableStringBuilder(spannedText)
+            val absoluteSpans = spanned.getSpans(0, spanned.length,
+                AbsoluteSizeSpan::class.java)
+            for (span in absoluteSpans) {
+                spanned.removeSpan(span)
+            }
+        }
 
-//        // 3. Remove RelativeSizeSpans (common in headings) and AbsoluteSizeSpans
-//        val relativeSpans = spannable.getSpans(0, spannable.length,
-//            RelativeSizeSpan::class.java)
-//        for (span in relativeSpans) {
-//            spannable.removeSpan(span)
-//        }
-//
-//        val absoluteSpans = spannable.getSpans(0, spannable.length,
-//            AbsoluteSizeSpan::class.java)
-//        for (span in absoluteSpans) {
-//            spannable.removeSpan(span)
-//        }
-
-        // 4. Build the layout using the cleaned 'spannable'
-        val staticLayout = StaticLayout.Builder
-            .obtain(spannedText, 0, spannedText.length, textPaint, maxWidth)
-            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-            .setLineSpacing(0f, 1.1f)
-            .setIncludePad(true)
-            .build()
+        val staticLayout = buildStaticLayout(spanned, textPaint, maxWidth)
 
         canvas.withTranslation(x, y) {
             staticLayout.draw(this)
         }
     }
 
+    private fun buildStaticLayout(spanned: Spanned, textPaint: TextPaint, maxWidth: Int): StaticLayout {
+        return StaticLayout.Builder
+            .obtain(spanned, 0, spanned.length, textPaint, maxWidth)
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setLineSpacing(0f, 1.1f)
+            .setIncludePad(true)
+            .setBreakStrategy(LineBreaker.BREAK_STRATEGY_SIMPLE)
+            .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
+//            .apply {
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//                    setLineBreakConfig(
+//                        LineBreakConfig.Builder()
+//                            .setLineBreakStyle(LineBreakConfig.LINE_BREAK_STYLE_NONE)
+//                            .setLineBreakWordStyle(LineBreakConfig.LINE_BREAK_WORD_STYLE_NONE)
+//                            .apply {
+//                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+//                                    setHyphenation(LineBreakConfig.HYPHENATION_DISABLED)
+//                                }
+//                            }
+//                            .build()
+//                    )
+//                }
+//            }
+            .build()
+    }
+
+    private fun buildMarkwon(context: Context): Markwon {
+        return Markwon.builder(context)
+            .usePlugin(object : AbstractMarkwonPlugin() {
+                override fun configureSpansFactory(builder: MarkwonSpansFactory.Builder) {
+                    if (WePrefs.getBoolOrFalse(KEY_NO_TEXT_SIZING)) {
+                        builder.setFactory(Heading::class.java) { _, _ ->
+                            StyleSpan(Typeface.BOLD)
+                        }
+                    }
+                    builder.setFactory(Paragraph::class.java) { _, _ ->
+                        LastLineSpacingSpan(0)
+                    }
+                    builder.setFactory(BulletList::class.java) { _, _ ->
+                        LastLineSpacingSpan(0)
+                    }
+                    builder.setFactory(OrderedList::class.java) { _, _ ->
+                        LastLineSpacingSpan(0)
+                    }
+                    builder.setFactory(BlockQuote::class.java) { _, _ ->
+                        LastLineSpacingSpan(0)
+                    }
+                }
+            })
+            // FIXME: doesn't work
+//                        .usePlugin(MarkwonInlineParserPlugin.create())
+//                        .usePlugin(JLatexMathPlugin.create(17f) {
+//                            it.inlinesEnabled(true)
+//                            it.blocksEnabled(true)
+//                            it.blocksLegacy(false)
+            // Force synchronous execution so drawables are ready before canvas draw
+//                            it.executorService(object : AbstractExecutorService() {
+//                                override fun execute(command: Runnable) = command.run()
+//                                override fun shutdown() {}
+//                                override fun shutdownNow() = mutableListOf<Runnable>()
+//                                override fun isShutdown() = false
+//                                override fun isTerminated() = false
+//                                override fun awaitTermination(timeout: Long, unit: TimeUnit) = true
+//                            })
+//                        })
+            .usePlugin(StrikethroughPlugin.create())
+            .usePlugin(TablePlugin.create {})
+            .usePlugin(TaskListPlugin.create(context))
+            .usePlugin(ImagesPlugin.create())
+            // FIXME: doesn't work
+//                        .usePlugin(LinkifyPlugin.create(Linkify.WEB_URLS))
+            .build()
+    }
+
     override fun onClick(context: Context) {
         showComposeDialog(context) {
             AlertDialogContent(
                 title = { Text("Markdown 渲染") },
-                text = { Text("预留设置页") },
+                text = {
+                    var useMarkwon by
+                        remember { mutableStateOf(WePrefs.getBoolOrFalse(KEY_USE_MARKWON)) }
+
+                    Text("解析与渲染引擎",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold)
+                    ListItem(
+                        modifier = Modifier.clickable {
+                            useMarkwon = false
+                            WePrefs.putBool(KEY_USE_MARKWON, false)
+                        },
+                        headlineContent = { Text("markdown-rs + Html") },
+                        supportingContent = { Text("使用 Rust crate 解析并转换为 HTML, 再使用 android.text.HTML 渲染") },
+                        trailingContent = { RadioButton(!useMarkwon, null) })
+                    ListItem(
+                        modifier = Modifier.clickable {
+                            useMarkwon = true
+                            WePrefs.putBool(KEY_USE_MARKWON, true)
+                        },
+                        headlineContent = { Text("Markwon") },
+                        supportingContent = { Text("使用 Markwon Java 库直接渲染 Markdown") },
+                        trailingContent = { RadioButton(useMarkwon, null) })
+
+                    var noTextSizing by
+                        remember { mutableStateOf(WePrefs.getBoolOrFalse(KEY_NO_TEXT_SIZING)) }
+                    Text("通用引擎设定",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold)
+                    ListItem(
+                        modifier = Modifier.clickable {
+                            noTextSizing = !noTextSizing
+                            WePrefs.putBool(KEY_NO_TEXT_SIZING, noTextSizing)
+                        },
+                        headlineContent = { Text("禁止改变字体大小") },
+                        supportingContent = { Text("不对 Headers, Subheaders 等组件改变字体大小") },
+                        trailingContent = { Switch(noTextSizing, null) })
+
+                    var compactHtml by
+                        remember { mutableStateOf(WePrefs.getBoolOrFalse(KEY_COMPACT_HTML)) }
+                    Text("markdown-rs + Html 引擎设定",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold)
+                    ListItem(
+                        modifier = Modifier.clickable {
+                            compactHtml = !compactHtml
+                            WePrefs.putBool(KEY_COMPACT_HTML, compactHtml)
+                        },
+                        headlineContent = { Text("使用紧凑 HTML 渲染") },
+                        supportingContent = { Text("使用一个而非两个换行来分段") },
+                        trailingContent = { Switch(compactHtml, null) })
+                },
                 confirmButton = { TextButton(onDismiss) { Text("关闭") } }
             )
         }

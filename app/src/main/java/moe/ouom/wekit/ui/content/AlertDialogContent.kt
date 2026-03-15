@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
@@ -34,9 +34,9 @@ fun AlertDialogContent(
         shape = MaterialTheme.shapes.extraLarge,
         tonalElevation = 6.dp,
         modifier = modifier
-            .padding(24.dp)
-            .widthIn(min = 280.dp, max = 560.dp)
+            .padding(18.dp)
             .fillMaxWidth()
+            .wrapContentHeight()
     ) {
         Column(
             modifier = Modifier.padding(20.dp),

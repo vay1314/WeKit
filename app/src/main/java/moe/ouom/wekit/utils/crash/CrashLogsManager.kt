@@ -213,7 +213,7 @@ class CrashLogsManager {
     }
 
     companion object {
-        private val TAG = nameof(CrashLogsManager)
+        private val TAG = nameof(CrashLogsManager::class)
 
         private const val CRASH_LOGS_DIR = "crash_logs"
         private const val CRASH_LOGS_PREFIX = "crash_"

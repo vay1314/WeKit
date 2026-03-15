@@ -10,12 +10,6 @@ import de.robv.android.xposed.IXposedHookZygoteInit;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import moe.ouom.wekit.loader.ModuleLoader;
 
-/**
- * Entry point for started Xposed API 51-99.
- * <p>
- * Xposed is used as ART hook implementation.
- */
-
 @Keep
 public class LegacyHookEntry implements IXposedHookLoadPackage, IXposedHookZygoteInit {
     public static String sCurrentPackageName = null;

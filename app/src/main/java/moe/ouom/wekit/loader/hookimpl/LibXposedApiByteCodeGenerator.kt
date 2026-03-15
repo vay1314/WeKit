@@ -1,5 +1,6 @@
 package moe.ouom.wekit.loader.hookimpl
 
+import androidx.annotation.Keep
 import moe.ouom.wekit.dexkit.DexMethodDescriptor
 import moe.ouom.wekit.loader.startup.StartupInfo
 import org.jf.dexlib2.Opcode
@@ -24,7 +25,7 @@ import java.lang.reflect.Modifier
 
 object LibXposedApiByteCodeGenerator {
 
-    private const val CMD_SET_WRAPPER = "SetLibXposedNewApiByteCodeGeneratorWrapper"
+    const val CMD_SET_WRAPPER = "SetLibXposedNewApiByteCodeGeneratorWrapper"
     private const val ACC_CONSTRUCTOR = 0x00010000
 
     fun init() {
@@ -34,6 +35,7 @@ object LibXposedApiByteCodeGenerator {
         loader.queryExtension(CMD_SET_WRAPPER, call)
     }
 
+    @Keep
     @JvmStatic
     fun call(version: Int, args: Array<Any?>): ByteArray {
         if (version == 1) {

@@ -151,7 +151,6 @@ object DexCacheManager {
                 return generatedHash
             }
 
-            // 降级方案：使用方法签名（当编译时hash不可用时）
             WeLogger.w(
                 TAG,
                 "No generated hash for $className, using method signature fallback"

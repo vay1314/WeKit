@@ -384,7 +384,8 @@ dependencies {
     implementation(libs.markwon.html)
     implementation(libs.markwon.image)
     implementation(libs.markwon.linkify)
-    implementation(libs.markwon.syntax.highlight)
+    implementation(libs.svg)
+    implementation(libs.gif)
 
     implementation(project(":libs:external:nameof-kt:api"))
 }
