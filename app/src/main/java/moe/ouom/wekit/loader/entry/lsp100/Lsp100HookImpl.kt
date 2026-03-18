@@ -1,5 +1,6 @@
 package moe.ouom.wekit.loader.entry.lsp100
 
+import dev.ujhhgtg.nameof.nameof
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.annotations.XposedApiExact
@@ -24,7 +25,7 @@ class Lsp100HookImpl private constructor() : IHookBridge, ILoaderService {
     override val hookCounter: Long get() = Lsp100HookWrapper.getHookCounter()
     override val hookedMethods: Set<Member> get() = Lsp100HookWrapper.getHookedMethodsRaw()
 
-    override val entryPointName: String get() = this::class.java.name
+    override val entryPointName: String get() = nameof(Lsp100HookImpl)
     override val loaderVersionName: String get() = BuildConfig.VERSION_NAME
     override val loaderVersionCode: Int get() = BuildConfig.VERSION_CODE
     override val mainModulePath: String get() = self!!.applicationInfo.sourceDir

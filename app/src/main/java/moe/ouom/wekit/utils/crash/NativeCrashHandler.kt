@@ -1,7 +1,6 @@
 package moe.ouom.wekit.utils.crash
 
 import dev.ujhhgtg.nameof.nameof
-import lombok.Getter
 import moe.ouom.wekit.utils.logging.WeLogger
 
 class NativeCrashHandler {

@@ -33,12 +33,6 @@ object StartupAgent {
         }
         sInitialized = true
 
-        if (System.getProperty(TAG) == "true") {
-            WeLogger.e(TAG, "WeKit reloaded??")
-            return
-        }
-
-        System.setProperty(TAG, "true")
         StartupInfo.modulePath = modulePath
         StartupInfo.loaderService = loaderService
 

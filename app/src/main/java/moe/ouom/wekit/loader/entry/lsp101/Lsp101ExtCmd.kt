@@ -1,7 +1,6 @@
 package moe.ouom.wekit.loader.entry.lsp101
 
 import io.github.libxposed.api.XposedInterface
-import moe.ouom.wekit.loader.entry.common.ModuleLoader
 import moe.ouom.wekit.loader.utils.LibXposedApiByteCodeGenerator
 
 object Lsp101ExtCmd {
@@ -10,7 +9,7 @@ object Lsp101ExtCmd {
             "GetXposedInterfaceClass" -> XposedInterface::class.java
             "GetLoadPackageParam" -> null
             "GetInitZygoteStartupParam" -> null
-            "GetInitErrors" -> ModuleLoader.initErrors
+            "GetInitErrors" -> emptyList<Throwable?>()
             LibXposedApiByteCodeGenerator.CMD_SET_WRAPPER -> {
                 // libxposed API 101 does not require this wrapper,
                 // so we just ignore the wrapper method and return true to indicate success.

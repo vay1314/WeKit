@@ -106,7 +106,7 @@ public class Xp51HookImpl implements IHookBridge, ILoaderService {
     @Nullable
     @Override
     public Object queryExtension(@NonNull String key, @Nullable Object... args) {
-        return Xp51ExtCmd.handleQueryExtension(key, args);
+        return Xp51ExtCmd.handleQueryExtension(key);
     }
 
     @NonNull

@@ -104,7 +104,14 @@ jobs:
           media_json=$(python3 .github/scripts/send_telegram.py \
             "${{ github.event.head_commit.message || 'Manual Build' }}" \
             artifacts/*.apk)
-          
+
+          form_args=()
+          i=0
+          for apk in artifacts/*.apk; do
+            form_args+=(-F "apk${i}=@${apk}")
+            ((i++))
+          done
+
           curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup" \
             -F chat_id="${CHAT_ID}" \
             -F media="${media_json}" \

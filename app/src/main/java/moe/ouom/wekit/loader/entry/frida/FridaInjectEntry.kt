@@ -61,7 +61,6 @@ object FridaInjectEntry {
             setXblService(xblService)
         }
         val cl = findHostClassLoader()
-        Log.i(TAG, "FridaInjectEntry.startup: modulePath=$modulePath, hostDataDir=$hostDataDir, cl=$cl")
         ModuleLoader.initialize(hostDataDir.absolutePath, cl, FridaStartupImpl, null, modulePath.absolutePath, false)
     }
 

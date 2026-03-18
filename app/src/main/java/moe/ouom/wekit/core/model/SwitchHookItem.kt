@@ -1,7 +1,6 @@
 package moe.ouom.wekit.core.model
 
 import android.content.Context
-import de.robv.android.xposed.XC_MethodHook
 import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.utils.TargetProcessUtils
 import moe.ouom.wekit.utils.logging.WeLogger

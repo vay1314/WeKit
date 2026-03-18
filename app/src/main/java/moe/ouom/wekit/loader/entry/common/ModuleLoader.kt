@@ -9,9 +9,6 @@ import moe.ouom.wekit.utils.logging.WeLogger
 object ModuleLoader {
 
     private val TAG = nameof(ModuleLoader)
-
-    @JvmStatic
-    val initErrors = mutableListOf<Throwable?>()
     private var isInitialized = false
 
     @JvmStatic

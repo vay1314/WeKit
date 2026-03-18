@@ -34,14 +34,12 @@ object UnifiedEntryPoint {
                         val hostApp = param.args[0] as Application
                         StartupInfo.hostApplication = hostApp
 
-                        try {
+                        runCatching {
                             StartupAgent.startup(
                                 modulePath,
                                 loaderService
                             )
-                        } catch (e: Throwable) {
-                            WeLogger.e(TAG, "StartupAgent failed", e)
-                        }
+                        }.onFailure { e -> WeLogger.e(TAG, "StartupAgent failed", e) }
                     }
             }
     }
