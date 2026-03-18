@@ -141,10 +141,10 @@ object McpServer : ClickableHookItem() {
                     "WxId='${it.wxId}',Nickname='${it.nickname}',CustomWxid='${it.customWxid}',RemarkName='${it.remarkName}'"
                 })
                 "groups" -> mcpTextsResult(WeDatabaseApi.getGroups().map {
-                    "WxId='${it.username}',Nickname='${it.nickname}'"
+                    "WxId='${it.wxId}',Nickname='${it.nickname}'"
                 })
                 "official_accounts" -> mcpTextsResult(WeDatabaseApi.getOfficialAccounts().map {
-                    "WxId='${it.username}',Nickname='${it.nickname}'"
+                    "WxId='${it.wxId}',Nickname='${it.nickname}'"
                 })
                 else -> mcpTextResult("Unsupported type: $type")
             }
@@ -221,16 +221,38 @@ object McpServer : ClickableHookItem() {
             inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     addField("display-name", "Display name of target")
-                    addField("group-id", "Group ID; must end with '@chatroom'")
+                    addField("group-id", "Group ID; optional; must end with '@chatroom'")
                 },
                 required = listOf("display-name")
             )
         ) { req ->
-//            val args = req.arguments ?: return@addTool mcpTextResult("Arguments are empty")
-//            val target = args["display-name"]?.jsonPrimitive?.content ?: return@addTool mcpTextResult("Invalid target")
-//            val groupId = args["group-id"]?.jsonPrimitive?.content
+            val args = req.arguments ?: return@addTool mcpTextResult("Arguments are empty")
+            val displayName = args["display-name"]?.jsonPrimitive?.content ?: return@addTool mcpTextResult("Invalid target")
+            val groupId = args["group-id"]?.jsonPrimitive?.content
 
-            mcpTextResult("not implemented", true)
+            if (groupId == null) {
+                val friend = WeDatabaseApi.getFriends().find { it.nickname == displayName || it.remarkName == displayName }
+                if (friend != null) {
+                    return@addTool mcpTextResult("WxId=${friend.wxId}")
+                }
+                val group = WeDatabaseApi.getGroups().find { it.nickname == displayName }
+                if (group != null) {
+                    return@addTool mcpTextResult("WxId=${group.wxId}")
+                }
+                val official = WeDatabaseApi.getOfficialAccounts().find { it.nickname == displayName }
+                if (official != null) {
+                    return@addTool mcpTextResult("WxId=${official.wxId}")
+                }
+            }
+            else {
+                val members = WeDatabaseApi.getGroupMembers(groupId)
+                val member = members.find { it.nickname == displayName || it.remarkName == displayName }
+                if (member != null) {
+                    return@addTool mcpTextResult("WxId=${member.wxId}")
+                }
+            }
+
+            mcpTextResult("search matched 0 contact", true)
         }
 
         server.addTool(

@@ -1,6 +1,6 @@
 package moe.ouom.wekit.hooks.api.net
 
-import moe.ouom.wekit.hooks.api.net.intf.WeRequestCallback
+import moe.ouom.wekit.hooks.api.net.abc.WeRequestCallback
 
 class WeRequestDsl : WeRequestCallback {
 

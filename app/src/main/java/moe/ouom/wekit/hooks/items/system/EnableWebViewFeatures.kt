@@ -6,7 +6,7 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.toClass
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import org.luckypray.dexkit.DexKitBridge
 
@@ -40,17 +40,13 @@ object EnableWebViewFeatures : SwitchHookItem(), IResolvesDex {
                 }
             }
 
-        methodInitWebViewFeatures.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    val intent = param.thisObject.asResolver().firstMethod {
-                        name = "getIntent"
-                        superclass()
-                    }.invoke() as Intent
-                    for (key in TRUE_INTENT_KEYS) {
-                        intent.putExtra(key, true)
-                    }
-                }
+        methodInitWebViewFeatures.hookBefore { param ->
+            val intent = param.thisObject.asResolver().firstMethod {
+                name = "getIntent"
+                superclass()
+            }.invoke() as Intent
+            for (key in TRUE_INTENT_KEYS) {
+                intent.putExtra(key, true)
             }
         }
     }

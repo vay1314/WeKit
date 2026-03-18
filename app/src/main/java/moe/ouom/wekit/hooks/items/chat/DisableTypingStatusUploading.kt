@@ -4,7 +4,7 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.core.dsl.dexClass
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.utils.logging.WeLogger
 import org.luckypray.dexkit.DexKitBridge

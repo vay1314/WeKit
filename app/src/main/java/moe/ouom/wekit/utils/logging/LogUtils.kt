@@ -5,6 +5,8 @@ import moe.ouom.wekit.utils.formatEpoch
 import java.nio.file.Path
 import kotlin.io.path.appendText
 import kotlin.io.path.createDirectories
+import kotlin.io.path.createFile
+import kotlin.io.path.exists
 
 object LogUtils {
 
@@ -74,6 +76,7 @@ object LogUtils {
             stringBuffer.append("\n").append(getStackTrace(content))
         }
         stringBuffer.append("\n\n")
+        if (!path.exists()) path.createFile()
         path.appendText(stringBuffer)
     }
 

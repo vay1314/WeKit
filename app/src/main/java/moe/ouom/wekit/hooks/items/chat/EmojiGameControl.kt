@@ -30,15 +30,15 @@ import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.nameof.nameof
-import moe.ouom.wekit.utils.RuntimeConfig
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.ui.content.AlertDialogContent
 import moe.ouom.wekit.ui.content.Button
 import moe.ouom.wekit.ui.content.TextButton
 import moe.ouom.wekit.ui.utils.showComposeDialog
+import moe.ouom.wekit.utils.RuntimeConfig
 import moe.ouom.wekit.utils.ToastUtils
 import moe.ouom.wekit.utils.logging.WeLogger
 import org.luckypray.dexkit.DexKitBridge
@@ -93,64 +93,52 @@ object EmojiGameControl : SwitchHookItem(), IResolvesDex {
     }
 
     override fun onEnable() {
-        methodRandom.toDexMethod {
-            hook {
-                afterIfEnabled { param ->
-                    val type = param.args[0] as Int
-                    // Arg 0 determines type: 2 is Morra, 5 is Dice
-                    param.result = when (type) {
-                        2 -> valMorra
-                        5 -> valDice
-                        else -> param.result
-                    }
-                }
+        methodRandom.hookAfter { param ->
+            val type = param.args[0] as Int
+            // Arg 0 determines type: 2 is Morra, 5 is Dice
+            param.result = when (type) {
+                2 -> valMorra
+                5 -> valDice
+                else -> param.result
             }
         }
 
-        methodPanelClick.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    try {
-                        val obj = param.args[3] ?: return@beforeIfEnabled
+        methodPanelClick.hookBefore { param ->
+            val obj = param.args[3] ?: return@hookBefore
 
-                        val fields = obj.javaClass.declaredFields
-                        var infoType = -1
-                        for (field in fields) {
-                            if (field.type == Int::class.javaPrimitiveType && java.lang.reflect.Modifier.isFinal(
-                                    field.modifiers
-                                )
-                            ) {
-                                field.isAccessible = true
-                                infoType = field.getInt(obj)
-                                break
-                            }
+            val fields = obj.javaClass.declaredFields
+            var infoType = -1
+            for (field in fields) {
+                if (field.type == Int::class.javaPrimitiveType && java.lang.reflect.Modifier.isFinal(
+                        field.modifiers
+                    )
+                ) {
+                    field.isAccessible = true
+                    infoType = field.getInt(obj)
+                    break
+                }
+            }
+
+            if (infoType == 0) {
+                val emojiInfoField =
+                    fields.firstOrNull { it.type.name.contains("IEmojiInfo") }
+
+                if (emojiInfoField != null) {
+                    emojiInfoField.isAccessible = true
+                    val emojiInfo = emojiInfoField.get(obj)
+
+                    if (emojiInfo != null) {
+                        val getMd5Method = XposedHelpers.findMethodExact(
+                            emojiInfo.javaClass,
+                            "getMd5",
+                            *arrayOf<Any>()
+                        )
+                        val emojiMd5 = getMd5Method.invoke(emojiInfo) as? String
+
+                        when (emojiMd5) {
+                            MD5_MORRA -> showSelectDialog(param, isDice = false)
+                            MD5_DICE -> showSelectDialog(param, isDice = true)
                         }
-
-                        if (infoType == 0) {
-                            val emojiInfoField =
-                                fields.firstOrNull { it.type.name.contains("IEmojiInfo") }
-
-                            if (emojiInfoField != null) {
-                                emojiInfoField.isAccessible = true
-                                val emojiInfo = emojiInfoField.get(obj)
-
-                                if (emojiInfo != null) {
-                                    val getMd5Method = XposedHelpers.findMethodExact(
-                                        emojiInfo.javaClass,
-                                        "getMd5",
-                                        *arrayOf<Any>()
-                                    )
-                                    val emojiMd5 = getMd5Method.invoke(emojiInfo) as? String
-
-                                    when (emojiMd5) {
-                                        MD5_MORRA -> showSelectDialog(param, isDice = false)
-                                        MD5_DICE -> showSelectDialog(param, isDice = true)
-                                    }
-                                }
-                            }
-                        }
-                    } catch (e: Throwable) {
-                        WeLogger.e(TAG, "Error in Click Hook", e)
                     }
                 }
             }

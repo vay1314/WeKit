@@ -4,7 +4,7 @@ import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.core.model.SwitchHookItem
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.hooks.api.net.WePacketManager
-import moe.ouom.wekit.hooks.api.net.intf.IWePacketInterceptor
+import moe.ouom.wekit.hooks.api.net.abc.IWePacketInterceptor
 import moe.ouom.wekit.hooks.api.net.WeProtoData
 import moe.ouom.wekit.utils.logging.WeLogger
 import org.json.JSONArray

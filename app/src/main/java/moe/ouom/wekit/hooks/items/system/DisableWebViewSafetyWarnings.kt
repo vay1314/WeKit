@@ -2,7 +2,7 @@ package moe.ouom.wekit.hooks.items.system
 
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import org.luckypray.dexkit.DexKitBridge
 
@@ -12,20 +12,12 @@ object DisableWebViewSafetyWarnings : SwitchHookItem(), IResolvesDex {
     private val methodGetIsUrlSafe by dexMethod()
 
     override fun onEnable() {
-        methodGetIsInterceptEnabled.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    param.result = true
-                }
-            }
+        methodGetIsInterceptEnabled.hookBefore { param ->
+            param.result = false
         }
 
-        methodGetIsUrlSafe.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    param.result = true
-                }
-            }
+        methodGetIsUrlSafe.hookBefore { param ->
+            param.result = true
         }
     }
 

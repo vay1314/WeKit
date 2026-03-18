@@ -3,7 +3,7 @@ package moe.ouom.wekit.hooks.items.profile
 import android.graphics.Bitmap
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.utils.logging.WeLogger
 import org.luckypray.dexkit.DexKitBridge
@@ -27,24 +27,20 @@ object UploadTransparentAvatars : SwitchHookItem(), IResolvesDex {
     }
 
     override fun onEnable() {
-        methodSaveBitmap.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    try {
-                        val args = param.args
+        methodSaveBitmap.hookBefore { param ->
+            try {
+                val args = param.args
 
-                        val pathName = args[3] as? String
-                        if (pathName != null &&
-                            (pathName.contains("avatar") || pathName.contains("user_hd"))
-                        ) {
-                            WeLogger.i("检测到头像保存: $pathName")
-                            args[2] = Bitmap.CompressFormat.PNG
-                            WeLogger.i("已将头像格式修改为PNG，保留透明通道")
-                        }
-                    } catch (e: Exception) {
-                        WeLogger.e("头像格式修改失败: ${e.message}")
-                    }
+                val pathName = args[3] as? String
+                if (pathName != null &&
+                    (pathName.contains("avatar") || pathName.contains("user_hd"))
+                ) {
+                    WeLogger.i("检测到头像保存: $pathName")
+                    args[2] = Bitmap.CompressFormat.PNG
+                    WeLogger.i("已将头像格式修改为PNG，保留透明通道")
                 }
+            } catch (e: Exception) {
+                WeLogger.e("头像格式修改失败: ${e.message}")
             }
         }
     }

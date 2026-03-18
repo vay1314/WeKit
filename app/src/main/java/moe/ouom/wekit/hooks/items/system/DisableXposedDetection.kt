@@ -3,7 +3,7 @@ package moe.ouom.wekit.hooks.items.system
 import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.utils.logging.WeLogger
 import org.luckypray.dexkit.DexKitBridge
@@ -15,13 +15,9 @@ object DisableXposedDetection : SwitchHookItem(), IResolvesDex {
     private val methodCheckStackTraceElements by dexMethod()
 
     override fun onEnable() {
-        methodCheckStackTraceElements.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    WeLogger.i(TAG, "preventing detection of xposed")
-                    param.result = false
-                }
-            }
+        methodCheckStackTraceElements.hookBefore { param ->
+            WeLogger.i(TAG, "preventing detection of xposed")
+            param.result = false
         }
     }
 

@@ -31,16 +31,16 @@ import kotlinx.serialization.json.Json
 import moe.ouom.wekit.core.dsl.dexClass
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.ClickableHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
-import moe.ouom.wekit.hooks.utils.annotation.HookItem
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.api.core.WeDatabaseApi
 import moe.ouom.wekit.hooks.api.core.WeServiceApi
-import moe.ouom.wekit.utils.HostInfo
+import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.ui.content.AlertDialogContent
 import moe.ouom.wekit.ui.content.TextButton
 import moe.ouom.wekit.ui.utils.showComposeDialog
-import moe.ouom.wekit.utils.ToastUtils
+import moe.ouom.wekit.utils.HostInfo
 import moe.ouom.wekit.utils.ModulePaths
+import moe.ouom.wekit.utils.ToastUtils
 import moe.ouom.wekit.utils.logging.WeLogger
 import org.luckypray.dexkit.DexKitBridge
 import java.nio.file.Path
@@ -290,90 +290,82 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
     override fun onEnable() {
         val emojiGroupInfoCls = "com.tencent.mm.storage.emotion.EmojiGroupInfo".toClass()
 
-        @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN", "UNCHECKED_CAST")
-        methodGetEmojiGroupInfo.toDexMethod {
-            hook {
-                afterIfEnabled { param ->
-                    if (param.result !is java.util.List<*>) {
-                        WeLogger.d(TAG, "param result is not list, skipped")
-                        return@afterIfEnabled
-                    }
-
-                    // Inject each sticker pack
-                    stickerPacks.forEachIndexed { index, pack ->
-                        val stickersPackData = ContentValues()
-                        stickersPackData.put(
-                            "packGrayIconUrl",
-                            "https://avatars.githubusercontent.com/Ujhhgtg"
-                        )
-                        stickersPackData.put(
-                            "packIconUrl",
-                            "https://avatars.githubusercontent.com/Ujhhgtg"
-                        )
-                        stickersPackData.put("packName", pack.packName)
-                        stickersPackData.put("packStatus", 1)
-                        stickersPackData.put("productID", pack.appPackId)
-                        stickersPackData.put("status", 7)
-                        stickersPackData.put("sync", 2)
-
-                        val emojiGroupInfo = emojiGroupInfoCls.createInstance()
-                        emojiGroupInfoCls.getMethod(
-                            "convertFrom",
-                            ContentValues::class.java, Boolean::class.java
-                        )
-                            .invoke(emojiGroupInfo, stickersPackData, true)
-
-                        (param.result as java.util.List<Any?>).add(index, emojiGroupInfo)
-                    }
-                    WeLogger.i(TAG, "injected ${stickerPacks.size} sticker packs")
-                }
+        @Suppress("UNCHECKED_CAST")
+        methodGetEmojiGroupInfo.hookAfter { param ->
+            if (param.result !is List<*>) {
+                WeLogger.d(TAG, "param result is not list, skipped")
+                return@hookAfter
             }
+
+            // Inject each sticker pack
+            stickerPacks.forEachIndexed { index, pack ->
+                val stickersPackData = ContentValues()
+                stickersPackData.put(
+                    "packGrayIconUrl",
+                    "https://avatars.githubusercontent.com/Ujhhgtg"
+                )
+                stickersPackData.put(
+                    "packIconUrl",
+                    "https://avatars.githubusercontent.com/Ujhhgtg"
+                )
+                stickersPackData.put("packName", pack.packName)
+                stickersPackData.put("packStatus", 1)
+                stickersPackData.put("productID", pack.appPackId)
+                stickersPackData.put("status", 7)
+                stickersPackData.put("sync", 2)
+
+                val emojiGroupInfo = emojiGroupInfoCls.createInstance()
+                emojiGroupInfoCls.getMethod(
+                    "convertFrom",
+                    ContentValues::class.java, Boolean::class.java
+                )
+                    .invoke(emojiGroupInfo, stickersPackData, true)
+
+                (param.result as MutableList<Any?>).add(index, emojiGroupInfo)
+            }
+            WeLogger.i(TAG, "injected ${stickerPacks.size} sticker packs")
         }
 
-        methodAddAllGroupItems.toDexMethod {
-            hook {
-                @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN", "UNCHECKED_CAST")
-                beforeIfEnabled { param ->
-                    val manager = param.args[0]
-                    if (manager == null) {
-                        WeLogger.w(TAG, "args[0] is null, skipped")
-                        return@beforeIfEnabled
-                    }
+        @Suppress("UNCHECKED_CAST")
+        methodAddAllGroupItems.hookBefore { param ->
+            val manager = param.args[0]
+            if (manager == null) {
+                WeLogger.w(TAG, "args[0] is null, skipped")
+                return@hookBefore
+            }
 
-                    val packConfig = manager.asResolver()
-                        .firstMethod {
-                            superclass()
-                            modifiers(Modifiers.FINAL)
-                            returnType {
-                                it != Boolean::class.java
-                            }
-                        }
-                        .invoke()
-                    val emojiGroupInfo = packConfig!!.asResolver()
-                        .firstField {
-                            type = "com.tencent.mm.storage.emotion.EmojiGroupInfo"
-                        }.get()!!
-                    val packId = emojiGroupInfo.asResolver()
-                        .firstField {
-                            superclass()
-                            name = "field_packName"
-                        }
-                        .get()!! as String
-
-                    // Find matching sticker pack
-                    val matchingPack = stickerPacks.find { it.packId == packId }
-                    if (matchingPack != null) {
-                        WeLogger.d(
-                            TAG,
-                            "current pack name: $packId, stickers count: ${matchingPack.stickers.size}"
-                        )
-                        val stickerList = manager.asResolver().firstMethod {
-                            superclass()
-                            returnType = List::class.java
-                        }.invoke() as java.util.List<Any>
-                        stickerList.addAll(matchingPack.stickers)
+            val packConfig = manager.asResolver()
+                .firstMethod {
+                    superclass()
+                    modifiers(Modifiers.FINAL)
+                    returnType {
+                        it != Boolean::class.java
                     }
                 }
+                .invoke()
+            val emojiGroupInfo = packConfig!!.asResolver()
+                .firstField {
+                    type = "com.tencent.mm.storage.emotion.EmojiGroupInfo"
+                }.get()!!
+            val packId = emojiGroupInfo.asResolver()
+                .firstField {
+                    superclass()
+                    name = "field_packName"
+                }
+                .get()!! as String
+
+            // Find matching sticker pack
+            val matchingPack = stickerPacks.find { it.packId == packId }
+            if (matchingPack != null) {
+                WeLogger.d(
+                    TAG,
+                    "current pack name: $packId, stickers count: ${matchingPack.stickers.size}"
+                )
+                val stickerList = manager.asResolver().firstMethod {
+                    superclass()
+                    returnType = List::class
+                }.invoke() as MutableList<Any?>
+                stickerList.addAll(matchingPack.stickers)
             }
         }
     }

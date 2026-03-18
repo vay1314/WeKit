@@ -37,9 +37,9 @@ import androidx.compose.ui.unit.dp
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
-import moe.ouom.wekit.hooks.utils.annotation.HookItem
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.api.core.WeConversationApi
+import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.ui.utils.AppTheme
 import moe.ouom.wekit.ui.utils.MainActivityLifecycleOwnerProvider
 import moe.ouom.wekit.ui.utils.setLifecycleOwner
@@ -49,72 +49,68 @@ import org.luckypray.dexkit.DexKitBridge
 object ConversationGrouping : SwitchHookItem(), IResolvesDex {
 
     override fun onEnable() {
-        methodOnTabCreate.toDexMethod {
-            hook {
-                afterIfEnabled { param ->
-                    val listView = param.thisObject.asResolver()
-                        .firstField {
-                            type = "com.tencent.mm.ui.conversation.ConversationListView"
-                        }
-                        .get()!! as ListView
+        methodOnTabCreate.hookAfter { param ->
+            val listView = param.thisObject.asResolver()
+                .firstField {
+                    type = "com.tencent.mm.ui.conversation.ConversationListView"
+                }
+                .get()!! as ListView
 
-                    val composeView = ComposeView(listView.context).apply {
-                        val lifecycleOwner = MainActivityLifecycleOwnerProvider.lifecycleOwner
-                        setLifecycleOwner(lifecycleOwner)
+            val composeView = ComposeView(listView.context).apply {
+                val lifecycleOwner = MainActivityLifecycleOwnerProvider.lifecycleOwner
+                setLifecycleOwner(lifecycleOwner)
 
-                        // the value gets lost when ComposeView becomes invisible,
-                        // so we have to lift it out of the Composable
-                        val selectedIndexState = mutableIntStateOf(0)
-                        setContent {
-                            AppTheme {
-                                var selectedIndex by selectedIndexState
+                // the value gets lost when ComposeView becomes invisible,
+                // so we have to lift it out of the Composable
+                val selectedIndexState = mutableIntStateOf(0)
+                setContent {
+                    AppTheme {
+                        var selectedIndex by selectedIndexState
 
-                                ConversationTabs(
-                                    listOf("全部", "未读", "群聊", "好友", "公众号"),
-                                    selectedIndex,
-                                    {
-                                        selectedIndex = it
-                                        Handler(Looper.getMainLooper()).post {
-                                            when (selectedIndex) {
-                                                0 -> {
-                                                    WeConversationApi.setAllConversationVisibility(
-                                                        true
-                                                    )
-                                                }
+                        ConversationTabs(
+                            listOf("全部", "未读", "群聊", "好友", "公众号"),
+                            selectedIndex,
+                            {
+                                selectedIndex = it
+                                Handler(Looper.getMainLooper()).post {
+                                    when (selectedIndex) {
+                                        0 -> {
+                                            WeConversationApi.setAllConversationVisibility(
+                                                true
+                                            )
+                                        }
 
-                                                1 -> {
-                                                    WeConversationApi.onlyShowFilteredConversations(
-                                                        "WHERE unReadCount>0 OR unReadMuteCount>0"
-                                                    )
-                                                }
+                                        1 -> {
+                                            WeConversationApi.onlyShowFilteredConversations(
+                                                "WHERE unReadCount>0 OR unReadMuteCount>0"
+                                            )
+                                        }
 
-                                                2 -> {
-                                                    WeConversationApi.onlyShowFilteredConversations(
-                                                        "WHERE username LIKE '%@chatroom'"
-                                                    )
-                                                }
+                                        2 -> {
+                                            WeConversationApi.onlyShowFilteredConversations(
+                                                "WHERE username LIKE '%@chatroom'"
+                                            )
+                                        }
 
-                                                3 -> {
-                                                    WeConversationApi.onlyShowFilteredConversations(
-                                                        "WHERE username LIKE 'wxid_%'"
-                                                    )
-                                                }
+                                        3 -> {
+                                            WeConversationApi.onlyShowFilteredConversations(
+                                                "WHERE username LIKE 'wxid_%'"
+                                            )
+                                        }
 
-                                                4 -> {
-                                                    WeConversationApi.onlyShowFilteredConversations(
-                                                        "WHERE username LIKE 'gh_%'"
-                                                    )
-                                                }
-                                            }
+                                        4 -> {
+                                            WeConversationApi.onlyShowFilteredConversations(
+                                                "WHERE username LIKE 'gh_%'"
+                                            )
                                         }
                                     }
-                                )
+                                }
                             }
-                        }
+                        )
                     }
-                    listView.addHeaderView(composeView)
                 }
             }
+            listView.addHeaderView(composeView)
         }
     }
 

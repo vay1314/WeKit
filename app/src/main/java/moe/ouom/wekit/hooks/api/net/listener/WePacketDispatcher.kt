@@ -9,10 +9,10 @@ import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.core.dsl.dexClass
 import moe.ouom.wekit.core.model.ApiHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
-import moe.ouom.wekit.hooks.utils.annotation.HookItem
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.api.net.WePacketHelper
 import moe.ouom.wekit.hooks.api.net.WePacketManager
+import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.utils.logging.WeLogger
 import org.luckypray.dexkit.DexKitBridge
 import java.lang.reflect.Proxy
@@ -33,9 +33,7 @@ object WePacketDispatcher : ApiHookItem(), IResolvesDex {
                 val netSceneBaseClass = WePacketHelper.classNetSceneBase.clazz
                 val callbackInterface = classOnGYNetEnd.clazz
 
-                // hookBuilder()
-
-                hookBefore(netSceneBaseClass, "dispatch") { param ->
+                netSceneBaseClass.asResolver().firstMethod { name = "dispatch" }.hookBefore { param ->
                     val v0Var = param.args[1] ?: return@hookBefore
                     val originalCallback = param.args[2] ?: return@hookBefore
 

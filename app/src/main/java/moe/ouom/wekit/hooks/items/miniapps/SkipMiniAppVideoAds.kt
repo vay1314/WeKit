@@ -1,5 +1,6 @@
 package moe.ouom.wekit.hooks.items.miniapps
 
+import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.toClass
 import moe.ouom.wekit.core.model.SwitchHookItem
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
@@ -9,8 +10,9 @@ import org.json.JSONObject
 object SkipMiniAppVideoAds : SwitchHookItem() {
 
     override fun onEnable() {
-        "com.tencent.mm.appbrand.commonjni.AppBrandJsBridgeBinding".toClass()
-            .hookBefore("subscribeHandler") { param ->
+        "com.tencent.mm.appbrand.commonjni.AppBrandJsBridgeBinding".toClass().asResolver()
+            .firstMethod { name = "subscribeHandler" }
+            .hookBefore { param ->
                 val arg0 = param.args[0] as String? ?: ""
                 val arg1 = param.args[1] as String? ?: ""
 

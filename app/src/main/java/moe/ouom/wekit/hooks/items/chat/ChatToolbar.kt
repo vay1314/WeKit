@@ -50,7 +50,7 @@ import dev.ujhhgtg.nameof.nameof
 import kotlinx.coroutines.flow.MutableStateFlow
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.ui.utils.AppTheme
 import moe.ouom.wekit.ui.utils.MainActivityLifecycleOwnerProvider
@@ -88,62 +88,60 @@ object ChatToolbar : SwitchHookItem(), IResolvesDex {
     private val toolsState = MutableStateFlow<List<Pair<String, MenuItem>>>(emptyList())
 
     override fun onEnable() {
-        methodAppPanelInitAppGrid.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    appPanel = param.args[0] as LinearLayout
+        methodAppPanelInitAppGrid.apply {
+            hookBefore { param ->
+                appPanel = param.args[0] as LinearLayout
 
-                    val measurer = methodAppPanelOnMeasure.method.declaringClass
-                        .createInstance(appPanel)
-                    // onMeasure() would be called again with actual width & height anyways,
-                    // so as long as those numbers aren't too small, it's probably fine
-                    // currently no unwanted side effects are observed, except that the pager's
-                    // indicator disappears
-                    methodAppPanelOnMeasure.method.invoke(measurer, 1440, 1200)
-                }
+                val measurer = methodAppPanelOnMeasure.method.declaringClass
+                    .createInstance(appPanel)
+                // onMeasure() would be called again with actual width & height anyways,
+                // so as long as those numbers aren't too small, it's probably fine
+                // currently no unwanted side effects are observed, except that the pager's
+                // indicator disappears
+                methodAppPanelOnMeasure.method.invoke(measurer, 1440, 1200)
+            }
 
-                afterIfEnabled { param ->
-                    val now = now()
-                    if (now - lastToolListUpdateTime < 1.5.seconds) return@afterIfEnabled
+            hookAfter { param ->
+                val now = now()
+                if (now - lastToolListUpdateTime < 2.seconds) return@hookAfter
 
-                    val tools = mutableListOf<Pair<String, MenuItem>>()
+                val tools = mutableListOf<Pair<String, MenuItem>>()
 
-                    val appPanel = param.args[0] as LinearLayout
-                    val grids = appPanel.findViewByChildIndexes<ViewGroup>(0, 0, 0)!!
-                        .children.map { view -> view as GridView }
-                    grids.forEach { grid ->
-                        val onClickListener = grid.asResolver()
-                            .firstField {
-                                type = AdapterView.OnItemClickListener::class
-                            }.get()!! as AdapterView.OnItemClickListener
-                        val onLongClickListener = grid.asResolver()
-                            .firstField {
-                                type = AdapterView.OnItemLongClickListener::class
-                            }.get()!! as AdapterView.OnItemLongClickListener
-                        val listAdapter = grid.adapter
-                        listAdapter.iterable(grid).forEachIndexed { index, itemView ->
-                            val name = (itemView.tag.asResolver()
-                                .firstField { type = TextView::class }
-                                .get()!! as TextView).text.toString()
-                            tools.add(
-                                name to MenuItem(
-                                    name,
-                                    onClickListener,
-                                    onLongClickListener,
-                                    grid,
-                                    itemView,
-                                    index
-                                )
+                val appPanel = param.args[0] as LinearLayout
+                val grids = appPanel.findViewByChildIndexes<ViewGroup>(0, 0, 0)!!
+                    .children.map { view -> view as GridView }
+                grids.forEach { grid ->
+                    val onClickListener = grid.asResolver()
+                        .firstField {
+                            type = AdapterView.OnItemClickListener::class
+                        }.get()!! as AdapterView.OnItemClickListener
+                    val onLongClickListener = grid.asResolver()
+                        .firstField {
+                            type = AdapterView.OnItemLongClickListener::class
+                        }.get()!! as AdapterView.OnItemLongClickListener
+                    val listAdapter = grid.adapter
+                    listAdapter.iterable(grid).forEachIndexed { index, itemView ->
+                        val name = (itemView.tag.asResolver()
+                            .firstField { type = TextView::class }
+                            .get()!! as TextView).text.toString()
+                        tools.add(
+                            name to MenuItem(
+                                name,
+                                onClickListener,
+                                onLongClickListener,
+                                grid,
+                                itemView,
+                                index
                             )
-                        }
+                        )
                     }
-
-                    WeLogger.i(TAG, "populated tool list with ${tools.size} items")
-                    toolsState.value = tools
-
-                    // rate limit this since this method is called REALLY frequently
-                    lastToolListUpdateTime = now()
                 }
+
+                WeLogger.i(TAG, "populated tool list with ${tools.size} items")
+                toolsState.value = tools
+
+                // rate limit this since this method is called REALLY frequently
+                lastToolListUpdateTime = now()
             }
         }
 

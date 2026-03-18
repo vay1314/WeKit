@@ -38,10 +38,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.core.model.ClickableHookItem
-import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.hooks.api.ui.WeMainActivityBeautifyApi
+import moe.ouom.wekit.hooks.utils.annotation.HookItem
+import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.ui.content.AlertDialogContent
 import moe.ouom.wekit.ui.content.Button
 import moe.ouom.wekit.ui.content.LiquidBottomTab
@@ -67,152 +67,148 @@ object ReplaceNavigationBar : ClickableHookItem() {
     private const val KEY_USE_BACKDROP = "tab_bar_use_backdrop"
 
     override fun onEnable() {
-        WeMainActivityBeautifyApi.methodDoOnCreate.toDexMethod {
-            hook {
-                afterIfEnabled { param ->
-                    val activity = param.thisObject.asResolver()
-                        .firstField {
-                            type = "com.tencent.mm.ui.MMFragmentActivity"
-                        }
-                        .get()!! as Activity
-                    val viewPager = param.thisObject.asResolver()
-                        .firstField {
-                            name = "mViewPager"
-                        }
-                        .get()!! as ViewGroup
-                    val tabsAdapter = param.thisObject.asResolver()
-                        .firstField {
-                            name = "mTabsAdapter"
-                        }
-                        .get()!!
-                    val methodOnTabClick = tabsAdapter.asResolver()
-                        .firstMethod {
-                            name = "onTabClick"
-                        }
+        WeMainActivityBeautifyApi.methodDoOnCreate.hookAfter { param ->
+            val activity = param.thisObject.asResolver()
+                .firstField {
+                    type = "com.tencent.mm.ui.MMFragmentActivity"
+                }
+                .get()!! as Activity
+            val viewPager = param.thisObject.asResolver()
+                .firstField {
+                    name = "mViewPager"
+                }
+                .get()!! as ViewGroup
+            val tabsAdapter = param.thisObject.asResolver()
+                .firstField {
+                    name = "mTabsAdapter"
+                }
+                .get()!!
+            val methodOnTabClick = tabsAdapter.asResolver()
+                .firstMethod {
+                    name = "onTabClick"
+                }
 
-                    val viewParent = viewPager.parent as ViewGroup
-                    val bottomTabViewGroup = viewParent.getChildAt(1) as ViewGroup
+            val viewParent = viewPager.parent as ViewGroup
+            val bottomTabViewGroup = viewParent.getChildAt(1) as ViewGroup
 
-                    val lifecycleOwner = MainActivityLifecycleOwnerProvider.lifecycleOwner
-                    val decorView = activity.window.decorView
+            val lifecycleOwner = MainActivityLifecycleOwnerProvider.lifecycleOwner
+            val decorView = activity.window.decorView
 
-                    decorView.setLifecycleOwner(lifecycleOwner)
-                    bottomTabViewGroup.setLifecycleOwner(lifecycleOwner)
+            decorView.setLifecycleOwner(lifecycleOwner)
+            bottomTabViewGroup.setLifecycleOwner(lifecycleOwner)
 
-                    val selectedPageIndexState = mutableIntStateOf(0)
-                    val scrollOffsetState = mutableFloatStateOf(0f)
+            val selectedPageIndexState = mutableIntStateOf(0)
+            val scrollOffsetState = mutableFloatStateOf(0f)
 
-                    tabsAdapter.asResolver()
-                        .firstMethod { name = "onPageScrolled" }
-                        .self.hookBefore { param ->
-                            val position = param.args[0] as Int
-                            val positionOffset = param.args[1] as Float
+            tabsAdapter.asResolver()
+                .firstMethod { name = "onPageScrolled" }
+                .hookBefore { param ->
+                    val position = param.args[0] as Int
+                    val positionOffset = param.args[1] as Float
 
-                            selectedPageIndexState.intValue = position
-                            scrollOffsetState.floatValue = positionOffset
-                        }
+                    selectedPageIndexState.intValue = position
+                    scrollOffsetState.floatValue = positionOffset
+                }
 
-                    val useBackdrop = WePrefs.getBoolOrFalse(KEY_USE_BACKDROP)
+            val useBackdrop = WePrefs.getBoolOrFalse(KEY_USE_BACKDROP)
 
-                    bottomTabViewGroup.removeAllViews()
-                    bottomTabViewGroup.addView(
-                        ComposeView(activity).apply {
-                            setLifecycleOwner(lifecycleOwner)
+            bottomTabViewGroup.removeAllViews()
+            bottomTabViewGroup.addView(
+                ComposeView(activity).apply {
+                    setLifecycleOwner(lifecycleOwner)
 
-                            setContent {
-                                var currentIndex by selectedPageIndexState
+                    setContent {
+                        var currentIndex by selectedPageIndexState
 
-                                // WeChat doesn't follow MaterialTheme so we don't use that too
-                                // or else different color palettes clash and it's hideous
-                                val isDark = isSystemInDarkTheme()
-                                val backgroundColor =
-                                    if (isDark) Color(0xFF191919) else Color(0xFFF7F7F7)
-                                val activeColor = Color(0xFF07C160)
-                                val inactiveColor =
-                                    if (isDark) Color(0xFF999999) else Color(0xFF181818)
+                        // WeChat doesn't follow MaterialTheme so we don't use that too
+                        // or else different color palettes clash and it's hideous
+                        val isDark = isSystemInDarkTheme()
+                        val backgroundColor =
+                            if (isDark) Color(0xFF191919) else Color(0xFFF7F7F7)
+                        val activeColor = Color(0xFF07C160)
+                        val inactiveColor =
+                            if (isDark) Color(0xFF999999) else Color(0xFF181818)
 
-                                if (!useBackdrop) {
-                                    val offset by scrollOffsetState
-                                    NavigationBar(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(56.dp),
-                                        containerColor = backgroundColor
-                                    ) {
-                                        ICONS.forEachIndexed { index, (icon, label) ->
-                                            val isSelected = index == currentIndex
-                                            val isNext = index == currentIndex + 1
+                        if (!useBackdrop) {
+                            val offset by scrollOffsetState
+                            NavigationBar(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                containerColor = backgroundColor
+                            ) {
+                                ICONS.forEachIndexed { index, (icon, label) ->
+                                    val isSelected = index == currentIndex
+                                    val isNext = index == currentIndex + 1
 
-                                            val tint = when {
-                                                isSelected -> lerpColor(
-                                                    activeColor,
-                                                    inactiveColor,
-                                                    offset
-                                                )
+                                    val tint = when {
+                                        isSelected -> lerpColor(
+                                            activeColor,
+                                            inactiveColor,
+                                            offset
+                                        )
 
-                                                isNext -> lerpColor(
-                                                    inactiveColor,
-                                                    activeColor,
-                                                    offset
-                                                )
+                                        isNext -> lerpColor(
+                                            inactiveColor,
+                                            activeColor,
+                                            offset
+                                        )
 
-                                                else -> inactiveColor
-                                            }
-
-                                            NavigationBarItem(
-                                                selected = isSelected && offset < 0.5f,
-                                                onClick = { methodOnTabClick.invoke(index) },
-                                                icon = {
-                                                    Icon(
-                                                        imageVector = icon,
-                                                        contentDescription = label,
-                                                        tint = tint
-                                                    )
-                                                },
-                                                label = null,
-                                                alwaysShowLabel = false,
-                                                colors = NavigationBarItemDefaults.colors(
-                                                    indicatorColor = activeColor.copy(alpha = 0.15f),
-                                                    selectedIconColor = activeColor,
-                                                    unselectedIconColor = inactiveColor,
-                                                    selectedTextColor = activeColor,
-                                                    unselectedTextColor = inactiveColor
-                                                )
-                                            )
-                                        }
+                                        else -> inactiveColor
                                     }
-                                } else {
-                                    LiquidBottomTabs(
-                                        { currentIndex },
-                                        { methodOnTabClick.invoke(it) },
-                                        rememberLayerBackdrop(),
-                                        4,
-                                        activeColor
-                                    ) {
-                                        ICONS.forEachIndexed { index, (icon, label) ->
-                                            val color =
-                                                if (currentIndex == index) activeColor else inactiveColor
-                                            LiquidBottomTab({ currentIndex = index }) {
-                                                Box(
-                                                    Modifier
-                                                        .size(28f.dp)
-                                                        .paint(
-                                                            rememberVectorPainter(icon),
-                                                            colorFilter = ColorFilter.tint(color)
-                                                        )
+
+                                    NavigationBarItem(
+                                        selected = isSelected && offset < 0.5f,
+                                        onClick = { methodOnTabClick.invoke(index) },
+                                        icon = {
+                                            Icon(
+                                                imageVector = icon,
+                                                contentDescription = label,
+                                                tint = tint
+                                            )
+                                        },
+                                        label = null,
+                                        alwaysShowLabel = false,
+                                        colors = NavigationBarItemDefaults.colors(
+                                            indicatorColor = activeColor.copy(alpha = 0.15f),
+                                            selectedIconColor = activeColor,
+                                            unselectedIconColor = inactiveColor,
+                                            selectedTextColor = activeColor,
+                                            unselectedTextColor = inactiveColor
+                                        )
+                                    )
+                                }
+                            }
+                        } else {
+                            LiquidBottomTabs(
+                                { currentIndex },
+                                { methodOnTabClick.invoke(it) },
+                                rememberLayerBackdrop(),
+                                4,
+                                activeColor
+                            ) {
+                                ICONS.forEachIndexed { index, (icon, label) ->
+                                    val color =
+                                        if (currentIndex == index) activeColor else inactiveColor
+                                    LiquidBottomTab({ currentIndex = index }) {
+                                        Box(
+                                            Modifier
+                                                .size(28f.dp)
+                                                .paint(
+                                                    rememberVectorPainter(icon),
+                                                    colorFilter = ColorFilter.tint(color)
                                                 )
-                                                BasicText(
-                                                    label,
-                                                    style = TextStyle(color, 12f.sp)
-                                                )
-                                            }
-                                        }
+                                        )
+                                        BasicText(
+                                            label,
+                                            style = TextStyle(color, 12f.sp)
+                                        )
                                     }
                                 }
                             }
-                        })
-                }
-            }
+                        }
+                    }
+                })
         }
     }
 

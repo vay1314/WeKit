@@ -5,7 +5,7 @@ import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import org.luckypray.dexkit.DexKitBridge
 
@@ -39,27 +39,23 @@ object AutoViewOriginalMedia : SwitchHookItem(), IResolvesDex {
             methodSetImageHdImgBtnVisibility,
             methodCheckNeedShowOriginVideoBtn
         ).forEach { method ->
-            method.toDexMethod {
-                hook {
-                    afterIfEnabled { param ->
-                        param.thisObject.asResolver().field {
-                            type = Button::class
-                        }.forEach {
-                            it.get<Button>()?.let { imgBtn ->
-                                if (imgBtn.isVisible) {
-                                    val keywords = listOf(
-                                        "查看原图", "Full Image",
-                                        "查看原视频", "Original quality",
+            method.hookAfter { param ->
+                param.thisObject.asResolver().field {
+                    type = Button::class
+                }.forEach {
+                    it.get<Button>()?.let { imgBtn ->
+                        if (imgBtn.isVisible) {
+                            val keywords = listOf(
+                                "查看原图", "Full Image",
+                                "查看原视频", "Original quality",
+                            )
+                            if (keywords.any { text ->
+                                    imgBtn.text.contains(
+                                        text,
+                                        ignoreCase = true
                                     )
-                                    if (keywords.any { text ->
-                                            imgBtn.text.contains(
-                                                text,
-                                                ignoreCase = true
-                                            )
-                                        }) {
-                                        imgBtn.performClick()
-                                    }
-                                }
+                                }) {
+                                imgBtn.performClick()
                             }
                         }
                     }

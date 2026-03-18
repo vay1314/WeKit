@@ -12,7 +12,7 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.ClickableHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.ui.content.AlertDialogContent
 import moe.ouom.wekit.ui.content.TextButton
@@ -30,39 +30,31 @@ object RemoveChatMessageContextMenuItems : ClickableHookItem(), IResolvesDex {
         "收藏,提醒,翻译,搜一搜,编辑,打开,相关表情,合拍,查看专辑,静音播放,听筒播放,背景播放"
 
     override fun onEnable() {
-        methodAddMenuItem1.toDexMethod {
-            hook {
-                afterIfEnabled { param ->
-                    val name = param.args[3] as CharSequence
-                    val removedNames =
-                        WePrefs.getStringOrDef(KEY_REMOVED_ITEM_NAMES, DEFAULT_REMOVED_ITEM_NAMES)
-                            .split(',')
+        methodAddMenuItem1.hookAfter { param ->
+            val name = param.args[3] as CharSequence
+            val removedNames =
+                WePrefs.getStringOrDef(KEY_REMOVED_ITEM_NAMES, DEFAULT_REMOVED_ITEM_NAMES)
+                    .split(',')
 
-                    if (removedNames.contains(name)) {
-                        val list = param.thisObject.asResolver()
-                            .firstField { type = List::class }
-                            .get()!! as ArrayList<*>
-                        list.removeAt(list.size - 1)
-                    }
-                }
+            if (removedNames.contains(name)) {
+                val list = param.thisObject.asResolver()
+                    .firstField { type = List::class }
+                    .get()!! as ArrayList<*>
+                list.removeAt(list.size - 1)
             }
         }
 
-        methodAddMenuItem2.toDexMethod {
-            hook {
-                afterIfEnabled { param ->
-                    val name = param.args[3] as CharSequence
-                    val removedNames =
-                        WePrefs.getStringOrDef(KEY_REMOVED_ITEM_NAMES, DEFAULT_REMOVED_ITEM_NAMES)
-                            .split(',')
+        methodAddMenuItem2.hookAfter { param ->
+            val name = param.args[3] as CharSequence
+            val removedNames =
+                WePrefs.getStringOrDef(KEY_REMOVED_ITEM_NAMES, DEFAULT_REMOVED_ITEM_NAMES)
+                    .split(',')
 
-                    if (removedNames.contains(name)) {
-                        val list = param.thisObject.asResolver()
-                            .firstField { type = List::class }
-                            .get()!! as ArrayList<*>
-                        list.removeAt(list.size - 1)
-                    }
-                }
+            if (removedNames.contains(name)) {
+                val list = param.thisObject.asResolver()
+                    .firstField { type = List::class }
+                    .get()!! as ArrayList<*>
+                list.removeAt(list.size - 1)
             }
         }
     }

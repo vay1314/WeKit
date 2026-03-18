@@ -4,13 +4,12 @@ import android.annotation.SuppressLint
 import android.content.ContentValues
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.toClass
-import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.nameof.nameof
-import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.constants.PreferenceKeys
 import moe.ouom.wekit.constants.WeChatVersion
 import moe.ouom.wekit.core.model.ApiHookItem
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
+import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.utils.HostInfo
 import moe.ouom.wekit.utils.logging.WeLogger
 import java.util.concurrent.CopyOnWriteArrayList
@@ -262,21 +261,16 @@ object WeDatabaseListenerApi : ApiHookItem() {
     }
 
     private fun hookOldQueryMethod() {
-        val clsSQLite = DB_CLASS_NAME.toClass()
-        val cursorFactoryClass =
-            $$"com.tencent.wcdb.database.SQLiteDatabase$CursorFactory".toClass()
-        val cancellationSignalClass = "com.tencent.wcdb.support.CancellationSignal".toClass()
-
-        XposedHelpers.findMethodExact(
-            clsSQLite,
-            "rawQueryWithFactory",
-            cursorFactoryClass,
-            String::class.java,
-            Array<String>::class.java,
-            String::class.java,
-            cancellationSignalClass
-        )
-            .hookBefore { param ->
+        DB_CLASS_NAME.toClass().asResolver().firstMethod {
+            name = "rawQueryWithFactory"
+            parameters(
+                $$"com.tencent.wcdb.database.SQLiteDatabase$CursorFactory",
+                String::class,
+                Array<String>::class,
+                String::class,
+                "com.tencent.wcdb.support.CancellationSignal"
+            )
+        }.hookBefore { param ->
                 try {
                     if (queryListeners.isEmpty()) return@hookBefore
 
@@ -297,7 +291,7 @@ object WeDatabaseListenerApi : ApiHookItem() {
                         param.args[1] = currentSql
                         WeLogger.d(
                             TAG,
-                            "[rawQueryWithFactory] SQL被修改: $sql -> $currentSql, stack=${WeLogger.getStackTraceString()}"
+                            "[rawQueryWithFactory] SQL modified: $sql -> $currentSql, stack=${WeLogger.getStackTraceString()}"
                         )
                     }
                 } catch (e: Throwable) {

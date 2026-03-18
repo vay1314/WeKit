@@ -14,19 +14,17 @@ data class WeContact(
 
 // 群聊信息模型
 data class WeGroup(
-    val username: String,
-    val nickname: String, // 群名称
-    val pyInitial: String,
-    val quanPin: String,
+    val wxId: String,
+    val nickname: String,
+    val nicknameShortPinyin: String,
+    val nicknamePinyin: String,
     val avatarUrl: String
 )
 
 // 公众号信息模型
 data class WeOfficial(
-    val username: String,
+    val wxId: String,
     val nickname: String,
-    val alias: String,
-    val signature: String,
     val avatarUrl: String
 )
 

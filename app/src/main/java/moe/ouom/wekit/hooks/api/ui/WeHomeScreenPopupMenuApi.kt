@@ -10,7 +10,7 @@ import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.core.dsl.dexClass
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.ApiHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.utils.logging.WeLogger
 import org.luckypray.dexkit.DexKitBridge
@@ -56,85 +56,77 @@ object WeHomeScreenPopupMenuApi : ApiHookItem(), IResolvesDex {
     private val classMenuItemWrapper by dexClass()
 
     override fun onEnable() {
-        methodAddItem.toDexMethod {
-            hook {
-                afterIfEnabled { param ->
-                    val thisObj = param.thisObject
+        methodAddItem.hookAfter { param ->
+            val thisObj = param.thisObject
 
-                    @Suppress("UNCHECKED_CAST")
-                    val items = thisObj.asResolver()
-                        .firstField {
-                            type = SparseArray::class
-                        }
-                        .get()!! as SparseArray<Any>
-                    val baseAdapter = thisObj.asResolver()
-                        .firstField {
-                            type { clazz ->
-                                BaseAdapter::class.java.isAssignableFrom(clazz)
-                            }
-                        }
-                        .get()!! as BaseAdapter
+            @Suppress("UNCHECKED_CAST")
+            val items = thisObj.asResolver()
+                .firstField {
+                    type = SparseArray::class
+                }
+                .get()!! as SparseArray<Any>
+            val baseAdapter = thisObj.asResolver()
+                .firstField {
+                    type { clazz ->
+                        BaseAdapter::class.java.isAssignableFrom(clazz)
+                    }
+                }
+                .get()!! as BaseAdapter
 
-                    for (provider in providers) {
+            for (provider in providers) {
+                try {
+                    for (item in provider.getMenuItems(param)) {
+                        val itemData = classMenuItemData.clazz.createInstance(
+                            item.id,
+                            item.text,
+                            "",
+                            item.drawableResourceId,
+                            0
+                        )
+                        val itemWrapper =
+                            classMenuItemWrapper.clazz.createInstance(itemData)
+                        items.put(items.size, itemWrapper)
+                    }
+                } catch (ex: Exception) {
+                    WeLogger.e(
+                        TAG,
+                        "provider ${provider.javaClass.name} threw while providing menu items",
+                        ex
+                    )
+                }
+            }
+            baseAdapter.notifyDataSetChanged()
+        }
+
+        methodHandleItemClick.hookBefore { param ->
+            val thisObj = param.thisObject
+
+            @Suppress("UNCHECKED_CAST")
+            val items = thisObj.asResolver()
+                .firstField {
+                    type = SparseArray::class
+                }
+                .get()!! as SparseArray<Any>
+            val position = param.args[2] as Int
+            val itemWrapper = items.get(position)
+            val itemData = itemWrapper.asResolver()
+                .firstField { type = classMenuItemData.clazz }.get()!!
+            val id = itemData.asResolver()
+                .field { type = Int::class }[1].get()!! as Int
+
+            for (provider in providers) {
+                for (item in provider.getMenuItems(param)) {
+                    if (item.id == id) {
                         try {
-                            for (item in provider.getMenuItems(param)) {
-                                val itemData = classMenuItemData.clazz.createInstance(
-                                    item.id,
-                                    item.text,
-                                    "",
-                                    item.drawableResourceId,
-                                    0
-                                )
-                                val itemWrapper =
-                                    classMenuItemWrapper.clazz.createInstance(itemData)
-                                items.put(items.size, itemWrapper)
-                            }
+                            item.onClick()
+                            param.result = null
+                            return@hookBefore
                         } catch (ex: Exception) {
                             WeLogger.e(
                                 TAG,
-                                "provider ${provider.javaClass.name} threw while providing menu items",
+                                "provider ${provider.javaClass.name} threw while handling click event",
                                 ex
                             )
-                        }
-                    }
-                    baseAdapter.notifyDataSetChanged()
-                }
-            }
-        }
-
-        methodHandleItemClick.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    val thisObj = param.thisObject
-
-                    @Suppress("UNCHECKED_CAST")
-                    val items = thisObj.asResolver()
-                        .firstField {
-                            type = SparseArray::class
-                        }
-                        .get()!! as SparseArray<Any>
-                    val position = param.args[2] as Int
-                    val itemWrapper = items.get(position)
-                    val itemData = itemWrapper.asResolver()
-                        .firstField { type = classMenuItemData.clazz }.get()!!
-                    val id = itemData.asResolver()
-                        .field { type = Int::class }[1].get()!! as Int
-
-                    for (provider in providers) {
-                        for (item in provider.getMenuItems(param)) {
-                            if (item.id == id) {
-                                try {
-                                    item.onClick()
-                                    param.result = null
-                                    return@beforeIfEnabled
-                                } catch (ex: Exception) {
-                                    WeLogger.e(
-                                        TAG,
-                                        "provider ${provider.javaClass.name} threw while handling click event",
-                                        ex
-                                    )
-                                }
-                            }
                         }
                     }
                 }

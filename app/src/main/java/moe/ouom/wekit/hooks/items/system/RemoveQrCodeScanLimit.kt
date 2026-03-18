@@ -2,7 +2,7 @@ package moe.ouom.wekit.hooks.items.system
 
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import org.luckypray.dexkit.DexKitBridge
 
@@ -28,18 +28,14 @@ object RemoveQrCodeScanLimit : SwitchHookItem(), IResolvesDex {
     }
 
     override fun onEnable() {
-        methodQBarString.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    val source = param.args[2] as Int
-                    val a8KeyScene = param.args[3] as Int
-                    val matchedScene =
-                        ScanScene.entries.find { it.source == source && it.a8KeyScene == a8KeyScene }
-                    if (matchedScene == ScanScene.ALBUM || matchedScene == ScanScene.PICTURE_LONG_PRESS) {
-                        param.args[2] = ScanScene.CAMERA.source
-                        param.args[3] = ScanScene.CAMERA.a8KeyScene
-                    }
-                }
+        methodQBarString.hookBefore { param ->
+            val source = param.args[2] as Int
+            val a8KeyScene = param.args[3] as Int
+            val matchedScene =
+                ScanScene.entries.find { it.source == source && it.a8KeyScene == a8KeyScene }
+            if (matchedScene == ScanScene.ALBUM || matchedScene == ScanScene.PICTURE_LONG_PRESS) {
+                param.args[2] = ScanScene.CAMERA.source
+                param.args[3] = ScanScene.CAMERA.a8KeyScene
             }
         }
     }

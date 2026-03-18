@@ -2,6 +2,7 @@ package moe.ouom.wekit.core.dsl
 
 import com.highcapable.kavaref.extension.ClassLoaderProvider
 import com.highcapable.kavaref.extension.toClassOrNull
+import moe.ouom.wekit.core.model.BaseHookItem
 import moe.ouom.wekit.dexkit.DexMethodDescriptor
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.FindClass
@@ -67,13 +68,13 @@ class DexClassDelegate internal constructor(
 
         if (results.isEmpty()) {
             if (throwOnFailure) {
-                throw RuntimeException("DexKit: No class found for key: $key")
+                error("DexKit: No class found for key: $key")
             }
             return false
         }
 
         if (results.size > 1 && !allowMultiple) {
-            throw RuntimeException("DexKit: Multiple classes found for key: $key, count: ${results.size}")
+            error("DexKit: Multiple classes found for key: $key, count: ${results.size}")
         }
 
         setDescriptor(results[0].name)
@@ -94,9 +95,8 @@ class DexClassDelegate internal constructor(
  * 自动生成 Key，自动反射获取 Method
  */
 class DexMethodDelegate internal constructor(
-    val key: String,
-    private val hookItem: Any? = null  // 可选的 HookItem 实例
-) : ReadOnlyProperty<Any?, DexMethodDelegate> {
+    val key: String
+) : ReadOnlyProperty<BaseHookItem?, DexMethodDelegate> {
 
     private var descriptor: DexMethodDescriptor? = null
     private var cachedMethod: Method? = null
@@ -178,27 +178,14 @@ class DexMethodDelegate internal constructor(
         return true
     }
 
-    /**
-     * DSL: 转换为可 Hook 的方法
-     */
-    fun toDexMethod(block: HookBuilder.() -> Unit) {
-        toDexMethod(null, block)
-    }
-
-    fun toDexMethod(priority: Int?, block: HookBuilder.() -> Unit) {
-        val builder = HookBuilder(method, priority, hookItem)
-        builder.block()
-        builder.execute()
-    }
-
-    override fun getValue(thisRef: Any?, property: KProperty<*>): DexMethodDelegate = this
+    override fun getValue(thisRef: BaseHookItem?, property: KProperty<*>): DexMethodDelegate = this
 }
 
 /**
  * 创建 dexClass 委托
  * 自动生成 Key 为 "类名:变量名"
  */
-fun dexClass(): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, DexClassDelegate>> {
+fun dexClass(): PropertyDelegateProvider<BaseHookItem?, ReadOnlyProperty<BaseHookItem?, DexClassDelegate>> {
     return PropertyDelegateProvider { thisRef, property ->
         val className = thisRef!!::class.java.simpleName
         val key = "$className:${property.name}"
@@ -210,11 +197,11 @@ fun dexClass(): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, DexClassDe
  * 创建 dexMethod 委托
  * 自动生成 Key 为 "类名:变量名"
  */
-fun dexMethod(): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, DexMethodDelegate>> {
+fun dexMethod(): PropertyDelegateProvider<BaseHookItem?, ReadOnlyProperty<BaseHookItem?, DexMethodDelegate>> {
     return PropertyDelegateProvider { thisRef, property ->
         val className = thisRef!!::class.java.simpleName
         val key = "$className:${property.name}"
-        DexMethodDelegate(key, thisRef)  // 传递 thisRef 作为 hookItem
+        DexMethodDelegate(key)  // 传递 thisRef 作为 hookItem
     }
 }
 

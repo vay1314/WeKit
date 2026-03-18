@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.compose.material3.Text
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.ui.content.AlertDialogContent
 import moe.ouom.wekit.ui.content.Button
@@ -18,12 +18,8 @@ object ForceTabletMode : SwitchHookItem(), IResolvesDex {
     private val methodIsTablet by dexMethod()
 
     override fun onEnable() {
-        methodIsTablet.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    param.result = true
-                }
-            }
+        methodIsTablet.hookBefore { param ->
+            param.result = true
         }
     }
 

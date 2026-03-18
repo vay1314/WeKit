@@ -1,5 +1,5 @@
+
 import com.android.build.api.dsl.ApplicationExtension
-import com.android.build.gradle.internal.api.ApkVariantOutputImpl
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -120,9 +120,14 @@ configure<ApplicationExtension> {
         buildConfigField("String", "GIT_HASH", "\"${gitHash}\"")
         buildConfigField("String", "TAG", "\"WeKit\"")
         buildConfigField("long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
+    }
 
-        ndk {
-            abiFilters += setOf("arm64-v8a", "x86_64")
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "x86_64")
+            isUniversalApk = true
         }
     }
 
@@ -158,7 +163,7 @@ configure<ApplicationExtension> {
 
     @Suppress("UnstableApiUsage")
     androidResources {
-        localeFilters += setOf("zh", "en")
+        localeFilters += setOf("zh")
         additionalParameters += listOf("--allow-reserved-package-id", "--package-id", "0x69")
     }
 
@@ -185,17 +190,6 @@ androidComponents {
             generateMethodHashes,
             GenerateMethodHashesTask::outputDir
         )
-    }
-
-    onVariants { variant ->
-        val buildTypeName = variant.buildType?.uppercase()
-        variant.outputs.forEach { output ->
-            if (this is ApkVariantOutputImpl) {
-                val config = project.android.defaultConfig
-                val versionName = config.versionName
-                (output as ApkVariantOutputImpl).outputFileName = "WeKit-${buildTypeName}-${versionName}.apk"
-            }
-        }
     }
 }
 
@@ -356,8 +350,8 @@ dependencies {
     implementation(libs.kavaref.core)
     implementation(libs.kavaref.extension)
     implementation(libs.libsu.core)
-    implementation(projects.libs.common.annotationScanner)
-    ksp(projects.libs.common.annotationScanner)
+    implementation(project(":libs:common:annotation-scanner"))
+    ksp(project(":libs:common:annotation-scanner"))
 
     implementation(libs.material.dialogs.core)
     implementation(libs.material.dialogs.input)

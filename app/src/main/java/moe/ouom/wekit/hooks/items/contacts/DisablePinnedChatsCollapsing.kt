@@ -2,7 +2,7 @@ package moe.ouom.wekit.hooks.items.contacts
 
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.hooks.api.core.WeDatabaseApi
 import org.luckypray.dexkit.DexKitBridge
@@ -17,21 +17,13 @@ object DisablePinnedChatsCollapsing : SwitchHookItem(), IResolvesDex {
     private val methodIfShouldAddCollapseChatItem by dexMethod()
 
     override fun onEnable() {
-        methodAddCollapseChatItem.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    WeDatabaseApi.execStatement("DELETE FROM rconversation WHERE username = 'message_fold'")
-                    param.result = null
-                }
-            }
+        methodAddCollapseChatItem.hookBefore { param ->
+            WeDatabaseApi.execStatement("DELETE FROM rconversation WHERE username = 'message_fold'")
+            param.result = null
         }
-        methodIfShouldAddCollapseChatItem.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    WeDatabaseApi.execStatement("DELETE FROM rconversation WHERE username = 'message_fold'")
-                    param.result = false
-                }
-            }
+        methodIfShouldAddCollapseChatItem.hookBefore { param ->
+            WeDatabaseApi.execStatement("DELETE FROM rconversation WHERE username = 'message_fold'")
+            param.result = false
         }
     }
 

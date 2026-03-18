@@ -4,7 +4,7 @@ import de.robv.android.xposed.XposedHelpers
 import moe.ouom.wekit.hooks.api.net.MsgIdProvider.previewNextId
 import moe.ouom.wekit.hooks.api.net.WeApi.generateClientMsgId
 import moe.ouom.wekit.hooks.api.net.WeApi.selfWxId
-import moe.ouom.wekit.hooks.api.net.intf.ISigner
+import moe.ouom.wekit.hooks.api.net.abc.ISigner
 import moe.ouom.wekit.hooks.api.net.model.SignResult
 import moe.ouom.wekit.utils.logging.WeLogger
 import org.json.JSONObject

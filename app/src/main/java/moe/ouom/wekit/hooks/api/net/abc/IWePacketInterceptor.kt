@@ -1,4 +1,4 @@
-package moe.ouom.wekit.hooks.api.net.intf
+package moe.ouom.wekit.hooks.api.net.abc
 
 interface IWePacketInterceptor {
     fun onRequest(uri: String, cgiId: Int, reqBytes: ByteArray): ByteArray? = null

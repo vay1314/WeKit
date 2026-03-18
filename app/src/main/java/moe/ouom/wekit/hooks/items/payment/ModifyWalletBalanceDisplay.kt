@@ -9,11 +9,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.ClickableHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
+import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.ui.content.AlertDialogContent
 import moe.ouom.wekit.ui.content.Button
 import moe.ouom.wekit.ui.content.TextButton
@@ -29,25 +29,16 @@ object ModifyWalletBalanceDisplay : ClickableHookItem(), IResolvesDex {
     private val methodTickerViewSetText by dexMethod()
 
     override fun onEnable() {
-        methodUpdateBalanceDisplay.toDexMethod {
-            hook {
-                afterIfEnabled { param ->
-                    val text = WePrefs.getStringOrDef(KEY_BALANCE, null) ?: return@afterIfEnabled
-                    val balanceView = param.thisObject.asResolver()
-                        .firstField { type = TextView::class }
-                        .get()!! as TextView
-                    balanceView.text = text
-                }
-            }
+        methodUpdateBalanceDisplay.hookAfter { param ->
+            val text = WePrefs.getStringOrDef(KEY_BALANCE, null) ?: return@hookAfter
+            val balanceView = param.thisObject.asResolver()
+                .firstField { type = TextView::class }
+                .get()!! as TextView
+            balanceView.text = text
         }
 
-        methodTickerViewSetText.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    param.args[0] =
-                        WePrefs.getStringOrDef(KEY_BALANCE, null) ?: return@beforeIfEnabled
-                }
-            }
+        methodTickerViewSetText.hookBefore { param ->
+            param.args[0] = WePrefs.getStringOrDef(KEY_BALANCE, null) ?: return@hookBefore
         }
     }
 

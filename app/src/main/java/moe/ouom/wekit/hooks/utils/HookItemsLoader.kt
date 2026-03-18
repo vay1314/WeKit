@@ -7,18 +7,18 @@ import dev.ujhhgtg.nameof.nameof
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import moe.ouom.wekit.utils.RuntimeConfig
-import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.constants.PreferenceKeys.NO_DEX_RESOLVE
 import moe.ouom.wekit.core.model.ApiHookItem
 import moe.ouom.wekit.core.model.BaseHookItem
 import moe.ouom.wekit.core.model.ClickableHookItem
 import moe.ouom.wekit.core.model.SwitchHookItem
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.dexkit.cache.DexCacheManager
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
-import moe.ouom.wekit.utils.HostInfo
+import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.ui.content.DexResolverDialogContent
 import moe.ouom.wekit.ui.utils.showComposeDialog
+import moe.ouom.wekit.utils.HostInfo
+import moe.ouom.wekit.utils.RuntimeConfig
 import moe.ouom.wekit.utils.TargetProcessUtils
 import moe.ouom.wekit.utils.logging.WeLogger
 
@@ -44,7 +44,7 @@ object HookItemsLoader {
         appInfo: ApplicationInfo
     ) {
         // 获取全量 HookItem 列表
-        val allHookItems = HookItemFactory.getItems()
+        val allHookItems = HookItemsFactory.getItems()
 
         // 筛选出所有需要进行 Dex 查找的项
         val allDexResolvingItems = allHookItems.filterIsInstance<IResolvesDex>()

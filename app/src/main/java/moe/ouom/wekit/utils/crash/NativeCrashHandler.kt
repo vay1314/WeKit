@@ -1,9 +1,14 @@
 package moe.ouom.wekit.utils.crash
 
+import dev.ujhhgtg.nameof.nameof
 import lombok.Getter
 import moe.ouom.wekit.utils.logging.WeLogger
 
 class NativeCrashHandler {
+
+    companion object {
+        private val TAG = nameof(NativeCrashHandler::class)
+    }
 
     /**
      * 获取崩溃日志管理器
@@ -12,11 +17,6 @@ class NativeCrashHandler {
      */
     val crashLogsManager: CrashLogsManager = CrashLogsManager()
 
-    /**
-     * -- GETTER --
-     * 检查是否已安装
-     */
-    @Getter
     var isInstalled: Boolean = false
 
     // Native 方法声明
@@ -33,7 +33,7 @@ class NativeCrashHandler {
      */
     fun install(): Boolean {
         if (isInstalled) {
-            WeLogger.i("NativeCrashHandler", "Native crash handler already installed")
+            WeLogger.i(TAG, "Native crash handler already installed")
             return true
         }
 
@@ -43,14 +43,14 @@ class NativeCrashHandler {
 
             if (result) {
                 isInstalled = true
-                WeLogger.i("NativeCrashHandler", "Native crash handler installed successfully")
+                WeLogger.i(TAG, "installed successfully")
             } else {
-                WeLogger.e("NativeCrashHandler", "Failed to install native crash handler")
+                WeLogger.e(TAG, "failed to install")
             }
 
             return result
         } catch (e: Throwable) {
-            WeLogger.e("[NativeCrashHandler] Failed to install native crash handler", e)
+            WeLogger.e(TAG, "failed to install native crash handler", e)
             return false
         }
     }
@@ -66,7 +66,7 @@ class NativeCrashHandler {
         try {
             uninstallNative()
             isInstalled = false
-            WeLogger.i("NativeCrashHandler", "Native crash handler uninstalled")
+            WeLogger.i(TAG, "Native crash handler uninstalled")
         } catch (e: Throwable) {
             WeLogger.e("[NativeCrashHandler] Failed to uninstall native crash handler", e)
         }
@@ -83,7 +83,7 @@ class NativeCrashHandler {
      * 4 = SIGBUS (总线错误)
      */
     fun triggerTestCrash(crashType: Int) {
-        WeLogger.w("NativeCrashHandler", "Triggering test crash: type=$crashType")
+        WeLogger.w(TAG, "Triggering test crash: type=$crashType")
         try {
             triggerTestCrashNative(crashType)
         } catch (e: Throwable) {

@@ -37,12 +37,12 @@ import com.highcapable.kavaref.extension.toClass
 import dev.ujhhgtg.nameof.nameof
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.core.dsl.dexClass
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.ClickableHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
+import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.ui.content.AlertDialogContent
 import moe.ouom.wekit.ui.content.Button
 import moe.ouom.wekit.ui.content.IconButton
@@ -121,19 +121,15 @@ object FeatureFlagManager : ClickableHookItem(), IResolvesDex {
     // FIXME: currently, to prevent lag, overrides are loaded only once, so we have to restart host app for changes to take effect
     private val overrides by lazy { loadOverrides() }
     override fun onEnable() {
-        methodRepairerConfigApiGet.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    val key = param.args[0]
-                    val override =
-                        overrides.firstOrNull { it.internalName == key } ?: return@beforeIfEnabled
-                    param.result = when (override) {
-                        is FeatureFlagOverride.FloatValue -> override.value
-                        is FeatureFlagOverride.IntValue -> override.value
-                        is FeatureFlagOverride.LongValue -> override.value
-                        is FeatureFlagOverride.StringValue -> override.value
-                    }
-                }
+        methodRepairerConfigApiGet.hookBefore { param ->
+            val key = param.args[0]
+            val override =
+                overrides.firstOrNull { it.internalName == key } ?: return@hookBefore
+            param.result = when (override) {
+                is FeatureFlagOverride.FloatValue -> override.value
+                is FeatureFlagOverride.IntValue -> override.value
+                is FeatureFlagOverride.LongValue -> override.value
+                is FeatureFlagOverride.StringValue -> override.value
             }
         }
     }

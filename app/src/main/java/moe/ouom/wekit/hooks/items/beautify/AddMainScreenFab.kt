@@ -58,9 +58,9 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.constants.PackageNames
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.hooks.api.core.WeConversationApi
 import moe.ouom.wekit.hooks.api.ui.WeMainActivityBeautifyApi
+import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.ui.content.MainSettingsDialog
 import moe.ouom.wekit.ui.utils.MainActivityLifecycleOwnerProvider
 import moe.ouom.wekit.ui.utils.setLifecycleOwner
@@ -108,216 +108,212 @@ object AddMainScreenFab : SwitchHookItem() {
     }
 
     override fun onEnable() {
-        WeMainActivityBeautifyApi.methodDoOnCreate.toDexMethod {
-            hook {
-                afterIfEnabled { param ->
-                    val activity = param.thisObject.asResolver()
-                        .firstField {
-                            type = "com.tencent.mm.ui.MMFragmentActivity"
-                        }
-                        .get()!! as Activity
+        WeMainActivityBeautifyApi.methodDoOnCreate.hookAfter { param ->
+            val activity = param.thisObject.asResolver()
+                .firstField {
+                    type = "com.tencent.mm.ui.MMFragmentActivity"
+                }
+                .get()!! as Activity
 
-                    val menuItems = mutableMapOf(
-                        "扫一扫" to (Icons.Default.QrCodeScanner to {
-                            startActivityByName(
-                                activity,
-                                "com.tencent.mm.plugin.scanner.ui.BaseScanUI"
-                            )
-                        }),
-                        "朋友圈" to (Icons.Default.Camera to {
-                            startActivityByName(
-                                activity,
-                                "com.tencent.mm.plugin.sns.ui.improve.ImproveSnsTimelineUI"
-                            )
-                        }),
-                        "钱包" to (Icons.Default.Wallet to {
-                            startActivityByName(
-                                activity,
-                                "com.tencent.mm.plugin.mall.ui.MallIndexUIv2"
-                            )
-                        }),
-                        "视频号" to (Icons.Default.Movie to {
-                            startActivityByName(
-                                activity,
-                                "com.tencent.mm.plugin.finder.ui.FinderHomeAffinityUI"
-                            )
-                        }),
-                        "设置" to (Icons.Default.Settings to {
-                            startActivityByName(
-                                activity,
-                                "com.tencent.mm.plugin.setting.ui.setting_new.MainSettingsUI"
-                            )
-                        }),
-                        "模块设置" to (Icons.Default.Extension to {
-                            MainSettingsDialog(activity).show()
-                        }),
-                        "强制停止" to (Icons.Default.Cancel to {
-                            Process.killProcess(Process.myPid())
-                        }),
-                        "全部已读" to (Icons.Default.Update to {
-                            WeConversationApi.markAllAsRead()
-                            ToastUtils.showToast("已将全部未读消息标为已读")
-                        })
+            val menuItems = mutableMapOf(
+                "扫一扫" to (Icons.Default.QrCodeScanner to {
+                    startActivityByName(
+                        activity,
+                        "com.tencent.mm.plugin.scanner.ui.BaseScanUI"
                     )
+                }),
+                "朋友圈" to (Icons.Default.Camera to {
+                    startActivityByName(
+                        activity,
+                        "com.tencent.mm.plugin.sns.ui.improve.ImproveSnsTimelineUI"
+                    )
+                }),
+                "钱包" to (Icons.Default.Wallet to {
+                    startActivityByName(
+                        activity,
+                        "com.tencent.mm.plugin.mall.ui.MallIndexUIv2"
+                    )
+                }),
+                "视频号" to (Icons.Default.Movie to {
+                    startActivityByName(
+                        activity,
+                        "com.tencent.mm.plugin.finder.ui.FinderHomeAffinityUI"
+                    )
+                }),
+                "设置" to (Icons.Default.Settings to {
+                    startActivityByName(
+                        activity,
+                        "com.tencent.mm.plugin.setting.ui.setting_new.MainSettingsUI"
+                    )
+                }),
+                "模块设置" to (Icons.Default.Extension to {
+                    MainSettingsDialog(activity).show()
+                }),
+                "强制停止" to (Icons.Default.Cancel to {
+                    Process.killProcess(Process.myPid())
+                }),
+                "全部已读" to (Icons.Default.Update to {
+                    WeConversationApi.markAllAsRead()
+                    ToastUtils.showToast("已将全部未读消息标为已读")
+                })
+            )
 
-                    for (provider in providers) {
-                        try {
-                            for (item in provider.getMenuItems(activity)) {
-                                menuItems[item.text] = item.icon to item.onClick
-                            }
-                        } catch (ex: Exception) {
-                            WeLogger.e(
-                                TAG,
-                                "provider ${provider.javaClass.name} threw while providing menu items",
-                                ex
-                            )
-                        }
+            for (provider in providers) {
+                try {
+                    for (item in provider.getMenuItems(activity)) {
+                        menuItems[item.text] = item.icon to item.onClick
                     }
+                } catch (ex: Exception) {
+                    WeLogger.e(
+                        TAG,
+                        "provider ${provider.javaClass.name} threw while providing menu items",
+                        ex
+                    )
+                }
+            }
 
-                    val lifecycleOwner = MainActivityLifecycleOwnerProvider.lifecycleOwner
+            val lifecycleOwner = MainActivityLifecycleOwnerProvider.lifecycleOwner
 
-                    val decorView = activity.window.decorView
-                    decorView.setLifecycleOwner(lifecycleOwner)
-                    val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
-                    rootView.setLifecycleOwner(lifecycleOwner)
+            val decorView = activity.window.decorView
+            decorView.setLifecycleOwner(lifecycleOwner)
+            val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
+            rootView.setLifecycleOwner(lifecycleOwner)
 
-                    rootView.addView(
-                        ComposeView(activity).apply {
-                            setLifecycleOwner(lifecycleOwner)
+            rootView.addView(
+                ComposeView(activity).apply {
+                    setLifecycleOwner(lifecycleOwner)
 
-                            setContent {
-                                // WeChat doesn't follow MaterialTheme so we don't use that too
-                                // or else different color palettes clash and it's hideous
-                                val isDark = isSystemInDarkTheme()
-                                val backgroundColor =
-                                    if (isDark) Color(0xFF191919) else Color(0xFFF7F7F7)
-                                val activeColor =
-                                    if (isDark) Color(0xFF06A854) else Color(0xFF09A854)
+                    setContent {
+                        // WeChat doesn't follow MaterialTheme so we don't use that too
+                        // or else different color palettes clash and it's hideous
+                        val isDark = isSystemInDarkTheme()
+                        val backgroundColor =
+                            if (isDark) Color(0xFF191919) else Color(0xFFF7F7F7)
+                        val activeColor =
+                            if (isDark) Color(0xFF06A854) else Color(0xFF09A854)
 
-                                var expanded by remember { mutableStateOf(false) }
+                        var expanded by remember { mutableStateOf(false) }
 
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(bottom = 60.dp)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(bottom = 60.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                // 1. Expandable Menu Items
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    horizontalAlignment = Alignment.End
                                 ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .align(Alignment.BottomEnd)
-                                            .padding(16.dp),
-                                        horizontalAlignment = Alignment.End,
-                                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                                    ) {
-                                        // 1. Expandable Menu Items
-                                        Column(
-                                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                                            horizontalAlignment = Alignment.End
-                                        ) {
-                                            // 1. Expandable Menu Items (staggered per-item animation)
-                                            menuItems.entries.forEachIndexed { index, (name, pair) ->
-                                                // Stagger: items animate in bottom-to-top, out top-to-bottom
-                                                val itemDelay = index * 35
-                                                val reverseDelay = (menuItems.size - 1 - index) * 35
+                                    // 1. Expandable Menu Items (staggered per-item animation)
+                                    menuItems.entries.forEachIndexed { index, (name, pair) ->
+                                        // Stagger: items animate in bottom-to-top, out top-to-bottom
+                                        val itemDelay = index * 35
+                                        val reverseDelay = (menuItems.size - 1 - index) * 35
 
-                                                AnimatedVisibility(
-                                                    visible = expanded,
-                                                    enter = fadeIn(
-                                                        animationSpec = tween(
-                                                            durationMillis = 160,
-                                                            delayMillis = reverseDelay,
-                                                            easing = EaseOut
-                                                        )
-                                                    ) + slideInVertically(
-                                                        animationSpec = tween(
-                                                            durationMillis = 180,
-                                                            delayMillis = reverseDelay,
-                                                            easing = EaseOutCubic
+                                        AnimatedVisibility(
+                                            visible = expanded,
+                                            enter = fadeIn(
+                                                animationSpec = tween(
+                                                    durationMillis = 160,
+                                                    delayMillis = reverseDelay,
+                                                    easing = EaseOut
+                                                )
+                                            ) + slideInVertically(
+                                                animationSpec = tween(
+                                                    durationMillis = 180,
+                                                    delayMillis = reverseDelay,
+                                                    easing = EaseOutCubic
+                                                ),
+                                                initialOffsetY = { it / 2 }
+                                            ),
+                                            exit = fadeOut(
+                                                animationSpec = tween(
+                                                    durationMillis = 100,
+                                                    delayMillis = itemDelay,
+                                                    easing = EaseIn
+                                                )
+                                            ) + slideOutVertically(
+                                                animationSpec = tween(
+                                                    durationMillis = 100,
+                                                    delayMillis = itemDelay,
+                                                    easing = EaseInCubic
+                                                ),
+                                                targetOffsetY = { it / 2 }
+                                            )
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(
+                                                    12.dp
+                                                )
+                                            ) {
+                                                // The Floating Label
+                                                Surface(
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    color = backgroundColor,
+                                                    tonalElevation = 2.dp,
+                                                    shadowElevation = 2.dp
+                                                ) {
+                                                    Text(
+                                                        text = name,
+                                                        modifier = Modifier.padding(
+                                                            horizontal = 12.dp,
+                                                            vertical = 6.dp
                                                         ),
-                                                        initialOffsetY = { it / 2 }
-                                                    ),
-                                                    exit = fadeOut(
-                                                        animationSpec = tween(
-                                                            durationMillis = 100,
-                                                            delayMillis = itemDelay,
-                                                            easing = EaseIn
-                                                        )
-                                                    ) + slideOutVertically(
-                                                        animationSpec = tween(
-                                                            durationMillis = 100,
-                                                            delayMillis = itemDelay,
-                                                            easing = EaseInCubic
-                                                        ),
-                                                        targetOffsetY = { it / 2 }
+                                                        color = activeColor,
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                }
+
+                                                // The Small FAB
+                                                SmallFloatingActionButton(
+                                                    onClick = {
+                                                        pair.second()
+                                                        expanded = false
+                                                    },
+                                                    containerColor = backgroundColor,
+                                                    shape = CircleShape,
+                                                    elevation = FloatingActionButtonDefaults.elevation(
+                                                        2.dp
                                                     )
                                                 ) {
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(
-                                                            12.dp
-                                                        )
-                                                    ) {
-                                                        // The Floating Label
-                                                        Surface(
-                                                            shape = RoundedCornerShape(8.dp),
-                                                            color = backgroundColor,
-                                                            tonalElevation = 2.dp,
-                                                            shadowElevation = 2.dp
-                                                        ) {
-                                                            Text(
-                                                                text = name,
-                                                                modifier = Modifier.padding(
-                                                                    horizontal = 12.dp,
-                                                                    vertical = 6.dp
-                                                                ),
-                                                                color = activeColor,
-                                                                fontSize = 14.sp,
-                                                                fontWeight = FontWeight.Medium
-                                                            )
-                                                        }
-
-                                                        // The Small FAB
-                                                        SmallFloatingActionButton(
-                                                            onClick = {
-                                                                pair.second()
-                                                                expanded = false
-                                                            },
-                                                            containerColor = backgroundColor,
-                                                            shape = CircleShape,
-                                                            elevation = FloatingActionButtonDefaults.elevation(
-                                                                2.dp
-                                                            )
-                                                        ) {
-                                                            Icon(
-                                                                pair.first,
-                                                                contentDescription = null,
-                                                                tint = activeColor
-                                                            )
-                                                        }
-                                                    }
+                                                    Icon(
+                                                        pair.first,
+                                                        contentDescription = null,
+                                                        tint = activeColor
+                                                    )
                                                 }
                                             }
                                         }
-
-                                        // 2. Main Toggle FAB
-                                        FloatingActionButton(
-                                            onClick = { expanded = !expanded },
-                                            containerColor = backgroundColor,
-                                            shape = CircleShape
-                                        ) {
-                                            val rotation by animateFloatAsState(if (expanded) 45f else 0f)
-                                            Icon(
-                                                Icons.Filled.Add,
-                                                contentDescription = null,
-                                                tint = activeColor,
-                                                modifier = Modifier.rotate(rotation)
-                                            )
-                                        }
                                     }
                                 }
+
+                                // 2. Main Toggle FAB
+                                FloatingActionButton(
+                                    onClick = { expanded = !expanded },
+                                    containerColor = backgroundColor,
+                                    shape = CircleShape
+                                ) {
+                                    val rotation by animateFloatAsState(if (expanded) 45f else 0f)
+                                    Icon(
+                                        Icons.Filled.Add,
+                                        contentDescription = null,
+                                        tint = activeColor,
+                                        modifier = Modifier.rotate(rotation)
+                                    )
+                                }
                             }
-                        })
-                }
-            }
+                        }
+                    }
+                })
         }
     }
 }

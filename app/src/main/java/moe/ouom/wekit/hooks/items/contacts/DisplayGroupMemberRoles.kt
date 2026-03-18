@@ -12,7 +12,7 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import de.robv.android.xposed.XC_MethodHook
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.hooks.api.core.WeConversationApi
 import moe.ouom.wekit.hooks.api.core.model.MessageInfo

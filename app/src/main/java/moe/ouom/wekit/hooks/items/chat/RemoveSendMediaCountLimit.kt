@@ -1,6 +1,7 @@
 package moe.ouom.wekit.hooks.items.chat
 
 import android.app.Activity
+import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.toClass
 import moe.ouom.wekit.core.model.SwitchHookItem
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
@@ -15,7 +16,7 @@ object RemoveSendMediaCountLimit : SwitchHookItem() {
 
     override fun onEnable() {
         for (clsName in HOOKED_CLASS_NAMES) {
-            clsName.toClass().hookBefore("onCreate") { param ->
+            clsName.toClass().asResolver().firstMethod { name = "onCreate" }.hookBefore { param ->
                 val activity = param.thisObject as Activity
                 activity.intent.putExtra("max_select_count", 999)
             }

@@ -4,7 +4,7 @@ import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.constants.PreferenceKeys
 import moe.ouom.wekit.core.model.BaseHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.utils.ModulePaths
 import moe.ouom.wekit.utils.logging.WeLogger
 import org.json.JSONObject

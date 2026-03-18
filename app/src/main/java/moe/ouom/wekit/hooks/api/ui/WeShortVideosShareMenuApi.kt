@@ -6,7 +6,7 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import de.robv.android.xposed.XC_MethodHook
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.ApiHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.utils.logging.WeLogger
 import org.json.JSONObject
@@ -53,83 +53,75 @@ object WeShortVideosShareMenuApi : ApiHookItem(), IResolvesDex {
     private val methodSelectMenuItem by dexMethod()
 
     override fun onEnable() {
-        methodCreateMenu.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    val menu = param.args[0]
-                    for (provider in providers) {
-                        try {
-                            for (item in provider.getMenuItems(param)) {
-                                menu.asResolver()
-                                    .firstMethod {
-                                        parameters(Int::class, CharSequence::class, Drawable::class)
-                                    }
-                                    .invoke(item.id, item.text, item.drawable.value)
+        methodCreateMenu.hookBefore { param ->
+            val menu = param.args[0]
+            for (provider in providers) {
+                try {
+                    for (item in provider.getMenuItems(param)) {
+                        menu.asResolver()
+                            .firstMethod {
+                                parameters(Int::class, CharSequence::class, Drawable::class)
                             }
-                        } catch (ex: Exception) {
-                            WeLogger.e(
-                                TAG,
-                                "provider ${provider.javaClass.name} threw while providing menu items",
-                                ex
-                            )
-                        }
+                            .invoke(item.id, item.text, item.drawable.value)
                     }
+                } catch (ex: Exception) {
+                    WeLogger.e(
+                        TAG,
+                        "provider ${provider.javaClass.name} threw while providing menu items",
+                        ex
+                    )
                 }
             }
         }
 
-        methodSelectMenuItem.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    val menuItem = param.args[0] as android.view.MenuItem
-                    val itemId = menuItem.itemId
+        methodSelectMenuItem.hookBefore { param ->
+            val menuItem = param.args[0] as android.view.MenuItem
+            val itemId = menuItem.itemId
 
-                    val baseFinderFeed = param.thisObject.asResolver()
-                        .firstField {
-                            type = "com.tencent.mm.plugin.finder.model.BaseFinderFeed"
-                        }
-                        .get()!!
-                    val finderItem = baseFinderFeed.asResolver()
-                        .firstField {
-                            name = "feedObject"
-                            superclass()
-                        }
-                        .get()!!
-                    val mediaType = finderItem.asResolver()
-                        .firstMethod {
-                            name = "getMediaType"
-                        }
-                        .invoke()!! as Int
-                    val mediaList = finderItem.asResolver()
-                        .firstMethod {
-                            name = "getMediaList"
-                        }
-                        .invoke() as LinkedList<*>
-                    val mediaJsonList = mediaList.map { media ->
-                        media.asResolver()
-                            .firstMethod {
-                                name = "toJSON"
-                                superclass()
-                            }.invoke()!! as JSONObject
-                    }
+            val baseFinderFeed = param.thisObject.asResolver()
+                .firstField {
+                    type = "com.tencent.mm.plugin.finder.model.BaseFinderFeed"
+                }
+                .get()!!
+            val finderItem = baseFinderFeed.asResolver()
+                .firstField {
+                    name = "feedObject"
+                    superclass()
+                }
+                .get()!!
+            val mediaType = finderItem.asResolver()
+                .firstMethod {
+                    name = "getMediaType"
+                }
+                .invoke()!! as Int
+            val mediaList = finderItem.asResolver()
+                .firstMethod {
+                    name = "getMediaList"
+                }
+                .invoke() as LinkedList<*>
+            val mediaJsonList = mediaList.map { media ->
+                media.asResolver()
+                    .firstMethod {
+                        name = "toJSON"
+                        superclass()
+                    }.invoke()!! as JSONObject
+            }
 
-                    for (provider in providers) {
-                        try {
-                            for (item in provider.getMenuItems(param)) {
-                                if (item.id == itemId) {
-                                    item.onClick(param, mediaType, mediaJsonList)
-                                    param.result = null
-                                    return@beforeIfEnabled
-                                }
-                            }
-                        } catch (ex: Exception) {
-                            WeLogger.e(
-                                TAG,
-                                "provider ${provider.javaClass.name} threw while handling click event",
-                                ex
-                            )
+            for (provider in providers) {
+                try {
+                    for (item in provider.getMenuItems(param)) {
+                        if (item.id == itemId) {
+                            item.onClick(param, mediaType, mediaJsonList)
+                            param.result = null
+                            return@hookBefore
                         }
                     }
+                } catch (ex: Exception) {
+                    WeLogger.e(
+                        TAG,
+                        "provider ${provider.javaClass.name} threw while handling click event",
+                        ex
+                    )
                 }
             }
         }

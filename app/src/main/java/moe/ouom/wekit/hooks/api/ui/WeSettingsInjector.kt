@@ -15,7 +15,7 @@ import moe.ouom.wekit.BuildConfig
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.ApiHookItem
 import moe.ouom.wekit.dexkit.DexMethodDescriptor
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.ui.content.MainSettingsDialog
 import moe.ouom.wekit.utils.logging.WeLogger
@@ -45,7 +45,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
         val prefClass = dexKit.findClass {
             matcher { className = PREFERENCE_CLASS_NAME }
         }.singleOrNull() ?: run {
-            WeLogger.e("WeSettingInjector: Preference 类未找到")
+            WeLogger.e(TAG, "Preference 类未找到")
             return descriptors
         }
 
@@ -193,13 +193,13 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
                     addPrefMethod.invoke(prefScreen, prefInstance, 0)
 
                 } catch (e: Throwable) {
-                    WeLogger.e("WeSettingInjector: 插入选项失败", e)
+                    WeLogger.e(TAG, "插入选项失败", e)
                 }
             }
 
-            WeLogger.i("WeSettingInjector: Created WeKit setting")
+            WeLogger.i(TAG, "injected settings")
 
-            clsSettingsUi.hookBefore("onPreferenceTreeClick") { param ->
+            clsSettingsUi.asResolver().firstMethod { name = "onPreferenceTreeClick" } .hookBefore { param ->
                 if (param.args.size < 2) return@hookBefore
                 val preference = param.args[1] ?: return@hookBefore
 
@@ -214,7 +214,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
                 }
             }
 
-            WeLogger.i("WeSettingInjector: Hooked onPreferenceTreeClick")
+            WeLogger.i(TAG, "Hooked onPreferenceTreeClick")
 
         } catch (t: Throwable) {
             WeLogger.e("Legacy Settings: Hook 流程异常", t)
@@ -226,7 +226,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
             "com.tencent.mm.plugin.setting.ui.setting_new.base.BaseSettingPrefUI"
                 .toClassOrNull() ?: return
 
-        newSettingsCls.hookAfter("onCreate") { param ->
+        newSettingsCls.asResolver().firstMethod { name = "onCreate" }.hookAfter { param ->
             if (param.thisObject.javaClass.name
                 == "com.tencent.mm.plugin.setting.ui.setting_new.MainSettingsUI"
             ) {

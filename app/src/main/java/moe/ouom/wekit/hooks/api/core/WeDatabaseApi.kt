@@ -7,7 +7,7 @@ import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.core.dsl.dexClass
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.ApiHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.api.core.model.SelfProfileField
 import moe.ouom.wekit.hooks.api.core.model.WeContact
 import moe.ouom.wekit.hooks.api.core.model.WeGroup
@@ -226,6 +226,32 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
 
             initializeDatabase(storageObj)
         }
+
+//        "com.tencent.wcdb.database.SQLiteDatabase".toClass().asResolver()
+//            .firstMethod { name = "open" }
+//            .hookBefore { param ->
+//                val keyBytes = param.args[0] as? ByteArray
+//                val cipherSpec = param.args[1] ?: return@hookBefore
+//
+//                val dbPath = param.thisObject.asResolver().firstMethod { name = "getPath" }.invoke()!! as String
+//
+//                if (keyBytes != null) {
+//                    val hexOfBytes = keyBytes.joinToString("") { "%02x".format(it) }
+//                    val asAscii = String(keyBytes, Charsets.UTF_8)
+//                    WeLogger.d(TAG, "WCDB path=$dbPath")
+//                    WeLogger.d(TAG, "WCDB key_hex=$hexOfBytes")
+//                    WeLogger.d(TAG, "WCDB key_ascii=$asAscii")
+//                }
+//
+//                cipherSpec.asResolver().apply {
+//                    val pageSize = firstField { name = "pageSize" }.get()!! as Int
+//                    val kdfIter = firstField { name = "kdfIteration" }.get()!! as Int
+//                    val hmacAlgo = firstField { name = "hmacAlgorithm" }.get()!! as Int
+//                    val kdfAlgo = firstField { name = "kdfAlgorithm" }.get()!! as Int
+//                    val hmacEnabled = firstField { name = "hmacEnabled" }.get()!! as Boolean
+//                    WeLogger.d(TAG, "WCDB pageSize=$pageSize kdfIter=$kdfIter hmacAlgo=$hmacAlgo kdfAlgo=$kdfAlgo hmacEnabled=$hmacEnabled")
+//                }
+//            }
     }
 
     @Synchronized
@@ -353,10 +379,10 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
     fun getGroups(): List<WeGroup> {
         return executeQuery(SqlStatements.GROUPS).map { row ->
             WeGroup(
-                username = row.str("username"),
+                wxId = row.str("username"),
                 nickname = row.str("nickname"),
-                pyInitial = row.str("pyInitial"),
-                quanPin = row.str("quanPin"),
+                nicknameShortPinyin = row.str("pyInitial"),
+                nicknamePinyin = row.str("quanPin"),
                 avatarUrl = row.str("avatarUrl")
             )
         }
@@ -394,10 +420,8 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
     fun getOfficialAccounts(): List<WeOfficial> {
         return executeQuery(SqlStatements.OFFICIAL_LIST).map { row ->
             WeOfficial(
-                username = row.str("username"),
+                wxId = row.str("username"),
                 nickname = row.str("nickname"),
-                alias = row.str("alias"),
-                signature = "暂无签名",
                 avatarUrl = row.str("avatarUrl")
             )
         }

@@ -1,4 +1,4 @@
-package moe.ouom.wekit.dexkit.intf
+package moe.ouom.wekit.dexkit.abc
 
 import moe.ouom.wekit.core.dsl.DexClassDelegate
 import moe.ouom.wekit.core.dsl.DexMethodDelegate

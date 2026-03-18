@@ -5,7 +5,7 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.toClass
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import org.luckypray.dexkit.DexKitBridge
 
@@ -15,12 +15,8 @@ object SkipMiniAppSplashAds : SwitchHookItem(), IResolvesDex {
     private val methodAdDataCallback by dexMethod()
 
     override fun onEnable() {
-        methodAdDataCallback.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    param.result = null
-                }
-            }
+        methodAdDataCallback.hookBefore { param ->
+            param.result = null
         }
 
         "com.tencent.mm.plugin.appbrand.ad.ui.AppBrandAdUI".toClass().asResolver()

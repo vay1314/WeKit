@@ -8,16 +8,16 @@ import androidx.compose.material3.Text
 import androidx.core.net.toUri
 import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.nameof.nameof
-import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.core.dsl.dexClass
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.ClickableHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
-import moe.ouom.wekit.hooks.utils.annotation.HookItem
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.api.core.WeDatabaseApi
 import moe.ouom.wekit.hooks.api.core.WeDatabaseListenerApi
 import moe.ouom.wekit.hooks.api.core.WeNetworkApi
 import moe.ouom.wekit.hooks.api.core.model.MessageType
+import moe.ouom.wekit.hooks.utils.annotation.HookItem
+import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.ui.content.AlertDialogContent
 import moe.ouom.wekit.ui.content.BasePrefDialog
 import moe.ouom.wekit.ui.content.Button
@@ -154,72 +154,64 @@ object AutoOpenRedPacket : ClickableHookItem(), WeDatabaseListenerApi.IInsertLis
     }
 
     private fun hookReceiveCallback() {
-        methodOnGYNetEnd.toDexMethod {
-            hook {
-                afterIfEnabled { param ->
-                    val json = param.args[2] as? JSONObject ?: return@afterIfEnabled
-                    val sendId = json.optString("sendId")
-                    val timingIdentifier = json.optString("timingIdentifier")
+        methodOnGYNetEnd.hookAfter { param ->
+            val json = param.args[2] as? JSONObject ?: return@hookAfter
+            val sendId = json.optString("sendId")
+            val timingIdentifier = json.optString("timingIdentifier")
 
-                    if (timingIdentifier.isNullOrEmpty() || sendId.isNullOrEmpty()) return@afterIfEnabled
+            if (timingIdentifier.isNullOrEmpty() || sendId.isNullOrEmpty()) return@hookAfter
 
-                    val info = currentRedPacketMap[sendId] ?: return@afterIfEnabled
-                    WeLogger.i(
-                        TAG,
-                        "unpack request finished, sending open packet request ($sendId)"
+            val info = currentRedPacketMap[sendId] ?: return@hookAfter
+            WeLogger.i(
+                TAG,
+                "unpack request finished, sending open packet request ($sendId)"
+            )
+
+            Thread {
+                try {
+                    val openReq = XposedHelpers.newInstance(
+                        classOpenLuckyMoney.clazz,
+                        info.msgType, info.channelId, info.sendId, info.nativeUrl,
+                        info.headImg, info.nickName, info.talker,
+                        "v1.0", timingIdentifier, ""
                     )
-
-                    Thread {
-                        try {
-                            val openReq = XposedHelpers.newInstance(
-                                classOpenLuckyMoney.clazz,
-                                info.msgType, info.channelId, info.sendId, info.nativeUrl,
-                                info.headImg, info.nickName, info.talker,
-                                "v1.0", timingIdentifier, ""
-                            )
-                            WeNetworkApi.sendRequest(openReq)
-                            // we don't remove packet from map here for use in hookOpenReqEndCallback
-                        } catch (e: Throwable) {
-                            WeLogger.e(TAG, "failed to open packet", e)
-                            currentRedPacketMap.remove(sendId)
-                        }
-                    }.start()
+                    WeNetworkApi.sendRequest(openReq)
+                    // we don't remove packet from map here for use in hookOpenReqEndCallback
+                } catch (e: Throwable) {
+                    WeLogger.e(TAG, "failed to open packet", e)
+                    currentRedPacketMap.remove(sendId)
                 }
-            }
+            }.start()
         }
     }
 
     private fun hookOpenReqEndCallback() {
-        methodOnOpenGYNetEnd.toDexMethod {
-            hook {
-                afterIfEnabled { param ->
-                    val notifEnabled = WePrefs.getBoolOrFalse("red_packet_notification")
-                    if (!notifEnabled) return@afterIfEnabled
+        methodOnOpenGYNetEnd.hookAfter { param ->
+            val notifEnabled = WePrefs.getBoolOrFalse("red_packet_notification")
+            if (!notifEnabled) return@hookAfter
 
-                    val json = param.args[2] as? JSONObject ?: return@afterIfEnabled
-                    val sendId = json.optString("sendId")
-                    if (sendId.isNullOrEmpty()) return@afterIfEnabled
+            val json = param.args[2] as? JSONObject ?: return@hookAfter
+            val sendId = json.optString("sendId")
+            if (sendId.isNullOrEmpty()) return@hookAfter
 
-                    val info = currentRedPacketMap.remove(sendId) ?: return@afterIfEnabled
+            val info = currentRedPacketMap.remove(sendId) ?: return@hookAfter
 
-                    val retcode = json.optInt("retcode", -1)
-                    if (retcode != 0) {
-                        WeLogger.w(TAG, "failed to grab packet; retcode=$retcode, sendId=$sendId")
-                        return@afterIfEnabled
-                    }
-
-                    val amount = json.optInt("recAmount", 0)
-                    if (amount <= 0) {
-                        return@afterIfEnabled
-                    }
-
-                    val displayAmount = amount / 100.0
-                    val displayName = WeDatabaseApi.getDisplayName(info.talker)
-                    val isGroup = info.talker.endsWith("@chatroom")
-                    val sourceLabel = if (isGroup) "群组" else "私聊"
-                    ToastUtils.showToast("抢到来自${sourceLabel}中来自 '${displayName}' 的红包 ¥${displayAmount}")
-                }
+            val retcode = json.optInt("retcode", -1)
+            if (retcode != 0) {
+                WeLogger.w(TAG, "failed to grab packet; retcode=$retcode, sendId=$sendId")
+                return@hookAfter
             }
+
+            val amount = json.optInt("recAmount", 0)
+            if (amount <= 0) {
+                return@hookAfter
+            }
+
+            val displayAmount = amount / 100.0
+            val displayName = WeDatabaseApi.getDisplayName(info.talker)
+            val isGroup = info.talker.endsWith("@chatroom")
+            val sourceLabel = if (isGroup) "群组" else "私聊"
+            ToastUtils.showToast("抢到来自${sourceLabel}中来自 '${displayName}' 的红包 ¥${displayAmount}")
         }
     }
 

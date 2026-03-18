@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.View
 import android.widget.Button
+import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.toClass
 import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.nameof.nameof
@@ -18,40 +19,29 @@ import moe.ouom.wekit.utils.logging.WeLogger
 object WeChatFooterApi : ApiHookItem() {
 
     private val TAG = nameof(WeChatFooterApi)
-    private const val CLASS_CHAT_FOOTER = "com.tencent.mm.pluginsdk.ui.chat.ChatFooter"
     private const val KEY_FIELD_TO_USER = "cache_toUser"
 
     override fun onEnable() {
-        try {
-            val chatFooterClass = CLASS_CHAT_FOOTER.toClass()
-
-            hookAfter(
-                chatFooterClass,
-                { param ->
-                    val chatFooterInstance = param.thisObject
-                    findAndBindSendButton(chatFooterInstance)
-                },
-                Context::class.java,
-                AttributeSet::class.java,
-                Int::class.java
-            )
-
-            try {
-                hookAfter(chatFooterClass, "setUserName") { param ->
-                    val toUser = param.args[0] as? String
-                    if (!toUser.isNullOrEmpty()) {
-                        XposedHelpers.setAdditionalInstanceField(
-                            param.thisObject,
-                            KEY_FIELD_TO_USER,
-                            toUser
-                        )
-                    }
-                }
-            } catch (e: Throwable) {
-                WeLogger.e(TAG, "Hook setUserName 失败，可能方法名被混淆", e)
+        "com.tencent.mm.pluginsdk.ui.chat.ChatFooter".toClass().asResolver().apply {
+            firstConstructor {
+                parameters(Context::class, AttributeSet::class, Int::class)
+            }.hookAfter { param ->
+                val chatFooterInstance = param.thisObject
+                findAndBindSendButton(chatFooterInstance)
             }
-        } catch (e: Throwable) {
-            WeLogger.e(TAG, "ChatFooter Hook 初始化失败", e)
+
+            firstMethod {
+                name = "setUserName"
+            }.hookAfter { param ->
+                val toUser = param.args[0] as? String
+                if (!toUser.isNullOrEmpty()) {
+                    XposedHelpers.setAdditionalInstanceField(
+                        param.thisObject,
+                        KEY_FIELD_TO_USER,
+                        toUser
+                    )
+                }
+            }
         }
     }
 

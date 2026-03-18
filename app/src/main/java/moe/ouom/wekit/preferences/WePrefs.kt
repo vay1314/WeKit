@@ -54,11 +54,11 @@ abstract class WePrefs protected constructor() : SharedPreferences, SharedPrefer
 
     override fun registerOnSharedPreferenceChangeListener(
         listener: OnSharedPreferenceChangeListener
-    ): Unit = TODO()
+    ) { }
 
     override fun unregisterOnSharedPreferenceChangeListener(
         listener: OnSharedPreferenceChangeListener
-    ): Unit = TODO()
+    ) { }
 
     abstract val isReadOnly: Boolean
 
@@ -66,7 +66,6 @@ abstract class WePrefs protected constructor() : SharedPreferences, SharedPrefer
 
     companion object {
         const val PREFS_NAME = "wekit_prefs"
-        const val CACHE_PREFS_NAME = "wekit_cache"
 
         val default by lazy { MmkvPrefsImpl(PREFS_NAME) }
 

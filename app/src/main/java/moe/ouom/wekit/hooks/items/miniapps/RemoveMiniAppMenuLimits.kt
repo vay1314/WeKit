@@ -3,7 +3,7 @@ package moe.ouom.wekit.hooks.items.miniapps
 import android.content.Context
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.utils.enumValueOfClass
 import org.luckypray.dexkit.DexKitBridge
@@ -15,16 +15,12 @@ object RemoveMiniAppMenuLimits : SwitchHookItem(), IResolvesDex {
     private lateinit var showAndClickableEnumValue: Any
 
     override fun onEnable() {
-        methodGetMenuItemVisibility1.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    val returnType = methodGetMenuItemVisibility1.method.returnType
-                    if (!::showAndClickableEnumValue.isInitialized) {
-                        showAndClickableEnumValue = enumValueOfClass(returnType, "SHOW_CLICKABLE")
-                    }
-                    param.result = showAndClickableEnumValue
-                }
+        methodGetMenuItemVisibility1.hookBefore { param ->
+            val returnType = methodGetMenuItemVisibility1.method.returnType
+            if (!::showAndClickableEnumValue.isInitialized) {
+                showAndClickableEnumValue = enumValueOfClass(returnType, "SHOW_CLICKABLE")
             }
+            param.result = showAndClickableEnumValue
         }
     }
 

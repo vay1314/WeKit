@@ -5,7 +5,7 @@ import android.widget.FrameLayout
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import org.luckypray.dexkit.DexKitBridge
 
@@ -16,32 +16,28 @@ object QuickRemoveQuote : SwitchHookItem(), IResolvesDex {
     private val methodShowMsgQuoteContainer by dexMethod()
 
     override fun onEnable() {
-        methodSupportAutoCompleteOnKey.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    val keyEvent = param.args[2] as KeyEvent
-                    if (keyEvent.keyCode != 67 || keyEvent.action != 0) return@beforeIfEnabled
+        methodSupportAutoCompleteOnKey.hookBefore { param ->
+            val keyEvent = param.args[2] as KeyEvent
+            if (keyEvent.keyCode != 67 || keyEvent.action != 0) return@hookBefore
 
-                    val chatFooterHelper = param.thisObject.asResolver()
-                        .firstField {
-                            type { clazz -> clazz.name.startsWith("com.tencent.mm.pluginsdk.ui.chat.") }
-                        }
-                        .get()!!
-                    val chatFooter = chatFooterHelper.asResolver()
-                        .firstField {
-                            type = "com.tencent.mm.pluginsdk.ui.chat.ChatFooter"
-                        }
-                        .get()!! as FrameLayout
-                    val text = chatFooter.asResolver()
-                        .firstMethod { name = "getLastText" }
-                        .invoke()!! as String
-                    val quoteMsgId = chatFooter.asResolver()
-                        .firstMethod { name = "getLastQuoteMsgId" }
-                        .invoke()!! as Long
-                    if (text.isEmpty() && quoteMsgId != 0L) {
-                        methodShowMsgQuoteContainer.method.invoke(chatFooter, false, true)
-                    }
+            val chatFooterHelper = param.thisObject.asResolver()
+                .firstField {
+                    type { clazz -> clazz.name.startsWith("com.tencent.mm.pluginsdk.ui.chat.") }
                 }
+                .get()!!
+            val chatFooter = chatFooterHelper.asResolver()
+                .firstField {
+                    type = "com.tencent.mm.pluginsdk.ui.chat.ChatFooter"
+                }
+                .get()!! as FrameLayout
+            val text = chatFooter.asResolver()
+                .firstMethod { name = "getLastText" }
+                .invoke()!! as String
+            val quoteMsgId = chatFooter.asResolver()
+                .firstMethod { name = "getLastQuoteMsgId" }
+                .invoke()!! as Long
+            if (text.isEmpty() && quoteMsgId != 0L) {
+                methodShowMsgQuoteContainer.method.invoke(chatFooter, false, true)
             }
         }
     }

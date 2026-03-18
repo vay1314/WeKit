@@ -2,7 +2,9 @@ package moe.ouom.wekit.hooks.items.system
 
 import android.app.Activity
 import android.widget.Button
+import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.toClass
+import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.core.model.SwitchHookItem
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.utils.logging.WeLogger
@@ -13,11 +15,12 @@ object AutoApproveDeviceLogin : SwitchHookItem() {
     private const val SHOW_LOGIN_DEVICE = 0x2
     private const val AUTO_LOGIN_DEVICE = 0x4
 
+    private val TAG = nameof(AutoApproveDeviceLogin)
+
     override fun onEnable() {
         val targetClass = "com.tencent.mm.plugin.webwx.ui.ExtDeviceWXLoginUI".toClass()
 
-        // Hook onCreate — inject function control flags into intent
-        targetClass.hookBefore("onCreate") { param ->
+        targetClass.asResolver().firstMethod { name = "onCreate" }.hookBefore { param ->
             val activity = param.thisObject as Activity
             var functionControl = 0
             functionControl = functionControl or AUTO_SYNC_MESSAGES
@@ -27,18 +30,17 @@ object AutoApproveDeviceLogin : SwitchHookItem() {
             activity.intent.putExtra("intent.key.need.show.privacy.agreement", false)
         }
 
-        // Hook initView — auto-click the login button after view is set up
-        targetClass.hookAfter("initView") { param ->
+        targetClass.asResolver().firstMethod { name = "initView" }.hookAfter { param ->
             val fields = param.thisObject.javaClass.declaredFields
             val buttonField = fields.firstOrNull { it.type == Button::class.java }
                 ?: run {
-                    WeLogger.w("AutoApproveDeviceLogin", "Button field not found in initView")
+                    WeLogger.w(TAG, "Button field not found in initView")
                     return@hookAfter
                 }
             buttonField.isAccessible = true
             val button = buttonField.get(param.thisObject) as? Button
                 ?: run {
-                    WeLogger.w("AutoApproveDeviceLogin", "Button field value is null")
+                    WeLogger.w(TAG, "Button field value is null")
                     return@hookAfter
                 }
             button.callOnClick()

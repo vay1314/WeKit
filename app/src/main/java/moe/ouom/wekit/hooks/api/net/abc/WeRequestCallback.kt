@@ -1,4 +1,4 @@
-package moe.ouom.wekit.hooks.api.net.intf
+package moe.ouom.wekit.hooks.api.net.abc
 
 interface WeRequestCallback {
     fun onSuccess(json: String, bytes: ByteArray?)

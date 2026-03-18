@@ -1,7 +1,7 @@
 # App
 -keep class **.R$* { *; }
--keep interface moe.ouom.wekit.dexkit.intf.IResolvesDex { *; }
--keep class * implements moe.ouom.wekit.dexkit.intf.IResolvesDex {
+-keep interface moe.ouom.wekit.dexkit.abc.IResolvesDex { *; }
+-keep class * implements moe.ouom.wekit.dexkit.abc.IResolvesDex {
     public void resolveDex(...);
 }
 -keep class moe.ouom.wekit.core.model.SwitchHookItem { *; }

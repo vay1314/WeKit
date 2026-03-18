@@ -48,7 +48,7 @@ object StartupAgent {
         val ctx = getBaseApplication()
         HostInfo.init(ctx)
         LibXposedApiByteCodeGenerator.init()
-        NativeLoader.init()
+        NativeLoader.init(ctx)
         WeLauncher.init(ctx.classLoader, ctx)
         runCatching {
             ctx.dataDir.toPath().resolve("app_qqprotect").deleteRecursively()

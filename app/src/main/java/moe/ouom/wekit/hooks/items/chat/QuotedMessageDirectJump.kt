@@ -4,7 +4,7 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import moe.ouom.wekit.core.dsl.dexClass
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import org.luckypray.dexkit.DexKitBridge
 
@@ -19,41 +19,37 @@ object QuotedMessageDirectJump : SwitchHookItem(), IResolvesDex {
     private val classChattingContext by dexClass()
 
     override fun onEnable() {
-        methodClickEvent.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    val chattingContext = param.args[0]
-                    val view = param.args[2]
-                    val longValue = param.args[3]
-                    val stringValue = param.args[4]
-                    val msgQuoteItem = param.args[5]
-                    val chattingItemHolder = param.args[7]
-                    val chattingItem = chattingItemHolder.asResolver()
-                        .firstField { type { it != String::class.java } }.get()!!
-                    val msgInfo = methodGetQuoteMessageInfo.method.invoke(
-                        null,
-                        false /* isGroupChat: this arg is ignored */,
-                        methodChattingContextGetTalker.method.invoke(chattingContext),
-                        longValue,
-                        stringValue,
-                        msgQuoteItem,
-                        "handleQuoteMsgClick" /* hardcoded in original code */
-                    )
-                    methodClickToPositionEvent.method.invoke(
-                        null,
-                        chattingContext,
-                        chattingItem,
-                        msgInfo,
-                        view,
-                        longValue,
-                        stringValue,
-                        msgQuoteItem,
-                        classEnumQuoteJumpToPositionSource.clazz.asResolver() // java doesn't implicitly cast integer to the upper enum type, so we still have to locate the enum class
-                            .firstMethod { name = "valueOf" }.invoke("QuoteLongClickFromQuoteView")
-                    )
-                    param.result = null
-                }
-            }
+        methodClickEvent.hookBefore { param ->
+            val chattingContext = param.args[0]
+            val view = param.args[2]
+            val longValue = param.args[3]
+            val stringValue = param.args[4]
+            val msgQuoteItem = param.args[5]
+            val chattingItemHolder = param.args[7]
+            val chattingItem = chattingItemHolder.asResolver()
+                .firstField { type { it != String::class.java } }.get()!!
+            val msgInfo = methodGetQuoteMessageInfo.method.invoke(
+                null,
+                false /* isGroupChat: this arg is ignored */,
+                methodChattingContextGetTalker.method.invoke(chattingContext),
+                longValue,
+                stringValue,
+                msgQuoteItem,
+                "handleQuoteMsgClick" /* hardcoded in original code */
+            )
+            methodClickToPositionEvent.method.invoke(
+                null,
+                chattingContext,
+                chattingItem,
+                msgInfo,
+                view,
+                longValue,
+                stringValue,
+                msgQuoteItem,
+                classEnumQuoteJumpToPositionSource.clazz.asResolver() // java doesn't implicitly cast integer to the upper enum type, so we still have to locate the enum class
+                    .firstMethod { name = "valueOf" }.invoke("QuoteLongClickFromQuoteView")
+            )
+            param.result = null
         }
     }
 

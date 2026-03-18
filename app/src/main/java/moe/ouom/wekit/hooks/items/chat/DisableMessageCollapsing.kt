@@ -2,7 +2,7 @@ package moe.ouom.wekit.hooks.items.chat
 
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import org.luckypray.dexkit.DexKitBridge
 
@@ -32,12 +32,8 @@ object DisableMessageCollapsing : SwitchHookItem(), IResolvesDex {
     }
 
     override fun onEnable() {
-        methodFoldMsg.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    param.result = null
-                }
-            }
+        methodFoldMsg.hookBefore { param ->
+            param.result = null
         }
     }
 }

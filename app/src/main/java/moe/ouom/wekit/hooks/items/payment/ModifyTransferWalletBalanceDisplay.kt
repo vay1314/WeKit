@@ -16,7 +16,7 @@ import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.core.model.ClickableHookItem
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.hooks.api.net.WePacketManager
-import moe.ouom.wekit.hooks.api.net.intf.IWePacketInterceptor
+import moe.ouom.wekit.hooks.api.net.abc.IWePacketInterceptor
 import moe.ouom.wekit.ui.content.AlertDialogContent
 import moe.ouom.wekit.ui.content.Button
 import moe.ouom.wekit.ui.content.TextButton

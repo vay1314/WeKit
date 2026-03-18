@@ -2,7 +2,7 @@ package moe.ouom.wekit.hooks.items.system
 
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import org.luckypray.dexkit.DexKitBridge
 
@@ -23,12 +23,8 @@ object RemoveExternalAppSharingSignatureVerify : SwitchHookItem(), IResolvesDex 
     }
 
     override fun onEnable() {
-        methodSignCheck.toDexMethod {
-            hook {
-                beforeIfEnabled { param ->
-                    param.result = true
-                }
-            }
+        methodSignCheck.hookBefore { param ->
+            param.result = true
         }
     }
 }

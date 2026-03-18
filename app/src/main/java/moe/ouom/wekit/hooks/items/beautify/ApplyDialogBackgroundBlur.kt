@@ -19,7 +19,7 @@ import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.core.dsl.dexClass
 import moe.ouom.wekit.core.model.ClickableHookItem
-import moe.ouom.wekit.dexkit.intf.IResolvesDex
+import moe.ouom.wekit.dexkit.abc.IResolvesDex
 import moe.ouom.wekit.hooks.utils.annotation.HookItem
 import moe.ouom.wekit.ui.content.AlertDialogContent
 import moe.ouom.wekit.ui.content.Button

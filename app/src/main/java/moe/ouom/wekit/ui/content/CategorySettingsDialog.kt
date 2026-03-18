@@ -3,7 +3,7 @@ package moe.ouom.wekit.ui.content
 import android.content.Context
 import moe.ouom.wekit.core.model.ClickableHookItem
 import moe.ouom.wekit.core.model.SwitchHookItem
-import moe.ouom.wekit.hooks.utils.HookItemFactory
+import moe.ouom.wekit.hooks.utils.HookItemsFactory
 import moe.ouom.wekit.preferences.WePrefs
 
 class CategorySettingsDialog(
@@ -12,7 +12,7 @@ class CategorySettingsDialog(
 ) : BaseSettingsDialog(context, categoryName) {
 
     override fun initList() {
-        val allItems = HookItemFactory.getItems()
+        val allItems = HookItemsFactory.getItems()
 
         val targetItems = allItems.filter { item ->
             item.path.startsWith("$categoryName/")

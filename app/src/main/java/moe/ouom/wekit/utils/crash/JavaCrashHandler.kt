@@ -2,19 +2,17 @@ package moe.ouom.wekit.utils.crash
 
 import android.content.Context
 import android.os.Process
+import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.utils.crash.CrashInfoCollector.collectCrashInfo
 import moe.ouom.wekit.utils.getThreadId
 import moe.ouom.wekit.utils.logging.WeLogger
-import kotlin.system.exitProcess
 
-/**
- * Java 层崩溃拦截处理器
- * 实现 UncaughtExceptionHandler 接口，拦截未捕获的异常
- * 
- * @author cwuom
- * @since 1.0.0
- */
 class JavaCrashHandler(context: Context) : Thread.UncaughtExceptionHandler {
+
+    companion object {
+        private val TAG = nameof(JavaCrashHandler::class)
+    }
+
     private val context: Context = context.applicationContext
     private val defaultHandler: Thread.UncaughtExceptionHandler? =
         Thread.getDefaultUncaughtExceptionHandler()
@@ -32,7 +30,7 @@ class JavaCrashHandler(context: Context) : Thread.UncaughtExceptionHandler {
      */
     fun install() {
         Thread.setDefaultUncaughtExceptionHandler(this)
-        WeLogger.i("JavaCrashHandler", "Java crash handler installed")
+        WeLogger.i(TAG, "Java crash handler installed")
     }
 
     /**
@@ -41,7 +39,7 @@ class JavaCrashHandler(context: Context) : Thread.UncaughtExceptionHandler {
     fun uninstall() {
         if (defaultHandler != null) {
             Thread.setDefaultUncaughtExceptionHandler(defaultHandler)
-            WeLogger.i("JavaCrashHandler", "Java crash handler uninstalled")
+            WeLogger.i(TAG, "Java crash handler uninstalled")
         }
     }
 
@@ -49,7 +47,7 @@ class JavaCrashHandler(context: Context) : Thread.UncaughtExceptionHandler {
         // 防止递归调用
         if (isHandling) {
             WeLogger.e(
-                "JavaCrashHandler",
+                TAG,
                 "Recursive crash detected, delegating to default handler"
             )
             defaultHandler?.uncaughtException(thread, throwable)
@@ -59,15 +57,15 @@ class JavaCrashHandler(context: Context) : Thread.UncaughtExceptionHandler {
         isHandling = true
 
         try {
-            WeLogger.e("JavaCrashHandler", "========================================")
-            WeLogger.e("JavaCrashHandler", "Uncaught exception detected!")
+            WeLogger.e(TAG, "========================================")
+            WeLogger.e(TAG, "Uncaught exception detected!")
             WeLogger.e(
-                "JavaCrashHandler",
+                TAG,
                 "Thread: " + thread.name + " (ID: " + thread.getThreadId() + ")"
             )
-            WeLogger.e("JavaCrashHandler", "Exception: " + throwable.javaClass.name)
-            WeLogger.e("JavaCrashHandler", "Message: " + throwable.message)
-            WeLogger.e("JavaCrashHandler", "========================================")
+            WeLogger.e(TAG, "Exception: " + throwable.javaClass.name)
+            WeLogger.e(TAG, "Message: " + throwable.message)
+            WeLogger.e(TAG, "========================================")
 
             // 收集崩溃信息
             val crashInfo = collectCrashInfo(context, throwable, "JAVA")
@@ -75,27 +73,25 @@ class JavaCrashHandler(context: Context) : Thread.UncaughtExceptionHandler {
             // 保存崩溃日志（标记为Java崩溃）
             val logPath = crashLogsManager.saveCrashLog(crashInfo, true)
             if (logPath != null) {
-                WeLogger.i("JavaCrashHandler", "Java crash log saved to: $logPath")
+                WeLogger.i(TAG, "Java crash log saved to: $logPath")
             } else {
-                WeLogger.e("JavaCrashHandler", "Failed to save Java crash log")
+                WeLogger.e(TAG, "Failed to save Java crash log")
             }
 
-            // 使用WeLogger记录崩溃
-            WeLogger.e("[JavaCrashHandler] Crash details", throwable)
+            WeLogger.e(TAG, "Crash details", throwable)
         } catch (e: Throwable) {
-            WeLogger.e("[JavaCrashHandler] Error while handling crash", e)
+            WeLogger.e(TAG, "Error while handling crash", e)
         } finally {
             isHandling = false
 
             // 调用默认处理器，让应用正常崩溃
             if (defaultHandler != null) {
-                WeLogger.i("JavaCrashHandler", "Delegating to default handler")
+                WeLogger.i(TAG, "Delegating to default handler")
                 defaultHandler.uncaughtException(thread, throwable)
             } else {
                 // 如果没有默认处理器，手动终止进程
-                WeLogger.e("JavaCrashHandler", "No default handler, killing process")
+                WeLogger.e(TAG, "No default handler, killing process")
                 Process.killProcess(Process.myPid())
-                exitProcess(10)
             }
         }
     }

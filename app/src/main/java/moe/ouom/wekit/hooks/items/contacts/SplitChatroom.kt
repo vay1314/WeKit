@@ -128,9 +128,9 @@ private fun SplitChatroomDialog(
             onQuery = { keyword ->
                 val filtered = if (keyword.isEmpty()) allGroups else allGroups.filter { g ->
                     g.nickname.contains(keyword, ignoreCase = true) ||
-                            g.pyInitial.contains(keyword, ignoreCase = true) ||
-                            g.quanPin.contains(keyword, ignoreCase = true) ||
-                            g.username.contains(keyword, ignoreCase = true)
+                            g.nicknameShortPinyin.contains(keyword, ignoreCase = true) ||
+                            g.nicknamePinyin.contains(keyword, ignoreCase = true) ||
+                            g.wxId.contains(keyword, ignoreCase = true)
                 }
                 step = Step.Results(filtered)
             },
@@ -213,12 +213,12 @@ private fun ResultsStep(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onSelect(group.username) }
+                            .clickable { onSelect(group.wxId) }
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                     ) {
                         Text(text = name, style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            text = group.username,
+                            text = group.wxId,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

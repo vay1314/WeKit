@@ -53,8 +53,4 @@ abstract class SwitchHookItem : BaseHookItem() {
         isEnabled = newState
         toggleCompletionCallback?.run()
     }
-
-    final override fun tryExecute(param: XC_MethodHook.MethodHookParam, hookAction: HookAction) {
-        if (isEnabled) super.tryExecute(param, hookAction)
-    }
 }

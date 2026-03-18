@@ -1,7 +1,7 @@
 package moe.ouom.wekit.hooks.api.net
 
 import moe.ouom.wekit.constants.PreferenceKeys
-import moe.ouom.wekit.hooks.api.net.intf.IWePacketInterceptor
+import moe.ouom.wekit.hooks.api.net.abc.IWePacketInterceptor
 import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.utils.logging.WeLogger
 import java.util.concurrent.CopyOnWriteArrayList
