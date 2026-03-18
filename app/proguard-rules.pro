@@ -7,6 +7,7 @@
 -keep class moe.ouom.wekit.loader.entry.lsp10x.Lsp10xUnifiedHookEntry { *; }
 -keep class moe.ouom.wekit.loader.entry.xp51.Xp51HookEntry { *; }
 -keep class moe.ouom.wekit.loader.entry.frida.FridaInjectEntry { *; }
+-keep class io.github.libxposed.** { *; }
 
 # Attributes
 -keepattributes Signature,RuntimeVisibleAnnotations,AnnotationDefault,LineNumberTable,SourceFile,*Annotation*
