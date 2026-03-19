@@ -393,7 +393,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
             }
 
         // inject into all SettingItem::class map in order to be discovered
-        classSettingItemClassesProvider.clazz.asResolver().firstMethod()
+        classSettingItemClassesProvider.asResolver().firstMethod()
             .hookAfter { param ->
                 val map = param.result as? Map<*, *>? ?: return@hookAfter
                 val originalSet = map.values.first() as LinkedHashSet<*>

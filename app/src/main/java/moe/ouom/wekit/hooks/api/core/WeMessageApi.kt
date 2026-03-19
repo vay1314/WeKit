@@ -498,7 +498,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             // -----------------------------------------------------------------------------
 
             // VFS
-            classVfs.clazz.asResolver().let { vfs ->
+            classVfs.asResolver().let { vfs ->
                 vfsReadMethod = vfs.firstMethod {
                     modifiers(Modifiers.STATIC)
                     parameters(String::class)
@@ -522,7 +522,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             kernelStorageMethod = methodMmKernelGetStorage.method
 
             // PathUtil
-            classPathUtil.clazz.asResolver().let { pathUtil ->
+            classPathUtil.asResolver().let { pathUtil ->
                 pathGenMethod = pathUtil.firstMethod {
                     modifiers(Modifiers.STATIC)
                     parameters(VagueType, VagueType, VagueType, VagueType, Int::class)
@@ -531,7 +531,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }
 
             // Voice Components
-            classVoiceNameGen.clazz.asResolver().let { voice ->
+            classVoiceNameGen.asResolver().let { voice ->
                 voiceNameGenMethod = voice.firstMethod {
                     modifiers(Modifiers.STATIC)
                     parameters(String::class, VagueType)
@@ -539,14 +539,14 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
                 }.self
             }
 
-            classVoiceParams.clazz.asResolver().let { voiceParams ->
+            classVoiceParams.asResolver().let { voiceParams ->
                 voiceParamsClass = classVoiceParams.clazz
                 val intFields = voiceParams.field { type = Int::class }
                 voiceDurationField = intFields.firstOrNull()?.self
                 voiceOffsetField = intFields.getOrNull(1)?.self
             }
 
-            classVoiceTask.clazz.asResolver().let { voiceTask ->
+            classVoiceTask.asResolver().let { voiceTask ->
                 voiceTaskClass = classVoiceTask.clazz
                 voiceTaskConstructor = voiceTask.firstConstructor {
                     parameters(voiceParamsClass!!)
@@ -807,13 +807,13 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     }
 
     private fun bindServiceFramework() {
-        getServiceMethod = classServiceManager.clazz.asResolver()
+        getServiceMethod = classServiceManager.asResolver()
             .firstMethod {
                 modifiers(Modifiers.STATIC)
                 parameters(Class::class)
             }.self
 
-        getSelfAliasMethod = classConfigLogic.clazz.asResolver()
+        getSelfAliasMethod = classConfigLogic.asResolver()
             .firstMethod {
                 name { it.length <= 2 }
                 modifiers(Modifiers.STATIC)

@@ -29,6 +29,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import moe.ouom.wekit.core.dsl.dexClass
+import moe.ouom.wekit.core.dsl.dexConstructor
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.ClickableHookItem
 import moe.ouom.wekit.dexkit.abc.IResolvesDex
@@ -41,14 +42,17 @@ import moe.ouom.wekit.ui.utils.showComposeDialog
 import moe.ouom.wekit.utils.HostInfo
 import moe.ouom.wekit.utils.KnownPaths
 import moe.ouom.wekit.utils.ToastUtils
+import moe.ouom.wekit.utils.createDirectoriesNoThrow
 import moe.ouom.wekit.utils.logging.WeLogger
+import moe.ouom.wekit.utils.polyfills.convToList
 import org.luckypray.dexkit.DexKitBridge
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.absolutePathString
-import kotlin.io.path.createDirectories
 import kotlin.io.path.div
 import kotlin.io.path.extension
 import kotlin.io.path.isRegularFile
+import kotlin.io.path.name
 import kotlin.io.path.nameWithoutExtension
 import kotlin.io.path.readText
 import kotlin.io.path.walk
@@ -99,47 +103,35 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
         }
     }
 
-    private suspend fun safeShowToast(message: String) {
+    private suspend fun showToast(message: String) =
         withContext(Dispatchers.Main) {
-            ToastUtils.showToast(message)
-        }
+        ToastUtils.showToast(message)
     }
 
     private val stickerPacks: List<StickerPack> by lazy {
         runBlocking {
-            val dir = stickersDir
-
-            safeShowToast("正在加载贴纸包...")
+            showToast("正在加载贴纸包...")
 
             withContext(Dispatchers.IO) {
-                try {
-                    dir.createDirectories()
-                } catch (ex: Exception) {
-                    WeLogger.e(TAG, "failed to create stickers directory", ex)
-                    return@withContext emptyList<StickerPack>()
-                }
-
-                val packDirs = dir.toFile().listFiles()?.filter { it.isDirectory } ?: emptyList()
+                val packDirs = Files.list(stickersDir).filter { Files.isDirectory(it) }.convToList()
                 if (packDirs.isEmpty()) {
-                    safeShowToast("未找到任何贴纸包")
+                    showToast("未找到任何贴纸包")
                     return@withContext emptyList<StickerPack>()
                 }
 
-                // 1. 并发处理每一个贴纸包 (Pack)
                 // use a semaphore to limit the max amount of sticker packs being processed at the same time
-                val semaphore = Semaphore(6)
+                val semaphore = Semaphore(5)
 
                 val packs = packDirs.map { packDir ->
                     async {
                         semaphore.withPermit {
                             val packId = packDir.name
-                            val packPath = packDir.toPath()
                             val stickers = mutableListOf<Any>()
 
-                            val hashCache = loadHashCache(packPath)
+                            val hashCache = loadHashCache(packDir)
                             val newHashes = mutableMapOf<String, String>()
 
-                            val images = packPath.walk()
+                            val images = packDir.walk()
                                 .filter { it.isRegularFile() && it.extension.lowercase() in ALLOWED_STICKER_EXTENSIONS }
                                 .toList()
 
@@ -158,15 +150,9 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
                                         ?: getEmojiMd5FromPath(HostInfo.application, absPath)
                                     newHashes[fileName] = md5
 
-                                    // 反射调用构造微信对象
                                     val emojiThumb = getEmojiInfoByMd5(md5)
                                     methodSaveEmojiThumb.method.invoke(emojiThumb, null, true)
-                                    val groupItemInfo = classGroupItemInfo.clazz
-                                        .getDeclaredConstructor(
-                                            "com.tencent.mm.api.IEmojiInfo".toClass(),
-                                            Int::class.java, String::class.java, Int::class.java
-                                        )
-                                        .newInstance(emojiThumb, 2, "", 0)
+                                    val groupItemInfo = ctorGroupItemInfo.newInstance(emojiThumb, 2, "", 0)
                                     stickers.add(groupItemInfo)
                                 } catch (e: Exception) {
                                     WeLogger.e(TAG, "Failed to load sticker: $path", e)
@@ -174,7 +160,7 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
                             }
 
                             if (newHashes.isNotEmpty()) {
-                                saveHashCache(packPath, HashCache(newHashes))
+                                saveHashCache(packDir, HashCache(newHashes))
                             }
 
                             if (stickers.isNotEmpty()) {
@@ -194,7 +180,7 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
                 }.awaitAll().filterNotNull()
 
                 val totalStickers = packs.sumOf { it.stickers.size }
-                safeShowToast("成功加载 ${packs.size} 个贴纸包, 共 $totalStickers 个贴纸")
+                showToast("成功加载 ${packs.size} 个贴纸包, 共 $totalStickers 个贴纸")
 
                 packs
             }
@@ -206,8 +192,6 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
             val pngPath = webpPath.resolveSibling("${webpPath.nameWithoutExtension}.png")
 
             if (pngPath.isRegularFile()) {
-                // prevent logcat io bottleneck
-                // WeLogger.d(TAG, "PNG already exists, using: ${pngPath.absolutePathString()}")
                 return pngPath
             }
 
@@ -220,8 +204,6 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
                 webpBitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
             }
             webpBitmap.recycle()
-            // prevent logcat io bottleneck
-            // WeLogger.d(TAG, "converted WebP to PNG: ${pngPath.absolutePathString()}")
             pngPath
         } catch (ex: Exception) {
             WeLogger.e(TAG, "failed to convert WebP to PNG: ${webpPath.absolutePathString()}", ex)
@@ -233,13 +215,14 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
     private val methodAddAllGroupItems by dexMethod()
 
     // this module doesn't provide a builtin dexConstructor, so I have to use dexClass, and then use .createInstance()
-    private val classGroupItemInfo by dexClass()
+    private val ctorGroupItemInfo by dexConstructor()
     private val classEmojiMgrImpl by dexClass()
     private val classEmojiStorageMgr by dexClass()
     private val classEmojiInfoStorage by dexClass()
     private val methodSaveEmojiThumb by dexMethod()
 
-    private val stickersDir: Path by lazy { KnownPaths.modulePata / "stickers" }
+    private val stickersDir: Path by lazy { (KnownPaths.modulePata / "stickers")
+        .createDirectoriesNoThrow() }
 
     private val emojiMgrImpl: Any by lazy {
         WeServiceApi.emojiFeatureService.asResolver()
@@ -260,7 +243,7 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
     }
 
     private val emojiInfoStorage: Any by lazy {
-        val emojiStorageMgr = classEmojiStorageMgr.clazz.asResolver()
+        val emojiStorageMgr = classEmojiStorageMgr.asResolver()
             .firstMethod {
                 modifiers(Modifiers.STATIC)
                 returnType = classEmojiStorageMgr.clazz
@@ -313,9 +296,10 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
                 val emojiGroupInfo = emojiGroupInfoCls.createInstance()
                 emojiGroupInfoCls.getMethod(
                     "convertFrom",
-                    ContentValues::class.java, Boolean::class.java
+                    ContentValues::class.java,
+                    Boolean::class.java
                 )
-                    .invoke(emojiGroupInfo, stickersPackData, true)
+                .invoke(emojiGroupInfo, stickersPackData, true)
 
                 (param.result as MutableList<Any?>).add(index, emojiGroupInfo)
             }
@@ -353,10 +337,6 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
             // Find matching sticker pack
             val matchingPack = stickerPacks.find { it.packId == packId }
             if (matchingPack != null) {
-                WeLogger.d(
-                    TAG,
-                    "current pack name: $packId, stickers count: ${matchingPack.stickers.size}"
-                )
                 val stickerList = manager.asResolver().firstMethod {
                     superclass()
                     returnType = List::class
@@ -385,13 +365,9 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
             }
         }
 
-        classGroupItemInfo.find(dexKit, descriptors) {
+        ctorGroupItemInfo.find(dexKit, descriptors) {
             matcher {
-                methods {
-                    add {
-                        usingEqStrings("emojiInfo", "sosDocId")
-                    }
-                }
+                usingEqStrings("emojiInfo", "sosDocId")
             }
         }
 

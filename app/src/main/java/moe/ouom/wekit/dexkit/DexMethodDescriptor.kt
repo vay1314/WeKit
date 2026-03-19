@@ -1,6 +1,7 @@
 package moe.ouom.wekit.dexkit
 
 import java.io.Serializable
+import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
@@ -68,6 +69,20 @@ class DexMethodDescriptor : Serializable {
         }
     }
 
+    fun getConstructorInstance(classLoader: ClassLoader): Constructor<*> {
+        try {
+            val clz = classLoader.loadClass(
+                declaringClass.substring(1, declaringClass.length - 1).replace('/', '.')
+            )
+            for (c in clz.declaredConstructors) {
+                if (getConstructorTypeSig(c) == signature) return c
+            }
+            throw NoSuchMethodException("$declaringClass-><init>$signature")
+        } catch (e: ClassNotFoundException) {
+            throw NoSuchMethodException("$declaringClass-><init>$signature").initCause(e)
+        }
+    }
+
     fun getParameterTypes(): List<String> {
         val params = signature.substring(1, signature.indexOf(')'))
         return splitParameterTypes(params)
@@ -84,6 +99,12 @@ class DexMethodDescriptor : Serializable {
             method.parameterTypes.forEach { append(getTypeSig(it)) }
             append(")")
             append(getTypeSig(method.returnType))
+        }
+
+        fun getConstructorTypeSig(constructor: Constructor<*>) = buildString {
+            append("(")
+            constructor.parameterTypes.forEach { append(getTypeSig(it)) }
+            append(")V")
         }
 
         fun getTypeSig(type: Class<*>): String {

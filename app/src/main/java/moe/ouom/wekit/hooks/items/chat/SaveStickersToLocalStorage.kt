@@ -68,7 +68,7 @@ object SaveStickersToLocalStorage : SwitchHookItem(), IResolvesDex,
             ) { _, _, msgInfo ->
                 val md5 = msgInfo.imagePath
                 val emojiInfo = StickersSync.getEmojiInfoByMd5(md5)
-                val emojiFileEncryptMgr = classEmojiFileEncryptMgr.clazz.asResolver()
+                val emojiFileEncryptMgr = classEmojiFileEncryptMgr.asResolver()
                     .firstMethod {
                         modifiers(Modifiers.STATIC)
                         parameterCount = 0

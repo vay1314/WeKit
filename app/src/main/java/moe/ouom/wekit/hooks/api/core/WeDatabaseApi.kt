@@ -39,7 +39,7 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
     private val TAG = nameof(WeDatabaseApi)
 
     val coreStorage by lazy {
-        classMmKernel.clazz.asResolver()
+        classMmKernel.asResolver()
             .firstMethod {
                 parameterCount = 0
                 returnType = classCoreStorage.clazz
@@ -67,7 +67,7 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
     private object SqlStatements {
         // 基础字段 - 联系人查询常用字段
         const val CONTACT_FIELDS = """
-            r.username, r.alias, r.conRemark, r.nickname, 
+            r.username, r.alias, r.conRemark, r.nickname,
             r.pyInitial, r.quanPin, r.encryptUsername, i.reserved2 AS avatarUrl
         """
 
@@ -89,11 +89,11 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
         /** 所有人类账号（排除群聊和公众号和系统账号） */
         val CONTACTS = """
             SELECT $CONTACT_FIELDS, r.type
-            FROM rcontact r 
-            $LEFT_JOIN_IMG_FLAG 
-            WHERE 
+            FROM rcontact r
+            $LEFT_JOIN_IMG_FLAG
+            WHERE
                 r.username != 'filehelper'
-                AND r.verifyFlag = 0 
+                AND r.verifyFlag = 0
                 AND (r.type & 1) != 0
                 AND (r.type & 8) = 0
                 AND (r.type & 32) = 0
@@ -102,15 +102,15 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
         /** 好友列表（排除群聊和公众号和系统账号和自己和假好友） */
         val FRIENDS = """
             SELECT $CONTACT_FIELDS, r.type
-            FROM rcontact r 
-            $LEFT_JOIN_IMG_FLAG 
-            WHERE 
+            FROM rcontact r
+            $LEFT_JOIN_IMG_FLAG
+            WHERE
                 (
-                    r.encryptUsername != '' -- 是真好友                         
-                    OR 
+                    r.encryptUsername != '' -- 是真好友
+                    OR
                     r.username = (SELECT value FROM userinfo WHERE id = 2) -- 是我自己
                 )
-                AND r.verifyFlag = 0 
+                AND r.verifyFlag = 0
                 AND (r.type & 1) != 0
                 AND (r.type & 8) = 0
                 AND (r.type & 32) = 0
@@ -123,16 +123,16 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
         /** 所有群聊 */
         val GROUPS = """
             SELECT $GROUP_FIELDS
-            FROM rcontact r 
-            $LEFT_JOIN_IMG_FLAG 
+            FROM rcontact r
+            $LEFT_JOIN_IMG_FLAG
             WHERE r.username LIKE '%@chatroom'
         """.trimIndent()
 
         /** 获取群成员列表 */
         fun groupMembers(idsStr: String) = """
             SELECT $CONTACT_FIELDS
-            FROM rcontact r 
-            $LEFT_JOIN_IMG_FLAG 
+            FROM rcontact r
+            $LEFT_JOIN_IMG_FLAG
             WHERE r.username IN ($idsStr)
         """.trimIndent()
 
@@ -143,8 +143,8 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
         /** 所有公众号 */
         val OFFICIAL_LIST = """
             SELECT $OFFICIAL_ACCOUNT_FIELDS
-            FROM rcontact r 
-            $LEFT_JOIN_IMG_FLAG 
+            FROM rcontact r
+            $LEFT_JOIN_IMG_FLAG
             WHERE r.username LIKE 'gh_%'
         """.trimIndent()
 
@@ -154,10 +154,10 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
 
         /** 分页获取消息 */
         fun messages(wxid: String, limit: Int, offset: Int) = """
-            SELECT msgId, talker, content, type, createTime, isSend 
-            FROM message 
-            WHERE talker='$wxid' 
-            ORDER BY createTime DESC 
+            SELECT msgId, talker, content, type, createTime, isSend
+            FROM message
+            WHERE talker='$wxid'
+            ORDER BY createTime DESC
             LIMIT $limit OFFSET $offset
         """.trimIndent()
 
@@ -167,8 +167,8 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
 
         /** 获取头像 URL */
         fun avatar(wxid: String) = """
-            SELECT i.reserved2 AS avatarUrl 
-            FROM img_flag i 
+            SELECT i.reserved2 AS avatarUrl
+            FROM img_flag i
             WHERE i.username = '$wxid'
         """.trimIndent()
 

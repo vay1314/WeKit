@@ -13,7 +13,7 @@ object DisableTypingStatusUploading : SwitchHookItem(), IResolvesDex {
     private val classMmTypingSendReq by dexClass()
 
     override fun onEnable() {
-        classMmTypingSendReq.clazz.asResolver().firstMethod { name = "doScene" }
+        classMmTypingSendReq.asResolver().firstMethod { name = "doScene" }
             .hookBefore { param ->
                 param.result = -1
             }

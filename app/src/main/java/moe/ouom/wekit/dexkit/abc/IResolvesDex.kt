@@ -1,6 +1,7 @@
 package moe.ouom.wekit.dexkit.abc
 
 import moe.ouom.wekit.core.dsl.DexClassDelegate
+import moe.ouom.wekit.core.dsl.DexConstructorDelegate
 import moe.ouom.wekit.core.dsl.DexMethodDelegate
 import org.luckypray.dexkit.DexKitBridge
 
@@ -34,6 +35,7 @@ interface IResolvesDex {
                 when (delegate) {
                     is DexClassDelegate -> delegate.setDescriptor(value)
                     is DexMethodDelegate -> delegate.setDescriptorFromString(value)
+                    is DexConstructorDelegate -> delegate.setDescriptorFromString(value)
                 }
             } else {
                 missingKeys.add(key)
@@ -63,6 +65,7 @@ interface IResolvesDex {
                 when (val value = field.get(this)) {
                     is DexClassDelegate -> result[value.key] = value
                     is DexMethodDelegate -> result[value.key] = value
+                    is DexConstructorDelegate -> result[value.key] = value
                 }
             } catch (_: Exception) {
                 // 忽略无法访问的字段

@@ -5,6 +5,7 @@ import com.highcapable.kavaref.resolver.MethodResolver
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import moe.ouom.wekit.constants.PreferenceKeys
+import moe.ouom.wekit.core.dsl.DexConstructorDelegate
 import moe.ouom.wekit.core.dsl.DexMethodDelegate
 import moe.ouom.wekit.preferences.WePrefs
 import moe.ouom.wekit.utils.HookAction
@@ -121,6 +122,18 @@ abstract class BaseHookItem {
         crossinline action: HookAction
     ) {
         return this.method.hookAfter(action)
+    }
+
+    inline fun DexConstructorDelegate.hookBefore(
+        crossinline action: HookAction
+    ) {
+        return this.constructor.hookBefore(action)
+    }
+
+    inline fun DexConstructorDelegate.hookAfter(
+        crossinline action: HookAction
+    ) {
+        return this.constructor.hookAfter(action)
     }
 
     // --- end dex delegate ---

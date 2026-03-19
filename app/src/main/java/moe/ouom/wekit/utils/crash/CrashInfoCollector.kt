@@ -5,7 +5,7 @@ import android.content.Context
 import android.os.Build
 import android.os.Debug
 import android.os.Process
-import moe.ouom.wekit.utils.getThreadId
+import moe.ouom.wekit.utils.polyfills.getThreadId
 import moe.ouom.wekit.utils.logging.WeLogger
 import java.io.BufferedReader
 import java.io.FileReader
@@ -18,14 +18,14 @@ import java.util.Locale
 /**
  * 崩溃信息收集工具类
  * 负责收集设备信息、应用信息、线程信息、堆栈信息等
- * 
+ *
  * @author cwuom
  * @since 1.0.0
  */
 object CrashInfoCollector {
     /**
      * 收集完整的崩溃信息
-     * 
+     *
      * @param context   上下文
      * @param throwable 异常对象
      * @param crashType 崩溃类型 (JAVA/NATIVE)

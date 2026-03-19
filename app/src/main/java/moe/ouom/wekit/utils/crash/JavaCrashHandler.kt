@@ -4,7 +4,7 @@ import android.content.Context
 import android.os.Process
 import dev.ujhhgtg.nameof.nameof
 import moe.ouom.wekit.utils.crash.CrashInfoCollector.collectCrashInfo
-import moe.ouom.wekit.utils.getThreadId
+import moe.ouom.wekit.utils.polyfills.getThreadId
 import moe.ouom.wekit.utils.logging.WeLogger
 
 class JavaCrashHandler(context: Context) : Thread.UncaughtExceptionHandler {
