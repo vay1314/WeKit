@@ -1,0 +1,81 @@
+package dev.ujhhgtg.wekit.hooks.items.chat
+
+import android.annotation.SuppressLint
+import android.graphics.Color
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.widget.RelativeLayout
+import android.widget.TextView
+import com.highcapable.kavaref.KavaRef.Companion.asResolver
+import de.robv.android.xposed.XC_MethodHook
+import dev.ujhhgtg.wekit.core.model.SwitchHookItem
+import dev.ujhhgtg.wekit.hooks.api.ui.WeChatMessageViewApi
+import dev.ujhhgtg.wekit.hooks.utils.annotation.HookItem
+import dev.ujhhgtg.wekit.utils.formatEpoch
+
+
+@HookItem(path = "聊天/显示消息时间", desc = "显示精确消息发送时间")
+object DisplayMessageSendTime : SwitchHookItem(),
+    WeChatMessageViewApi.ICreateViewListener {
+
+    override fun onEnable() {
+        WeChatMessageViewApi.addListener(this)
+    }
+
+    override fun onDisable() {
+        WeChatMessageViewApi.removeListener(this)
+    }
+
+    private const val VIEW_TAG = "wekit_message_send_time"
+    private var clippingDisabled = false
+
+    @SuppressLint("SetTextI18n")
+    override fun onCreateView(
+        param: XC_MethodHook.MethodHookParam,
+        view: View
+    ) {
+        val tag = view.tag
+        val msgInfo = WeChatMessageViewApi.getMsgInfoFromParam(param)
+        val text = formatEpoch(msgInfo.createTime)
+
+        val avatar = tag.asResolver()
+            .firstField {
+                name = "avatarIV"
+                superclass()
+            }
+            .get() as? View? ?: return
+        val parent = avatar.parent as ViewGroup
+        if (parent.findViewWithTag<TextView>(VIEW_TAG) != null) return
+
+        val context = parent.context
+        val label = TextView(context).apply {
+            this.tag = VIEW_TAG
+            this.text = text
+            textSize = 11f
+            gravity = Gravity.CENTER
+            setTextColor(Color.GRAY)
+        }
+        val lp = RelativeLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            addRule(RelativeLayout.ALIGN_TOP, avatar.id)
+            addRule(RelativeLayout.CENTER_HORIZONTAL)
+            topMargin = -24
+        }
+        parent.addView(label, lp)
+
+        parent.post {
+            if (!clippingDisabled) {
+                var p = avatar.parent as? ViewGroup
+                while (p != null) {
+                    p.clipChildren = false
+                    p.clipToPadding = false
+                    p = p.parent as? ViewGroup
+                }
+                clippingDisabled = true
+            }
+        }
+    }
+}

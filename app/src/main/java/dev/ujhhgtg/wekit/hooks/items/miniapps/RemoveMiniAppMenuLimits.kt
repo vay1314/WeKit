@@ -1,0 +1,49 @@
+package dev.ujhhgtg.wekit.hooks.items.miniapps
+
+import android.content.Context
+import dev.ujhhgtg.wekit.core.dsl.dexMethod
+import dev.ujhhgtg.wekit.core.model.SwitchHookItem
+import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
+import dev.ujhhgtg.wekit.hooks.utils.annotation.HookItem
+import dev.ujhhgtg.wekit.utils.enumValueOfClass
+import org.luckypray.dexkit.DexKitBridge
+import org.luckypray.dexkit.query.enums.StringMatchType
+
+@HookItem(path = "小程序/去除菜单限制", desc = "移除小程序右上角菜单的限制")
+object RemoveMiniAppMenuLimits : SwitchHookItem(), IResolvesDex {
+
+    private lateinit var showAndClickableEnumValue: Any
+
+    override fun onEnable() {
+        methodGetMenuItemVisibility1.hookBefore { param ->
+            val returnType = methodGetMenuItemVisibility1.method.returnType
+            if (!::showAndClickableEnumValue.isInitialized) {
+                showAndClickableEnumValue = enumValueOfClass(returnType, "SHOW_CLICKABLE")
+            }
+            param.result = showAndClickableEnumValue
+        }
+    }
+
+    private val methodGetMenuItemVisibility1 by dexMethod()
+
+    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
+        val descriptors = mutableMapOf<String, String>()
+
+        methodGetMenuItemVisibility1.find(dexKit, descriptors) {
+            searchPackages("com.tencent.mm.plugin.appbrand.menu")
+            matcher {
+                declaredClass {
+                    addMethod {
+                        usingNumbers(39)
+                    }
+                }
+                addParamType(Context::class.java)
+                addParamType {
+                    className("com.tencent.mm.plugin.appbrand.page", StringMatchType.Contains)
+                }
+            }
+        }
+
+        return descriptors
+    }
+}

@@ -1,0 +1,30 @@
+package dev.ujhhgtg.wekit.hooks.items.system
+
+import dev.ujhhgtg.wekit.core.dsl.dexMethod
+import dev.ujhhgtg.wekit.core.model.SwitchHookItem
+import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
+import dev.ujhhgtg.wekit.hooks.utils.annotation.HookItem
+import org.luckypray.dexkit.DexKitBridge
+
+@HookItem(path = "系统与隐私/移除分享签名校验", desc = "移除第三方应用分享到微信的签名校验")
+object RemoveExternalAppSharingSignatureVerify : SwitchHookItem(), IResolvesDex {
+
+    private val methodSignCheck by dexMethod()
+
+    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
+        val descriptors = mutableMapOf<String, String>()
+        methodSignCheck.find(dexKit, descriptors = descriptors) {
+            searchPackages("com.tencent.mm.pluginsdk.model.app")
+            matcher {
+                usingEqStrings("checkAppSignature get local signature failed")
+            }
+        }
+        return descriptors
+    }
+
+    override fun onEnable() {
+        methodSignCheck.hookBefore { param ->
+            param.result = true
+        }
+    }
+}
