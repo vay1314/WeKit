@@ -2,6 +2,9 @@
 
 适用于微信的 Xposed 模块
 
+[功能一览](https://github.com/Ujhhgtg/WeKit/wiki/%E5%8A%9F%E8%83%BD%E4%B8%80%E8%A7%88)
+
+
 ## CI 状态
 
 [![CI](https://github.com/Ujhhgtg/WeKit/actions/workflows/ci.yml/badge.svg)](https://github.com/Ujhhgtg/WeKit/actions/workflows/ci.yml)
@@ -84,7 +87,7 @@ rustup target add x86_64-linux-android aarch64-linux-android
 
 构建期间会自动编译 Rust 原生库, 无须手动编译
 
-构建产物同时支持 arm64 与 x86_64, 其他架构不受支持 (如需支持, 自行修改 [这里](./app/build.gradle.kts#L65-L69) 和 [这里](./app/build.gradle.kts#L284-L287))
+构建产物支持 arm64 与 x86_64, 其他架构不受支持 (如需支持, 自行修改 [这里](./app/build.gradle.kts#L65-L69) 和 [这里](./app/build.gradle.kts#L301-L302))
 
 ```bash
 chmod +x ./gradlew
@@ -169,98 +172,6 @@ chmod +x ./gradlew
 └─ pack3/
    └─ ...
 ```
-
-<details>
-
-<summary>功能一览</summary>
-
-## 功能一览
-
-### 聊天
-
-- 修改文本显示内容
-- 发送自定义卡片消息
-- 引用消息直达
-- 显示消息发送精确时间
-- 显示消息详情
-- 禁止上传输入状态
-- 禁用消息折叠
-- 自动发送原图
-- 自动接收原图
-- 自动语音转文字
-- 表情游戏控制
-- 语音存本地
-- 表情存本地
-- 链接跳转系统打开方式
-- 防撤回
-- 净化消息菜单项
-- 左划引用消息 (不影响消息多选)
-- 贴纸包同步 (Stickers Sync)
-
-### 联系人与群组
-
-- 显示原始微信 ID
-- 显示群成员头衔身份
-- 禁用置顶聊天折叠
-- 移除消息批量转发限制
-
-### 红包与支付
-
-- 允许领取私聊发出的红包
-- 修改转账时显示的余额
-- 自动抢红包
-
-### 朋友圈
-
-- 反删除
-- 去广告
-- 伪集赞
-
-### 系统与隐私
-
-- 文章去广告
-- 强制启用 WebView 右上角三个点菜单
-- 强制平板模式
-- 禁止屏幕高亮度
-- 禁止检测 Xposed
-- 禁用 WebView 安全警告
-- 禁止热更新
-- 移除二维码扫描限制
-- 移除第三方应用分享签名校验
-- 自动批准设备登录
-- 自动清理缓存垃圾
-- 管理灰度测试
-
-### 通知
-
-- 通知进化
-
-### 界面美化
-
-- 主屏幕添加浮动操作按钮
-- 底栏替换为 Material Design 样式
-
-### 小程序
-
-- 去开屏广告
-- 去视频广告
-
-### 视频号
-
-- 复制视频下载链接
-- 禁用评论长度限制
-
-### 个人资料
-
-- 上传透明头像
-- 清空资料信息
-- 自定义昵称
-
-### 脚本
-
-- JavaScript 脚本引擎
-
-</details>
 
 ## 致谢
 
