@@ -1,9 +1,6 @@
 package dev.ujhhgtg.wekit.hooks.items.debug
 
-import android.annotation.SuppressLint
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.HorizontalDivider
@@ -13,14 +10,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.highcapable.kavaref.extension.toClass
+import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.core.model.ClickableHookItem
 import dev.ujhhgtg.wekit.hooks.utils.annotation.HookItem
 import dev.ujhhgtg.wekit.ui.content.AlertDialogContent
 import dev.ujhhgtg.wekit.ui.content.Button
 import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
-import dev.ujhhgtg.wekit.utils.ToastUtils.showToast
 import dev.ujhhgtg.wekit.utils.crash.NativeCrashHandler
 import dev.ujhhgtg.wekit.utils.logging.WeLogger
 
@@ -28,44 +24,9 @@ import dev.ujhhgtg.wekit.utils.logging.WeLogger
     path = "调试/测试崩溃",
     desc = "没事别点"
 )
-object TestCrash : ClickableHookItem() {
+object TriggerCrash : ClickableHookItem() {
 
-    private var appContext: Context? = null
-
-    @SuppressLint("StaticFieldLeak")
-    private var nativeCrashHandler: NativeCrashHandler? = null
-
-    override fun onEnable() {
-        WeLogger.i("TestCrash", "=== TestCrash entry() called ===")
-        try {
-            val activityThreadClass = "android.app.ActivityThread".toClass()
-            val currentApplicationMethod = activityThreadClass.getMethod("currentApplication")
-            appContext = currentApplicationMethod.invoke(null) as? Context
-
-            WeLogger.i("TestCrash", "Application context obtained: ${appContext != null}")
-            WeLogger.i("TestCrash", "Context class: ${appContext?.javaClass?.name}")
-
-            if (appContext != null) {
-                WeLogger.i("TestCrash", "Creating NativeCrashHandler...")
-                nativeCrashHandler = NativeCrashHandler()
-                WeLogger.i("TestCrash", "NativeCrashHandler created")
-
-                WeLogger.i("TestCrash", "Installing native crash handler...")
-                val installed = nativeCrashHandler?.install() ?: false
-                if (installed) {
-                    WeLogger.i("TestCrash", "✓ Native crash handler installed successfully for testing")
-                } else {
-                    WeLogger.e("TestCrash", "✗ Failed to install native crash handler for testing")
-                }
-            } else {
-                WeLogger.e("TestCrash", "✗ Application context is null, cannot initialize handler")
-            }
-
-            WeLogger.i("TestCrash", "=== Test crash feature initialized ===")
-        } catch (e: Throwable) {
-            WeLogger.e("[TestCrash] Failed to initialize", e)
-        }
-    }
+    private val TAG = nameof(TriggerCrash)
 
     override fun onClick(context: Context) {
         showCrashCategoryDialog(context)
@@ -177,7 +138,7 @@ object TestCrash : ClickableHookItem() {
                         dismiss()
                         when (category) {
                             "Java" -> triggerJavaCrash(crashType)
-                            "Native" -> triggerNativeCrash(crashType)
+                            "Native" -> NativeCrashHandler.triggerCrash(crashType)
                         }
                     }) {
                         Text("确定")
@@ -191,74 +152,15 @@ object TestCrash : ClickableHookItem() {
     }
 
     private fun triggerJavaCrash(crashType: Int) {
-        WeLogger.w("TestCrash", "Triggering Java test crash, type: $crashType")
-        Handler(Looper.getMainLooper()).postDelayed({
-            when (crashType) {
-                0 -> triggerNullPointerException()
-                1 -> triggerArrayIndexOutOfBoundsException()
-                2 -> triggerClassCastException()
-                3 -> triggerArithmeticException()
-                4 -> triggerStackOverflowError()
-                else -> triggerNullPointerException()
-            }
-        }, 500)
-    }
-
-    @SuppressLint("PrivateApi")
-    private fun triggerNativeCrash(crashType: Int) {
-        WeLogger.w("TestCrash", "Triggering Native test crash, type: $crashType")
-
-        if (nativeCrashHandler == null) {
-            WeLogger.w("TestCrash", "Native crash handler is null, attempting to initialize...")
-
-            if (appContext == null) {
-                try {
-                    val activityThreadClass = Class.forName("android.app.ActivityThread")
-                    val currentApplicationMethod = activityThreadClass.getMethod("currentApplication")
-                    appContext = currentApplicationMethod.invoke(null) as? Context
-                    WeLogger.i("TestCrash", "Application context obtained: ${appContext != null}")
-                } catch (e: Throwable) {
-                    WeLogger.e("[TestCrash] Failed to get application context", e)
-                }
-            }
-
-            if (appContext != null) {
-                try {
-                    nativeCrashHandler = NativeCrashHandler()
-                    WeLogger.i("TestCrash", "Native crash handler created")
-                } catch (e: Throwable) {
-                    WeLogger.e("[TestCrash] Failed to create native crash handler", e)
-                    showToast(appContext, "无法创建 Native 崩溃处理器: ${e.message}")
-                    return
-                }
-            } else {
-                WeLogger.e("TestCrash", "Application context is null, cannot create handler")
-                showToast(appContext, "无法获取应用上下文")
-                return
-            }
+        WeLogger.w(TAG, "Triggering Java test crash, type: $crashType")
+        when (crashType) {
+            0 -> triggerNullPointerException()
+            1 -> triggerArrayIndexOutOfBoundsException()
+            2 -> triggerClassCastException()
+            3 -> triggerArithmeticException()
+            4 -> triggerStackOverflowError()
+            else -> triggerNullPointerException()
         }
-
-        if (!nativeCrashHandler!!.isInstalled) {
-            WeLogger.w("TestCrash", "Native crash handler not installed, attempting to install...")
-            val installed = nativeCrashHandler!!.install()
-            if (!installed) {
-                WeLogger.e("TestCrash", "Failed to install native crash handler")
-                showToast(appContext, "Native 崩溃拦截器安装失败")
-                return
-            }
-            WeLogger.i("TestCrash", "Native crash handler installed successfully")
-        }
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            try {
-                WeLogger.i("TestCrash", "About to trigger native crash type: $crashType")
-                nativeCrashHandler?.triggerTestCrash(crashType)
-                WeLogger.e("TestCrash", "Native crash should have occurred but didn't!")
-            } catch (e: Throwable) {
-                WeLogger.e("[TestCrash] Exception while triggering Native crash", e)
-                showToast(appContext, "触发 Native 崩溃时发生异常: ${e.message}")
-            }
-        }, 500)
     }
 
     private fun triggerNullPointerException() {

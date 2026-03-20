@@ -72,7 +72,7 @@ object NativeCrashHandler {
      * 3 = SIGILL (非法指令)
      * 4 = SIGBUS (总线错误)
      */
-    fun triggerTestCrash(crashType: Int) {
+    fun triggerCrash(crashType: Int) {
         WeLogger.w(TAG, "Triggering test crash: type=$crashType")
         try {
             triggerTestCrashNative(crashType)
