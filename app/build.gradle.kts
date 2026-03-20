@@ -135,6 +135,15 @@ configure<ApplicationExtension> {
     sourceSets["main"].jniLibs.directories += "src/main/jniLibs"
 
     buildTypes {
+        signingConfigs {
+            getByName("debug") {
+                storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
+
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -196,7 +205,7 @@ androidComponents {
 
 fun isHooksDirPresent(task: Task): Boolean {
     return task.outputs.files.any { outputDir ->
-        File(outputDir, "moe/ouom/wekit/hooks").exists()
+        File(outputDir, "${libs.versions.namespace.get().replace(".", "/")}/hooks").exists()
     }
 }
 
@@ -225,11 +234,14 @@ abstract class GenerateMethodHashesTask : DefaultTask() {
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
+    @get:Input
+    abstract val namespace: Property<String>
+
     @TaskAction
     fun generate() {
         val srcDir = sourceDir.get().asFile
         val outDir = outputDir.get().asFile
-        val outputFile = outDir.resolve("moe/ouom/wekit/dexkit/cache/GeneratedMethodHashes.kt")
+        val outputFile = outDir.resolve("${namespace.get().replace(".", "/")}/dexkit/cache/GeneratedMethodHashes.kt")
 
         val hashMap = mutableMapOf<String, String>()
         srcDir.walk().filter { it.isFile && it.extension == "kt" && it.readText().contains("IResolvesDex") }.forEach { file ->
@@ -259,7 +271,7 @@ abstract class GenerateMethodHashesTask : DefaultTask() {
         outputFile.parentFile.mkdirs()
         outputFile.writeText(
             """
-            package moe.ouom.wekit.dexkit.cache
+            package ${namespace.get()}.dexkit.cache
             object GeneratedMethodHashes {
                 private val hashes = mapOf(${hashMap.entries.sortedBy { it.key }.joinToString(",") { "\"${it.key}\" to \"${it.value}\"" }})
                 fun getHash(className: String) = hashes[className] ?: ""
@@ -273,6 +285,7 @@ val generateMethodHashes = tasks.register<GenerateMethodHashesTask>("generateMet
     group = "wekit"
     sourceDir.set(file("src/main/java"))
     outputDir.set(layout.buildDirectory.dir("generated/source/methodhashes"))
+    namespace.set(libs.versions.namespace.get())
 }
 
 val rustProjectDir = file("src/main/rust/wekit-native")

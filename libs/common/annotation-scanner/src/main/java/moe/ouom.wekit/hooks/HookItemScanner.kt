@@ -1,4 +1,4 @@
-package moe.ouom.wekit.hooks
+package dev.ujhhgtg.wekit.hooks
 
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.getAnnotationsByType
@@ -19,9 +19,9 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.writeTo
-import moe.ouom.wekit.hooks.utils.annotation.HookItem
+import dev.ujhhgtg.wekit.hooks.utils.annotation.HookItem
 
-private const val PACKAGE_NAME = "moe.ouom.wekit"
+private const val PACKAGE_NAME = "dev.ujhhgtg.wekit"
 
 class HookItemProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {

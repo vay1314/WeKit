@@ -1,6 +1,6 @@
 [versions]
 # noinspection UnusedVersionCatalogEntry
-namespace = "moe.ouom.wekit"
+namespace = "dev.ujhhgtg.wekit"
 # noinspection UnusedVersionCatalogEntry
 minSdk = "29"
 # noinspection UnusedVersionCatalogEntry

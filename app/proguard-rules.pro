@@ -1,16 +1,16 @@
 # App
 -keep class **.R$* { *; }
--keep interface moe.ouom.wekit.dexkit.abc.IResolvesDex { *; }
--keep class * implements moe.ouom.wekit.dexkit.abc.IResolvesDex {
+-keep interface dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex { *; }
+-keep class * implements dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex {
     public void resolveDex(...);
 }
--keep class moe.ouom.wekit.core.model.SwitchHookItem { *; }
--keep class moe.ouom.wekit.core.model.ClickableHookItem { *; }
--keep class moe.ouom.wekit.core.model.ApiHookItem { *; }
--keep class moe.ouom.wekit.core.model.BaseHookItem { *; }
--keep class moe.ouom.wekit.loader.entry.lsp10x.Lsp10xUnifiedHookEntry { *; }
--keep class moe.ouom.wekit.loader.entry.xp51.Xp51HookEntry { *; }
--keep class moe.ouom.wekit.loader.entry.frida.FridaInjectEntry { *; }
+-keep class dev.ujhhgtg.wekit.core.model.SwitchHookItem { *; }
+-keep class dev.ujhhgtg.wekit.core.model.ClickableHookItem { *; }
+-keep class dev.ujhhgtg.wekit.core.model.ApiHookItem { *; }
+-keep class dev.ujhhgtg.wekit.core.model.BaseHookItem { *; }
+-keep class dev.ujhhgtg.wekit.loader.entry.lsp10x.Lsp10xUnifiedHookEntry { *; }
+-keep class dev.ujhhgtg.wekit.loader.entry.xp51.Xp51HookEntry { *; }
+-keep class dev.ujhhgtg.wekit.loader.entry.frida.FridaInjectEntry { *; }
 -keep class io.github.libxposed.** { *; }
 
 # Attributes

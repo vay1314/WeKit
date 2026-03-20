@@ -36,7 +36,7 @@ use crate::utils::with_jstring;
 ///
 /// Java signature: `(Ljava/lang/String;)Z`
 #[unsafe(no_mangle)]
-pub extern "C" fn Java_moe_ouom_wekit_utils_crash_NativeCrashHandler_installNative(
+pub extern "C" fn Java_dev_ujhhgtg_wekit_utils_crash_NativeCrashHandler_installNative(
     env: *mut RawJNIEnv,
     _thiz: jobject,
     crash_log_dir: jstring,
@@ -54,7 +54,7 @@ pub extern "C" fn Java_moe_ouom_wekit_utils_crash_NativeCrashHandler_installNati
 ///
 /// Java signature: `()V`
 #[unsafe(no_mangle)]
-pub extern "C" fn Java_moe_ouom_wekit_utils_crash_NativeCrashHandler_uninstallNative(
+pub extern "C" fn Java_dev_ujhhgtg_wekit_utils_crash_NativeCrashHandler_uninstallNative(
     _env: *mut RawJNIEnv,
     _thiz: jobject,
 ) {
@@ -65,7 +65,7 @@ pub extern "C" fn Java_moe_ouom_wekit_utils_crash_NativeCrashHandler_uninstallNa
 ///
 /// Java signature: `(I)V`
 #[unsafe(no_mangle)]
-pub extern "C" fn Java_moe_ouom_wekit_utils_crash_NativeCrashHandler_triggerTestCrashNative(
+pub extern "C" fn Java_dev_ujhhgtg_wekit_utils_crash_NativeCrashHandler_triggerTestCrashNative(
     _env: *mut RawJNIEnv,
     _thiz: jobject,
     crash_type: jint,
@@ -77,7 +77,7 @@ pub extern "C" fn Java_moe_ouom_wekit_utils_crash_NativeCrashHandler_triggerTest
 ///
 /// Java signature: `(Ljava/lang/String;)Ljava/lang/String;`
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_moe_ouom_wekit_hooks_items_chat_MarkdownRendering_convertMarkdownToHtmlNative(
+pub unsafe extern "C" fn Java_dev_ujhhgtg_wekit_hooks_items_chat_MarkdownRendering_convertMarkdownToHtmlNative(
     env: *mut RawJNIEnv,
     _thiz: jobject,
     markdown_string: jstring,

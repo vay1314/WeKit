@@ -42,7 +42,7 @@
 
 
 ### 核心信息
-- **包名**: `moe.ouom.wekit`
+- **包名**: `dev.ujhhgtg.wekit`
 - **目标应用**: 微信 (com.tencent.mm)
 - **最低 Android 版本**: Android 10 (API 29)
 - **最低微信版本**: 8.0.67
@@ -202,7 +202,7 @@ wekit/
 │   │   │   ├── wekit_lib.cpp  # 主实现
 │   │   │   └── include/       # 头文件
 │   │   ├── java/              # Java/Kotlin 源码
-│   │   │   └── moe/ouom/wekit/
+│   │   │   └── dev/ujhhgtg/wekit/
 │   │   │       ├── activity/  # UI 活动
 │   │   │       ├── config/    # 配置管理
 │   │   │       ├── constants/ # 常量定义
@@ -237,7 +237,7 @@ wekit/
 ### 包结构规范
 
 ```
-moe.ouom.wekit/
+dev.ujhhgtg.wekit/
 ├── activity/                  # UI 活动
 ├── config/                    # 配置管理
 │   ├── ConfigManager.java     # 接口
@@ -298,11 +298,11 @@ moe.ouom.wekit/
 ### 命名规范
 
 #### 包命名
-- **核心框架**: `moe.ouom.wekit.core.*`
-- **Hook 功能**: `moe.ouom.wekit.hooks.item.*`
+- **核心框架**: `dev.ujhhgtg.wekit.core.*`
+- **Hook 功能**: `dev.ujhhgtg.wekit.hooks.item.*`
 - **配置对话框**: 使用 Jetpack Compose, 直接写在对应功能的 onClick 函数内部
-- **加载器**: `moe.ouom.wekit.loader.*`
-- **工具类**: `moe.ouom.wekit.util.*`
+- **加载器**: `dev.ujhhgtg.wekit.loader.*`
+- **工具类**: `dev.ujhhgtg.wekit.util.*`
 
 #### 类命名
 - **基类**: `Base*` (如 `BaseHookItem`)
@@ -364,7 +364,7 @@ moe.ouom.wekit/
 
 ### MMVersion 使用指南
 
-`MMVersion` 是 WeKit 提供的微信版本常量类,位于 `moe.ouom.wekit.constants.MMVersion`。
+`MMVersion` 是 WeKit 提供的微信版本常量类,位于 `dev.ujhhgtg.wekit.constants.MMVersion`。
 
 #### 可用的版本常量
 
@@ -389,7 +389,7 @@ object MMVersion {
 #### 获取当前微信版本
 
 ```kotlin
-import moe.ouom.wekit.host.HostInfo
+import dev.ujhhgtg.wekit.host.HostInfo
 
 // 获取当前微信版本号
 val currentVersion = HostInfo.getVersionCode()
@@ -400,8 +400,8 @@ val currentVersion = HostInfo.getVersionCode()
 #### 示例 1: 基本版本判断
 
 ```kotlin
-import moe.ouom.wekit.constants.MMVersion
-import moe.ouom.wekit.host.HostInfo
+import dev.ujhhgtg.wekit.constants.MMVersion
+import dev.ujhhgtg.wekit.host.HostInfo
 
 override fun entry(classLoader: ClassLoader) {
     val isGooglePlayVersion = HostInfo.isGooglePlayVersion
@@ -484,13 +484,13 @@ override fun entry(classLoader: ClassLoader) {
 #### 示例 4: 完整的版本兼容实现
 
 ```kotlin
-package moe.ouom.wekit.hooks.item.chat.msg
+package dev.ujhhgtg.wekit.hooks.item.chat.msg
 
-import moe.ouom.wekit.constants.MMVersion
-import moe.ouom.wekit.core.model.BaseSwitchFunctionHookItem
-import moe.ouom.wekit.dexkit.intf.IDexFind
-import moe.ouom.wekit.hooks.core.annotation.HookItem
-import moe.ouom.wekit.host.HostInfo
+import dev.ujhhgtg.wekit.constants.MMVersion
+import dev.ujhhgtg.wekit.core.model.BaseSwitchFunctionHookItem
+import dev.ujhhgtg.wekit.dexkit.intf.IDexFind
+import dev.ujhhgtg.wekit.hooks.core.annotation.HookItem
+import dev.ujhhgtg.wekit.host.HostInfo
 import org.luckypray.dexkit.DexKitBridge
 
 @HookItem(
@@ -720,12 +720,12 @@ override fun entry(classLoader: ClassLoader) {
 #### 示例 1: 带开关的简单功能
 
 ```kotlin
-package moe.ouom.wekit.hooks.item.chat.msg
+package dev.ujhhgtg.wekit.hooks.item.chat.msg
 
 import de.robv.android.xposed.XC_MethodHook
-import moe.ouom.wekit.core.model.BaseSwitchFunctionHookItem
-import moe.ouom.wekit.dexkit.intf.IDexFind
-import moe.ouom.wekit.hooks.core.annotation.HookItem
+import dev.ujhhgtg.wekit.core.model.BaseSwitchFunctionHookItem
+import dev.ujhhgtg.wekit.dexkit.intf.IDexFind
+import dev.ujhhgtg.wekit.hooks.core.annotation.HookItem
 import org.luckypray.dexkit.DexKitBridge
 
 /**
@@ -781,13 +781,13 @@ class AntiRevokeMsg : BaseSwitchFunctionHookItem(), IDexFind {
 `BaseSwitchFunctionHookItem` 支持通过重写 `onBeforeToggle(boolean newState)` 方法来在开关切换前进行确认。如果返回 `false`,开关状态会被撤回。
 
 ```kotlin
-package moe.ouom.wekit.hooks.item.chat.risk
+package dev.ujhhgtg.wekit.hooks.item.chat.risk
 
 import android.content.Context
 import com.afollestad.materialdialogs.MaterialDialog
-import moe.ouom.wekit.core.model.BaseSwitchFunctionHookItem
-import moe.ouom.wekit.dexkit.intf.IDexFind
-import moe.ouom.wekit.hooks.core.annotation.HookItem
+import dev.ujhhgtg.wekit.core.model.BaseSwitchFunctionHookItem
+import dev.ujhhgtg.wekit.dexkit.intf.IDexFind
+import dev.ujhhgtg.wekit.hooks.core.annotation.HookItem
 import org.luckypray.dexkit.DexKitBridge
 
 /**
@@ -967,7 +967,7 @@ override fun onBeforeToggle(newState: Boolean, context: Context): Boolean {
 #### 示例 2: 带配置界面的复杂功能
 
 > **📁 重要：配置对话框的包结构规范**
-> 使用 Jetpack Compose, 直接写在对应功能 class 或 onClick 函数内部, **不**放入`moe.ouom.wekit.ui.content.*`
+> 使用 Jetpack Compose, 直接写在对应功能 class 或 onClick 函数内部, **不**放入`dev.ujhhgtg.wekit.ui.content.*`
 
 **步骤 1: 创建配置对话框**
 
@@ -1229,13 +1229,13 @@ override fun targetProcess(): Int {
 #### 完整示例
 
 ```kotlin
-package moe.ouom.wekit.hooks.item.dev
+package dev.ujhhgtg.wekit.hooks.item.dev
 
-import moe.ouom.wekit.core.model.BaseSwitchFunctionHookItem
-import moe.ouom.wekit.dexkit.intf.IDexFind
-import moe.ouom.wekit.hooks.core.annotation.HookItem
-import moe.ouom.wekit.host.HostInfo
-import moe.ouom.wekit.util.SyncUtils
+import dev.ujhhgtg.wekit.core.model.BaseSwitchFunctionHookItem
+import dev.ujhhgtg.wekit.dexkit.intf.IDexFind
+import dev.ujhhgtg.wekit.hooks.core.annotation.HookItem
+import dev.ujhhgtg.wekit.host.HostInfo
+import dev.ujhhgtg.wekit.util.SyncUtils
 import org.luckypray.dexkit.DexKitBridge
 
 /**
@@ -1497,7 +1497,7 @@ accountConfig.edit()
 #### 接口定义
 
 ```kotlin
-package moe.ouom.wekit.hooks.sdk.protocol.intf
+package dev.ujhhgtg.wekit.hooks.sdk.protocol.intf
 
 interface IWePkgInterceptor {
     /**
@@ -1544,7 +1544,7 @@ interface IWePkgInterceptor {
 **步骤 1: 创建拦截器类**
 
 ```kotlin
-import moe.ouom.wekit.hooks.sdk.protocol.intf.IWePkgInterceptor
+import dev.ujhhgtg.wekit.hooks.sdk.protocol.intf.IWePkgInterceptor
 
 class MyPacketInterceptor : IWePkgInterceptor {
 
@@ -1572,7 +1572,7 @@ class MyPacketInterceptor : IWePkgInterceptor {
 在 Hook 入口点（通常是 `entry()` 方法）中注册拦截器：
 
 ```kotlin
-import moe.ouom.wekit.hooks.sdk.protocol.WePkgManager
+import dev.ujhhgtg.wekit.hooks.sdk.protocol.WePkgManager
 
 override fun entry(classLoader: ClassLoader) {
     WePkgManager.addInterceptor(this)
@@ -1693,18 +1693,18 @@ val modifiedBytes: ByteArray = data.toPacketBytes()
 以下是一个完整的实战示例，展示如何拦截收银台数据包并修改余额显示：
 
 ```kotlin
-package moe.ouom.wekit.hooks.item.chat.risk
+package dev.ujhhgtg.wekit.hooks.item.chat.risk
 
 import android.content.Context
 import android.text.InputType
-import moe.ouom.wekit.config.WeConfig
-import moe.ouom.wekit.core.model.BaseClickableFunctionHookItem
-import moe.ouom.wekit.hooks.core.annotation.HookItem
-import moe.ouom.wekit.hooks.sdk.protocol.WePkgManager
-import moe.ouom.wekit.hooks.sdk.protocol.intf.IWePkgInterceptor
-import moe.ouom.wekit.ui.creator.dialog.BaseRikkaDialog
-import moe.ouom.wekit.util.WeProtoData
-import moe.ouom.wekit.util.log.WeLogger
+import dev.ujhhgtg.wekit.config.WeConfig
+import dev.ujhhgtg.wekit.core.model.BaseClickableFunctionHookItem
+import dev.ujhhgtg.wekit.hooks.core.annotation.HookItem
+import dev.ujhhgtg.wekit.hooks.sdk.protocol.WePkgManager
+import dev.ujhhgtg.wekit.hooks.sdk.protocol.intf.IWePkgInterceptor
+import dev.ujhhgtg.wekit.ui.creator.dialog.BaseRikkaDialog
+import dev.ujhhgtg.wekit.util.WeProtoData
+import dev.ujhhgtg.wekit.util.log.WeLogger
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -1999,7 +1999,7 @@ e.printStackTrace()
 
 ```kotlin
 // ✅ 使用 WeLogger
-import moe.ouom.wekit.util.log.WeLogger
+import dev.ujhhgtg.wekit.util.log.WeLogger
 
 // 基本日志输出
 WeLogger.d("调试信息")

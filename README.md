@@ -30,7 +30,7 @@
 
 ## 特色功能
 
-- 基于 JavaScript 的脚本引擎, [API ~~文档~~参考](app/src/main/java/moe/ouom/wekit/hooks/items/scripting_js/globals.d.ts)
+- 基于 JavaScript 的脚本引擎, [API ~~文档~~参考](app/src/main/java/dev/ujhhgtg/wekit/hooks/items/scripting_js/globals.d.ts)
 - ~~实验性的基于 Kotlin Scripting 的脚本引擎 (直接与宿主与模块互通)~~ (暂未开发完成)
 - 贴纸包同步 (Telegram Stickers Sync)
 - 通知进化
@@ -144,6 +144,31 @@ chmod +x ./gradlew
 - ~~聊天工具栏必须先打开菜单至少一次才能正常工作: 暂未找到解决办法, 欢迎贡献修复~~: 已修复, 副作用: 原有的工具菜单底部的分页指示器消失, 不影响其他功能
 
 - 切换至聊天数量少的分组可能导致列表滑动状态异常: 临时解决办法: 启用 '界面美化/隐藏主页下滑「最近」页'; 暂未找到更完善的解决办法, 欢迎贡献修复
+
+## StickersSync
+
+### 使用方式
+1. 创建目录 /storage/emulated/0/Android/data/com.tencent.mm/files/WeKit/stickers
+2. 将贴纸包复制到该目录下, 每个包为一个目录, 包中包含贴纸图片 (支持 png jpg/jpeg gif webp, webp 格式将会在第一次加载时自动转换为微信支持的 png 格式)
+3. (可选) 在包中添加 `.pack_icon.png` 文件以设置贴纸包图标 (不添加会导致表情面板里贴纸包图标变成滚木, 随便找个表情复制一份改个名就够了)
+
+### 提示
+- 每个包第一次加载较慢, 后续加载速度将极大提升
+- 使用微信自带存储空间清理工具时, 请勿清除 `缓存 -> 其他`, 这可能导致 WeKit 数据被清空
+
+### 目录结构
+
+```none
+/storage/emulated/0/Android/data/com.tencent.mm/files/WeKit/stickers
+├─ pack1/
+│  ├─ sticker1.png
+│  ├─ sticker2.png
+│  └─ .pack_icon.png
+├─ pack2/
+│  └─ ...
+└─ pack3/
+   └─ ...
+```
 
 <details>
 
