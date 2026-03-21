@@ -68,10 +68,7 @@ object EmojiGameControl : SwitchHookItem(), IResolvesDex {
         FOUR(3, "四"), FIVE(4, "五"), SIX(5, "六")
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodRandom.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodRandom.find(dexKit) {
             searchPackages("com.tencent.mm.sdk.platformtools")
             matcher {
                 returnType(Int::class.java)
@@ -84,13 +81,11 @@ object EmojiGameControl : SwitchHookItem(), IResolvesDex {
             }
         }
 
-        methodPanelClick.find(dexKit, descriptors) {
+        methodPanelClick.find(dexKit) {
             matcher {
                 usingEqStrings("MicroMsg.EmojiPanelClickListener")
             }
         }
-
-        return descriptors
     }
 
     override fun onEnable() {

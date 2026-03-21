@@ -9,6 +9,7 @@ import com.highcapable.kavaref.extension.createInstance
 import com.highcapable.kavaref.extension.toClass
 import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.nameof.nameof
+import dev.ujhhgtg.wekit.dexkit.DexMethodDescriptor
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexClass
 import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
@@ -91,7 +92,6 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
 
     // 图片
     private var p6Method: Method? = null
-    private var imageMetadataMapField: Field? = null
     private var imageServiceApiClass: Class<*>? = null
     private var sendImageMethod: Method? = null
     private var taskConstructor: Constructor<*>? = null
@@ -123,17 +123,14 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     private var allocateInstanceMethod: Method? = null
 
     private val TAG = nameof(WeMessageApi)
-    private const val KEY_MAP_FIELD = "dexFieldImageMetadataMap"
 
     @SuppressLint("NonUniqueDexKitData")
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
+    override fun resolveDex(dexKit: DexKitBridge) {
         // ---------------------------------------------------------------------------------
         // 基础组件查找
         // ---------------------------------------------------------------------------------
 
-        classChattingDataAdapter.find(dexKit, descriptors) {
+        classChattingDataAdapter.find(dexKit) {
             matcher {
                 usingEqStrings(
                     "MicroMsg.ChattingDataAdapterV3",
@@ -142,13 +139,13 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classChattingContext.find(dexKit, descriptors) {
+        classChattingContext.find(dexKit) {
             matcher {
                 usingEqStrings("MicroMsg.ChattingContext", "[notifyDataSetChange]")
             }
         }
 
-        classNetSceneObserverOwner.find(dexKit, descriptors) {
+        classNetSceneObserverOwner.find(dexKit) {
             matcher {
                 methods {
                     add {
@@ -159,7 +156,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classNetSceneSendMsg.find(dexKit, descriptors) {
+        classNetSceneSendMsg.find(dexKit) {
             matcher {
                 methods {
                     add {
@@ -170,7 +167,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classNetSceneQueue.find(dexKit, descriptors) {
+        classNetSceneQueue.find(dexKit) {
             searchPackages("com.tencent.mm.modelbase")
             matcher {
                 methods {
@@ -182,20 +179,20 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classNetSceneBase.find(dexKit, descriptors) {
+        classNetSceneBase.find(dexKit) {
             matcher {
                 usingEqStrings("scene security verification not passed, type=")
             }
         }
 
-        methodGetSendMsgObject.find(dexKit, descriptors, true) {
+        methodGetSendMsgObject.find(dexKit, true) {
             matcher {
                 paramCount = 0
                 returnType = classNetSceneObserverOwner.getDescriptorString() ?: ""
             }
         }
 
-        methodPostToQueue.find(dexKit, descriptors, true) {
+        methodPostToQueue.find(dexKit, true) {
             searchPackages("com.tencent.mm.modelbase")
             matcher {
                 declaredClass = classNetSceneQueue.getDescriptorString() ?: ""
@@ -205,7 +202,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        methodShareFile.find(dexKit, descriptors = descriptors) {
+        methodShareFile.find(dexKit) {
             matcher {
                 paramTypes(
                     "com.tencent.mm.opensdk.modelmsg.WXMediaMessage",
@@ -218,7 +215,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classMsgInfo.find(dexKit, descriptors) {
+        classMsgInfo.find(dexKit) {
             searchPackages("com.tencent.mm.storage")
             matcher {
                 usingEqStrings("MicroMsg.MsgInfo", "[parseNewXmlSysMsg]")
@@ -226,21 +223,21 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
         }
 
 
-        classMsgInfoStorage.find(dexKit, descriptors) {
+        classMsgInfoStorage.find(dexKit) {
             searchPackages("com.tencent.mm.storage")
             matcher {
                 usingEqStrings("MicroMsg.MsgInfoStorage", "deleted dirty msg ,count is %d")
             }
         }
 
-        methodMsgInfoStorageInsertMessage.find(dexKit, descriptors) {
+        methodMsgInfoStorageInsertMessage.find(dexKit) {
             matcher {
                 declaredClass(classMsgInfoStorage.clazz)
                 usingEqStrings("MsgInfo processAddMsg insert db error")
             }
         }
 
-        classTransformChattingComponent.find(dexKit, descriptors) {
+        classTransformChattingComponent.find(dexKit) {
             searchPackages("com.tencent.mm.ui.chatting.component")
             matcher {
                 usingEqStrings("MicroMsg.TransformComponent", "[onChattingPause]")
@@ -251,7 +248,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
         // 图片组件查找
         // ---------------------------------------------------------------------------------
 
-        classMvvmBase.find(dexKit, descriptors) {
+        classMvvmBase.find(dexKit) {
             matcher {
                 usingStrings(
                     "MicroMsg.Mvvm.MvvmPlugin",
@@ -260,7 +257,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classImageSender.find(dexKit, descriptors, throwOnFailure = false) {
+        classImageSender.find(dexKit, allowFailure = true) {
             matcher {
                 usingStrings(
                     "MicroMsg.ImgUpload.MsgImgSyncSendFSC",
@@ -269,11 +266,11 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        val senderDesc = descriptors[classImageSender.key]
-        if (senderDesc != null) {
+        val senderDesc = classImageSender.getDescriptorString()
+        if (!classImageSender.isPlaceholder) {
             val sendMethodData = dexKit.findMethod {
                 matcher {
-                    declaredClass = senderDesc
+                    declaredClass = senderDesc!!
                     modifiers = Modifier.PUBLIC or Modifier.STATIC or Modifier.FINAL
                     paramCount = 4
                     paramTypes(senderDesc, null, null, null)
@@ -281,42 +278,42 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }.singleOrNull()
 
             if (sendMethodData != null) {
-                descriptors[methodImageSendEntry.key] = sendMethodData.descriptor
+                methodImageSendEntry.setDescriptor(DexMethodDescriptor(sendMethodData.descriptor))
 
                 val taskClassName = sendMethodData.paramTypes[1]
-                descriptors[classImageTask.key] = taskClassName.name
-
-                val taskDescriptorForSearch = "L" + taskClassName.name.replace(".", "/") + ";"
-                val mapFieldData = dexKit.findField {
-                    matcher {
-                        declaredClass = taskDescriptorForSearch
-                        type = "java.util.Map"
-                    }
-                }.singleOrNull()
-
-                if (mapFieldData != null) {
-                    descriptors["${javaClass.simpleName}:$KEY_MAP_FIELD"] =
-                        mapFieldData.descriptor
-                }
+                classImageTask.setDescriptor(taskClassName.name)
+            }
+            else {
+                methodImageSendEntry.setPlaceholderDescriptor()
+                classImageTask.setPlaceholderDescriptor()
             }
 
-            val mvvmBaseDesc = descriptors[classMvvmBase.key]
+            val mvvmBaseDesc = classMvvmBase.getDescriptorString()
             if (mvvmBaseDesc != null) {
-                classImageServiceImpl.find(dexKit, descriptors) {
+                classImageServiceImpl.find(dexKit, allowFailure = true) {
                     matcher {
                         usingStrings("MicroMsg.ImgUpload.MsgImgFeatureService")
                         superClass(mvvmBaseDesc)
                     }
                 }
             }
+            else {
+                classImageServiceImpl.setPlaceholderDescriptor()
+            }
 
-            classImageTask.find(dexKit, descriptors) {
+            classImageTask.find(dexKit, allowFailure = true) {
                 matcher { usingStrings("msg_raw_img_send") }
             }
         }
+        else {
+            methodImageSendEntry.setPlaceholderDescriptor()
+            classImageTask.setPlaceholderDescriptor()
+            classImageServiceImpl.setPlaceholderDescriptor()
+            classImageTask.setPlaceholderDescriptor()
+        }
 
         // 查找 ServiceManager
-        classServiceManager.find(dexKit, descriptors) {
+        classServiceManager.find(dexKit) {
             matcher {
                 usingStrings("MicroMsg.ServiceManager")
                 methods {
@@ -329,7 +326,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classConfigLogic.find(dexKit, descriptors) {
+        classConfigLogic.find(dexKit) {
             matcher {
                 usingEqStrings("MicroMsg.ConfigStorageLogic",
                     "get userinfo fail")
@@ -340,37 +337,42 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
         // 语音/VFS 组件动态查找
         // ---------------------------------------------------------------------------------
 
-        classVfs.find(dexKit, descriptors) {
+        classVfs.find(dexKit) {
             matcher {
                 usingStrings("MicroMsg.VFSFileOp", "Cannot resolve path or URI")
             }
         }
 
-        classVoiceNameGen.find(dexKit, descriptors) {
+        classVoiceNameGen.find(dexKit) {
             matcher {
                 usingStrings("CREATE TABLE IF NOT EXISTS voiceinfo ( FileName TEXT PRIMARY KEY")
             }
         }
 
-        classVoiceParams.find(dexKit, descriptors) {
+        classVoiceParams.find(dexKit, allowFailure = true) {
             matcher {
                 usingEqStrings("toUserName", "fileName", "send_voice_msg")
             }
         }
 
-        classVoiceTask.find(dexKit, descriptors) {
-            matcher {
-                usingStrings("MicroMsg.VoiceMsg.VoiceMsgSendTask")
-                methods {
-                    add {
-                        name = "<init>"
-                        paramTypes(classVoiceParams.clazz)
+        if (!classVoiceParams.isPlaceholder) {
+            classVoiceTask.find(dexKit, allowFailure = true) {
+                matcher {
+                    usingStrings("MicroMsg.VoiceMsg.VoiceMsgSendTask")
+                    methods {
+                        add {
+                            name = "<init>"
+                            paramTypes(classVoiceParams.clazz)
+                        }
                     }
                 }
             }
         }
+        else {
+            classVoiceTask.setPlaceholderDescriptor()
+        }
 
-        classPathUtil.find(dexKit, descriptors) {
+        classPathUtil.find(dexKit) {
             searchPackages("com.tencent.mm.sdk.platformtools")
             matcher {
                 methods {
@@ -389,13 +391,13 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classMmKernel.find(dexKit, descriptors) {
+        classMmKernel.find(dexKit) {
             matcher {
                 usingStrings("MicroMsg.MMKernel", "Initialize skeleton")
             }
         }
 
-        methodMmKernelGetStorage.find(dexKit, descriptors, true) {
+        methodMmKernelGetStorage.find(dexKit, true) {
             matcher {
                 declaredClass(classMmKernel.clazz)
                 modifiers = Modifier.PUBLIC or Modifier.STATIC
@@ -405,7 +407,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
         }
 
         // 定位 VoiceServiceImpl (tc0.k)
-        classVoiceServiceImpl.find(dexKit, descriptors, throwOnFailure = false) {
+        classVoiceServiceImpl.find(dexKit, allowFailure = true) {
             matcher {
                 usingStrings("MicroMsg.VoiceMsgAsyncSendFSC")
                 methods {
@@ -416,29 +418,31 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        // 定位 sendSync 方法 (gh)
-        methodSendVoice.find(dexKit, descriptors, true) {
-            matcher {
-                declaredClass(classVoiceServiceImpl.clazz)
-                usingStrings("sendSync only support BaseSendMsgTask Type")
-                paramCount = 1
+        if (!classVoiceServiceImpl.isPlaceholder) {
+            // 定位 sendSync 方法 (gh)
+            methodSendVoice.find(dexKit, true) {
+                matcher {
+                    declaredClass(classVoiceServiceImpl.clazz)
+                    usingStrings("sendSync only support BaseSendMsgTask Type")
+                    paramCount = 1
+                }
+            }
+
+            // 遍历所有接口，找到第一个非系统接口作为 Service 接口
+            val targetInterface = classVoiceServiceImpl.clazz.interfaces.firstOrNull {
+                !it.name.startsWith("java.") && !it.name.startsWith("android.") && !it.name.startsWith(
+                    "kotlin."
+                ) && !it.name.startsWith("ki0.") // FIXME: might change with WeChat version
+            }
+            if (targetInterface != null) {
+                classVoiceServiceInterface.setDescriptor(targetInterface.name)
+                WeLogger.i(TAG, "从实现类反推接口成功: ${targetInterface.name}")
             }
         }
-
-        // 遍历所有接口，找到第一个非系统接口作为 Service 接口
-        val targetInterface = classVoiceServiceImpl.clazz.interfaces.firstOrNull {
-            !it.name.startsWith("java.") && !it.name.startsWith("android.") && !it.name.startsWith(
-                "kotlin."
-            ) && !it.name.startsWith("ki0.") // FIXME: might change with WeChat version
+        else {
+            methodSendVoice.setPlaceholderDescriptor()
+            classVoiceServiceInterface.setPlaceholderDescriptor()
         }
-        if (targetInterface != null) {
-            descriptors[classVoiceServiceInterface.key] = targetInterface.name
-            WeLogger.i(TAG, "从实现类反推接口成功: ${targetInterface.name}")
-        } else {
-            WeLogger.e(TAG, "反推接口失败：未找到合适的接口")
-        }
-
-        return descriptors
     }
 
     fun createMsgInfoFromContentValues(contentValues: ContentValues, boolValue: Boolean): Any {
@@ -479,10 +483,6 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
         crossParamsConstructor = crossParamsClass?.asResolver()
             ?.firstConstructor { emptyParameters() }
             ?.self
-
-        imageMetadataMapField = taskClazz.asResolver()
-            .firstField { type { Map::class.java.isAssignableFrom(it) } }
-            .self
 
         // -----------------------------------------------------------------------------
         // 语音/VFS 组件初始化

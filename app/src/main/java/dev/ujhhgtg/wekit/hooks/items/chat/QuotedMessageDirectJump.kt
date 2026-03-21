@@ -1,7 +1,6 @@
 package dev.ujhhgtg.wekit.hooks.items.chat
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexClass
 import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
@@ -83,10 +82,7 @@ object QuotedMessageDirectJump : SwitchHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodClickEvent.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodClickEvent.find(dexKit) {
             searchPackages("com.tencent.mm.ui.chatting.viewitems")
             matcher {
                 usingEqStrings(
@@ -96,7 +92,7 @@ object QuotedMessageDirectJump : SwitchHookItem(), IResolvesDex {
             }
         }
 
-        methodClickToPositionEvent.find(dexKit, descriptors) {
+        methodClickToPositionEvent.find(dexKit) {
             matcher {
                 declaredClass(methodClickEvent.method.declaringClass)
                 usingEqStrings(
@@ -106,7 +102,7 @@ object QuotedMessageDirectJump : SwitchHookItem(), IResolvesDex {
             }
         }
 
-        methodGetQuoteMessageInfo.find(dexKit, descriptors) {
+        methodGetQuoteMessageInfo.find(dexKit) {
             matcher {
                 declaredClass(methodClickEvent.method.declaringClass)
                 usingStrings(
@@ -116,28 +112,23 @@ object QuotedMessageDirectJump : SwitchHookItem(), IResolvesDex {
             }
         }
 
-        classChattingContext.find(dexKit, descriptors) {
+        classChattingContext.find(dexKit) {
             matcher {
                 usingEqStrings("MicroMsg.ChattingContext", "[notifyDataSetChange]")
             }
         }
 
-        methodChattingContextGetTalker.find(dexKit, descriptors) {
+        methodChattingContextGetTalker.find(dexKit) {
             matcher {
                 declaredClass(classChattingContext.clazz)
                 usingEqStrings("getTalker returns null.")
             }
         }
 
-        if (!classEnumQuoteJumpToPositionSource.find(dexKit, descriptors, throwOnFailure = false) {
+        classEnumQuoteJumpToPositionSource.find(dexKit, allowFailure = true) {
             matcher {
                 usingEqStrings("QuoteLongClickFromQuoteView", "QuoteClickFromTextPreviewLocateView")
             }
-        }) {
-            descriptors += "${nameof(QuotedMessageDirectJump)}:${nameof(classEnumQuoteJumpToPositionSource)}" to
-                    "com.tencent.mm.ui.LauncherUI"
         }
-
-        return descriptors
     }
 }

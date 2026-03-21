@@ -7,11 +7,11 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.ClassLoaderProvider
 import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.nameof.nameof
-import dev.ujhhgtg.wekit.dexkit.dsl.dexClass
-import dev.ujhhgtg.wekit.hooks.core.ApiHookItem
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
+import dev.ujhhgtg.wekit.dexkit.dsl.dexClass
 import dev.ujhhgtg.wekit.hooks.api.net.WePacketHelper
 import dev.ujhhgtg.wekit.hooks.api.net.WePacketManager
+import dev.ujhhgtg.wekit.hooks.core.ApiHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.utils.logging.WeLogger
 import org.luckypray.dexkit.DexKitBridge
@@ -174,10 +174,8 @@ object WePacketDispatcher : ApiHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        classOnGYNetEnd.find(dexKit, descriptors, true) {
+    override fun resolveDex(dexKit: DexKitBridge) {
+        classOnGYNetEnd.find(dexKit, true) {
             searchPackages("com.tencent.mm.network")
             matcher {
                 methodCount(1)
@@ -189,6 +187,5 @@ object WePacketDispatcher : ApiHookItem(), IResolvesDex {
                 }
             }
         }
-        return descriptors
     }
 }

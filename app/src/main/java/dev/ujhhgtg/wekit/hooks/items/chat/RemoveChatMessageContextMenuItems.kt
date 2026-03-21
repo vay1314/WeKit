@@ -60,10 +60,7 @@ object RemoveChatMessageContextMenuItems : ClickableHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodAddMenuItem1.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodAddMenuItem1.find(dexKit) {
             matcher {
                 declaredClass {
                     addFieldForType(List::class.javaObjectType)
@@ -82,7 +79,7 @@ object RemoveChatMessageContextMenuItems : ClickableHookItem(), IResolvesDex {
             }
         }
 
-        methodAddMenuItem2.find(dexKit, descriptors) {
+        methodAddMenuItem2.find(dexKit) {
             matcher {
                 declaredClass(methodAddMenuItem1.method.declaringClass)
                 paramTypes(
@@ -95,8 +92,6 @@ object RemoveChatMessageContextMenuItems : ClickableHookItem(), IResolvesDex {
                 returnType(MenuItem::class.java)
             }
         }
-
-        return descriptors
     }
 
     override fun onClick(context: Context) {

@@ -80,10 +80,7 @@ object WeChatMessageViewApi : ApiHookItem(), IResolvesDex {
         return MessageInfo(msgInfo)
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodChatItemOnBindView.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodChatItemOnBindView.find(dexKit) {
             matcher {
                 usingStrings(
                     "MicroMsg.MvvmChattingItem",
@@ -91,7 +88,5 @@ object WeChatMessageViewApi : ApiHookItem(), IResolvesDex {
                 )
             }
         }
-
-        return descriptors
     }
 }

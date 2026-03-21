@@ -23,16 +23,11 @@ object ForceTabletMode : SwitchHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodIsTablet.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodIsTablet.find(dexKit) {
             matcher {
                 usingEqStrings("Lenovo TB-9707F", "eebbk")
             }
         }
-
-        return descriptors
     }
 
     override fun onBeforeToggle(newState: Boolean, context: Context): Boolean {

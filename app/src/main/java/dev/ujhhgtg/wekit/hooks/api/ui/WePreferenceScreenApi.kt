@@ -140,7 +140,7 @@
 //    override fun dexFind(dexKit: DexKitBridge): Map<String, String> {
 //        val descriptors = mutableMapOf<String, String>()
 //
-//        methodPrefSetKey.find(dexKit, descriptors) {
+//        methodPrefSetKey.find(dexKit) {
 //            matcher {
 //                declaredClass = PREF_CLASS_NAME
 //                paramTypes(String::class.java)
@@ -148,7 +148,7 @@
 //            }
 //        }
 //
-//        methodPrefSetTitle.find(dexKit, descriptors) {
+//        methodPrefSetTitle.find(dexKit) {
 //            matcher {
 //                declaredClass = PREF_CLASS_NAME
 //                paramTypes(CharSequence::class.java)

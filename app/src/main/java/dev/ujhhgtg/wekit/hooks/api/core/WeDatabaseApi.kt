@@ -176,16 +176,13 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
         const val GROUP_MEMBERS = "SELECT memberlist FROM chatroom WHERE chatroomname = '%s'"
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        classMmKernel.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {classMmKernel.find(dexKit) {
             matcher {
                 usingEqStrings("MicroMsg.MMKernel", "Kernel not null, has initialized.")
             }
         }
 
-        classCoreStorage.find(dexKit, descriptors) {
+        classCoreStorage.find(dexKit) {
             matcher {
                 usingEqStrings(
                     "MMKernel.CoreStorage",
@@ -194,7 +191,7 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        methodGetStorage.find(dexKit, descriptors, true) {
+        methodGetStorage.find(dexKit, true) {
             matcher {
                 declaredClass(classMmKernel.clazz)
                 modifiers = Modifier.PUBLIC or Modifier.STATIC
@@ -203,20 +200,18 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classConfigStorage.find(dexKit, descriptors) {
+        classConfigStorage.find(dexKit) {
             searchPackages("com.tencent.mm.storage")
             matcher {
                 usingEqStrings("MicroMsg.ConfigStorage", "shouldProcessEvent db is close :%s")
             }
         }
 
-        classSqliteDbWrapper.find(dexKit, descriptors) {
+        classSqliteDbWrapper.find(dexKit) {
             matcher {
                 usingEqStrings("MicroMsg.SqliteDB", "sql is null ")
             }
         }
-
-        return descriptors
     }
 
     override fun onEnable() {

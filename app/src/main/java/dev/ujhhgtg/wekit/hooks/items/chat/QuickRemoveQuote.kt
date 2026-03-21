@@ -42,10 +42,7 @@ object QuickRemoveQuote : SwitchHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodSupportAutoCompleteOnKey.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodSupportAutoCompleteOnKey.find(dexKit) {
             searchPackages("com.tencent.mm.pluginsdk.ui.chat")
             matcher {
                 name = "onKey"
@@ -53,7 +50,7 @@ object QuickRemoveQuote : SwitchHookItem(), IResolvesDex {
             }
         }
 
-        methodShowMsgQuoteContainer.find(dexKit, descriptors) {
+        methodShowMsgQuoteContainer.find(dexKit) {
             matcher {
                 declaredClass = "com.tencent.mm.pluginsdk.ui.chat.ChatFooter"
                 paramTypes("boolean", "boolean")
@@ -61,7 +58,5 @@ object QuickRemoveQuote : SwitchHookItem(), IResolvesDex {
                 usingEqStrings("")
             }
         }
-
-        return descriptors
     }
 }

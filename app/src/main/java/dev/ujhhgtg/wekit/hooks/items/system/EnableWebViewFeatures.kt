@@ -51,10 +51,7 @@ object EnableWebViewFeatures : SwitchHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodInitWebViewFeatures.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodInitWebViewFeatures.find(dexKit) {
             matcher {
                 declaredClass = WEBVIEW_UI_CLASS_NAME
                 usingEqStrings(
@@ -63,7 +60,5 @@ object EnableWebViewFeatures : SwitchHookItem(), IResolvesDex {
                 )
             }
         }
-
-        return descriptors
     }
 }

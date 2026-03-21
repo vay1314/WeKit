@@ -1,10 +1,10 @@
 package dev.ujhhgtg.wekit.hooks.items.system
 
-import dev.ujhhgtg.nameof.nameof
-import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
-import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
+import dev.ujhhgtg.wekit.dexkit.DexMethodDescriptor
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
+import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
 import dev.ujhhgtg.wekit.hooks.core.HookItem
+import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.utils.HostInfo
 import org.luckypray.dexkit.DexKitBridge
 
@@ -22,16 +22,13 @@ object DisableXposedDetection : SwitchHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
+    override fun resolveDex(dexKit: DexKitBridge) {
         // placeholder method
-        if (HostInfo.isHostGooglePlay) return mapOf(
-            "${nameof(DisableXposedDetection)}:${nameof(methodCheckStackTraceElements)}" to
-            "Lcom/tencent/mm/ui/LauncherUI;->()Lcom/tencent/mm/ui/LauncherUI;"
-        )
+        if (HostInfo.isHostGooglePlay)
+            methodCheckStackTraceElements.setDescriptor(
+                DexMethodDescriptor("Lcom/tencent/mm/ui/LauncherUI;->()Lcom/tencent/mm/ui/LauncherUI;"))
 
-        val descriptors = mutableMapOf<String, String>()
-
-        methodCheckStackTraceElements.find(dexKit, descriptors) {
+        methodCheckStackTraceElements.find(dexKit) {
             searchPackages("com.tencent.mm.app")
             matcher {
                 usingEqStrings(
@@ -40,7 +37,5 @@ object DisableXposedDetection : SwitchHookItem(), IResolvesDex {
                 )
             }
         }
-
-        return descriptors
     }
 }

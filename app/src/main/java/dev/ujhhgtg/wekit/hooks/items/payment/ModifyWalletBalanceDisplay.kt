@@ -42,25 +42,20 @@ object ModifyWalletBalanceDisplay : ClickableHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodUpdateBalanceDisplay.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodUpdateBalanceDisplay.find(dexKit) {
             matcher {
                 declaredClass = "com.tencent.mm.plugin.mall.ui.MallIndexUIv2"
                 usingEqStrings("MicorMsg.MallIndexUIv2", "updateBalanceNum")
             }
         }
 
-        methodTickerViewSetText.find(dexKit, descriptors) {
+        methodTickerViewSetText.find(dexKit) {
             matcher {
                 // TickerView is only used for displaying balance
                 declaredClass = "com.robinhood.ticker.TickerView"
                 usingEqStrings("Need to call #setCharacterLists first.")
             }
         }
-
-        return descriptors
     }
 
     override fun onClick(context: Context) {

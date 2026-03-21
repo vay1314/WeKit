@@ -237,17 +237,14 @@ object ChatToolbar : SwitchHookItem(), IResolvesDex {
         "音乐" to MaterialSymbols.Outlined.Music_note
     )
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodAppPanelInitAppGrid.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodAppPanelInitAppGrid.find(dexKit) {
             matcher {
                 declaredClass = "com.tencent.mm.pluginsdk.ui.chat.AppPanel"
                 usingEqStrings("MicroMsg.AppPanel", "initAppGrid()")
             }
         }
 
-        methodAppPanelOnMeasure.find(dexKit, descriptors) {
+        methodAppPanelOnMeasure.find(dexKit) {
             searchPackages("com.tencent.mm.pluginsdk.ui.chat")
             matcher {
                 usingEqStrings(
@@ -256,8 +253,6 @@ object ChatToolbar : SwitchHookItem(), IResolvesDex {
                 )
             }
         }
-
-        return descriptors
     }
 }
 

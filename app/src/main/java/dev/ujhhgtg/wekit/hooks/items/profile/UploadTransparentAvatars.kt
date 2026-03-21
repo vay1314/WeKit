@@ -13,17 +13,12 @@ object UploadTransparentAvatars : SwitchHookItem(), IResolvesDex {
 
     private val methodSaveBitmap by dexMethod()
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodSaveBitmap.find(dexKit, descriptors = descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodSaveBitmap.find(dexKit) {
             searchPackages("com.tencent.mm.sdk.platformtools")
             matcher {
                 usingStrings("saveBitmapToImage pathName null or nil", "MicroMsg.BitmapUtil")
             }
         }
-
-        return descriptors
     }
 
     override fun onEnable() {

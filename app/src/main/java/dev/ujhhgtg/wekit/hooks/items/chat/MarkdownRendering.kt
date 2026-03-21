@@ -390,15 +390,10 @@ object MarkdownRendering : ClickableHookItem(), IResolvesDex {
 
     private val classMsgInfoWrapper by dexClass()
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        classMsgInfoWrapper.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {classMsgInfoWrapper.find(dexKit) {
             matcher {
                 usingEqStrings("other", "null cannot be cast to non-null type com.tencent.mm.storage.MsgInfo")
             }
         }
-
-        return descriptors
     }
 }

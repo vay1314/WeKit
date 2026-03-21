@@ -27,24 +27,19 @@ object DisablePinnedChatsCollapsing : SwitchHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodAddCollapseChatItem.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodAddCollapseChatItem.find(dexKit) {
             searchPackages("com.tencent.mm.ui.conversation")
             matcher {
                 usingEqStrings("MicroMsg.FolderHelper", "fold item exist")
             }
         }
 
-        methodIfShouldAddCollapseChatItem.find(dexKit, descriptors) {
+        methodIfShouldAddCollapseChatItem.find(dexKit) {
             searchPackages("com.tencent.mm.ui.conversation")
             matcher {
                 usingEqStrings("MicroMsg.FolderHelper", "checkIfShowFoldItem, ifShow:")
                 returnType(Boolean::class.java)
             }
         }
-
-        return descriptors
     }
 }

@@ -51,10 +51,7 @@ object WeMomentsContextMenuApi : ApiHookItem(), IResolvesDex {
     private val methodSnsInfoStorage by dexMethod()
     private val methodGetSnsInfoStorage by dexMethod()
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodOnCreateMenu.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodOnCreateMenu.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.sns.ui.listener")
             matcher {
                 usingStrings(
@@ -64,7 +61,7 @@ object WeMomentsContextMenuApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        methodOnItemSelected.find(dexKit, descriptors) {
+        methodOnItemSelected.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.sns.ui.listener")
             matcher {
                 usingStrings(
@@ -75,7 +72,7 @@ object WeMomentsContextMenuApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        methodSnsInfoStorage.find(dexKit, descriptors) {
+        methodSnsInfoStorage.find(dexKit) {
             matcher {
                 paramCount(1)
                 paramTypes("java.lang.String")
@@ -87,7 +84,7 @@ object WeMomentsContextMenuApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        methodGetSnsInfoStorage.find(dexKit, descriptors) {
+        methodGetSnsInfoStorage.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.sns.model")
             matcher {
                 modifiers = Modifier.STATIC
@@ -99,8 +96,6 @@ object WeMomentsContextMenuApi : ApiHookItem(), IResolvesDex {
                 )
             }
         }
-
-        return descriptors
     }
 
     override fun onEnable() {

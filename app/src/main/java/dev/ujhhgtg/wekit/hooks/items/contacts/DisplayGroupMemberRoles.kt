@@ -117,17 +117,13 @@ object DisplayGroupMemberRoles : SwitchHookItem(), IResolvesDex,
         textView.text = sb
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
+    override fun resolveDex(dexKit: DexKitBridge) {
         // this is actually get group MEMBER data
-        methodGetChatroomData.find(dexKit, descriptors) {
+        methodGetChatroomData.find(dexKit) {
             matcher {
                 usingEqStrings("MicroMsg.ChatRoomMember", "getChatroomData hashMap is null!")
             }
         }
-
-        return descriptors
     }
 }
 

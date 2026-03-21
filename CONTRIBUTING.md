@@ -440,14 +440,14 @@ override fun dexFind(dexKit: DexKitBridge): Map<String, String> {
 
     if (currentVersion >= MMVersion.MM_8_0_90) {
         // 新版本的查找逻辑
-        methodTarget.find(dexKit, descriptors = descriptors) {
+        methodTarget.find(dexKit) {
             matcher {
                 usingEqStrings("newVersionString")
             }
         }
     } else {
         // 旧版本的查找逻辑
-        methodTarget.find(dexKit, descriptors = descriptors) {
+        methodTarget.find(dexKit) {
             matcher {
                 usingEqStrings("oldVersionString")
             }
@@ -509,7 +509,7 @@ class VersionCompatExample : BaseSwitchFunctionHookItem(), IDexFind {
         val currentVersion = HostInfo.getVersionCode()
 
         // 根据版本使用不同的查找策略
-        methodTarget.find(dexKit, descriptors = descriptors) {
+        methodTarget.find(dexKit) {
             matcher {
                 when {
                     currentVersion >= MMVersion.MM_8_0_90 -> {
@@ -530,8 +530,6 @@ class VersionCompatExample : BaseSwitchFunctionHookItem(), IDexFind {
                 }
             }
         }
-
-        return descriptors
     }
 
     override fun entry(classLoader: ClassLoader) {
@@ -666,7 +664,7 @@ override fun dexFind(dexKit: DexKitBridge): Map<String, String> {
     val descriptors = mutableMapOf<String, String>()
     val currentVersion = HostInfo.getVersionCode()
 
-    methodTarget.find(dexKit, descriptors = descriptors) {
+    methodTarget.find(dexKit) {
         matcher {
             usingEqStrings("commonString")  // 使用共同的特征
 
@@ -747,18 +745,13 @@ class AntiRevokeMsg : BaseSwitchFunctionHookItem(), IDexFind {
     private val methodRevokeMsg by dexMethod()
 
     // 2. 实现 DEX 查找逻辑
-    override fun dexFind(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        // 使用 DexKit 查找目标方法
-        methodRevokeMsg.find(dexKit, descriptors = descriptors) {
+    override fun dexFind(dexKit: DexKitBridge): Map<String, String> {// 使用 DexKit 查找目标方法
+        methodRevokeMsg.find(dexKit) {
             matcher {
                 // 通过特征字符串查找
                 usingEqStrings("doRevokeMsg xmlSrvMsgId=%d talker=%s isGet=%s")
             }
         }
-
-        return descriptors
     }
 
     // 3. 实现 Hook 逻辑
@@ -1308,7 +1301,7 @@ class MultiProcessFeature : BaseSwitchFunctionHookItem(), IDexFind {
 
 #### 1. 通过字符串查找
 ```kotlin
-methodTarget.find(dexKit, descriptors = descriptors) {
+methodTarget.find(dexKit) {
     matcher {
         // 精确匹配字符串
         usingEqStrings("特征字符串")
@@ -1320,7 +1313,7 @@ methodTarget.find(dexKit, descriptors = descriptors) {
 
 #### 2. 通过方法名和参数查找
 ```kotlin
-methodTarget.find(dexKit, descriptors = descriptors) {
+methodTarget.find(dexKit) {
     matcher {
         declaredClass = "com.tencent.mm.SomeClass"  // 声明类
         name = "someMethod"                          // 方法名
@@ -1331,7 +1324,7 @@ methodTarget.find(dexKit, descriptors = descriptors) {
 
 #### 3. 通过类的方法特征查找类
 ```kotlin
-classTarget.find(dexKit, descriptors = descriptors) {
+classTarget.find(dexKit) {
     matcher {
         methods {
             add {
@@ -1345,7 +1338,7 @@ classTarget.find(dexKit, descriptors = descriptors) {
 
 #### 4. 组合查找
 ```kotlin
-methodTarget.find(dexKit, descriptors = descriptors) {
+methodTarget.find(dexKit) {
     matcher {
         declaredClass = "com.tencent.mm.SomeClass"
         name = "someMethod"

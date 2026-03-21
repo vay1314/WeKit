@@ -72,11 +72,9 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
     }
 
     @SuppressLint("NonUniqueDexKitData")
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
+    override fun resolveDex(dexKit: DexKitBridge) {
         // 查找 Protobuf 基类
-        classProtoBase.find(dexKit, descriptors) {
+        classProtoBase.find(dexKit) {
             matcher {
                 usingEqStrings("Cannot use this method")
                 methods {
@@ -89,7 +87,7 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
         }
 
         // 查找 RawReq
-        classRawReq.find(dexKit, descriptors) {
+        classRawReq.find(dexKit) {
             matcher {
                 fields {
                     count(1)
@@ -152,14 +150,13 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
 
                 if (isMsgReq) {
                     classNewSendMsgReq.setDescriptor(candidate.name)
-                    descriptors[classNewSendMsgReq.key] = candidate.name
                     break
                 }
             }
         }
 
         val protoBaseName = classProtoBase.getDescriptorString() ?: ""
-        classConfigBuilder.find(dexKit, descriptors) {
+        classConfigBuilder.find(dexKit) {
             matcher {
                 fields {
                     countMin(10)
@@ -171,7 +168,7 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
         }
 
         // 查找响应 GenericResp
-        classGenericResp.find(dexKit, descriptors) {
+        classGenericResp.find(dexKit) {
             matcher {
                 fields {
                     countMax(1)
@@ -197,7 +194,7 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
         }
 
         // 查找 NetSceneBase
-        classNetSceneBase.find(dexKit, descriptors) {
+        classNetSceneBase.find(dexKit) {
             matcher {
                 usingStrings("MicroMsg.NetSceneBase")
                 modifiers = Modifier.ABSTRACT
@@ -208,13 +205,13 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
         }
 
         // 查找队列与核心单例
-        classNetQueue.find(dexKit, descriptors) {
+        classNetQueue.find(dexKit) {
             matcher {
                 usingStrings("MicroMsg.NetSceneQueue", "waiting2running waitingQueue_size =")
             }
         }
 
-        classMmKernel.find(dexKit, descriptors) {
+        classMmKernel.find(dexKit) {
             matcher {
                 usingStrings(":appbrand0", ":appbrand1", ":appbrand2")
                 methods {
@@ -228,7 +225,7 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
 
         val kernelName = classMmKernel.getDescriptorString() ?: ""
         val queueName = classNetQueue.getDescriptorString() ?: ""
-        methodGetNetQueue.find(dexKit, descriptors) {
+        methodGetNetQueue.find(dexKit) {
             matcher {
                 declaredClass = kernelName
                 modifiers = Modifier.STATIC or Modifier.PUBLIC
@@ -238,7 +235,7 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
 
         // 查找分发器与回调
         val netSceneBaseName = classNetSceneBase.getDescriptorString() ?: ""
-        classCallbackIface.find(dexKit, descriptors) {
+        classCallbackIface.find(dexKit) {
             matcher {
                 modifiers = Modifier.INTERFACE or Modifier.ABSTRACT
                 methods {
@@ -263,7 +260,6 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
             if (callbackMethod != null) {
                 val reqRespName = callbackMethod.paramTypes[3].name
                 classReqResp.setDescriptor(reqRespName)
-                descriptors[classReqResp.key] = reqRespName
 
                 WeLogger.i(TAG, "动态识别 ReqResp 基类: $reqRespName")
 
@@ -282,15 +278,12 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
                         dispatchMethod.methodName,
                         dispatchMethod.methodSign
                     )
-                    descriptors[classNetDispatcher.key] = dispatchMethod.className
-                    descriptors[methodNetDispatch.key] =
-                        methodNetDispatch.getDescriptorString() ?: ""
                 }
             }
         }
 
         try {
-            classOplogReq.find(dexKit, descriptors) {
+            classOplogReq.find(dexKit) {
                 matcher {
                     classProtoBase.clazz.let { superClass = it.name }
                     usingStrings("/cgi-bin/micromsg-bin/oplog")
@@ -331,10 +324,10 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
             }?.type ?: throw NoSuchElementException("在 Wrapper 类中未找到实体字段")
 
             WeLogger.i("oplog 定位成功 ${realProtoClass.name}")
-            descriptors[classOplogReq.key] = realProtoClass.name
+            classOplogReq.setDescriptor(realProtoClass.name)
         }
 
-        classIOnSceneEnd.find(dexKit, descriptors) {
+        classIOnSceneEnd.find(dexKit) {
             matcher {
                 modifiers = Modifier.INTERFACE
                 interfaceCount(0)
@@ -351,7 +344,7 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classNetScenePat.find(dexKit, descriptors) {
+        classNetScenePat.find(dexKit) {
             matcher {
                 classNetSceneBase.clazz.let { superClass = it.name }
 
@@ -365,8 +358,6 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
                 usingStrings("/cgi-bin/micromsg-bin/sendpat")
             }
         }
-
-        return descriptors
     }
 
     /**

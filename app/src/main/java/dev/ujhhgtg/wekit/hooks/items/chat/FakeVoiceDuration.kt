@@ -62,10 +62,7 @@ object FakeVoiceDuration : ClickableHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodVoiceRecorderGetLength.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodVoiceRecorderGetLength.find(dexKit) {
             matcher {
                 declaredClass {
                     usingEqStrings("MicroMsg.SceneVoice.Recorder", "Stop file success: ")
@@ -73,7 +70,5 @@ object FakeVoiceDuration : ClickableHookItem(), IResolvesDex {
                 returnType = "long"
             }
         }
-
-        return descriptors
     }
 }

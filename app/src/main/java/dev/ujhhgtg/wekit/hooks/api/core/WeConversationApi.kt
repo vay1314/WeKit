@@ -157,51 +157,46 @@ object WeConversationApi : ApiHookItem(), IResolvesDex {
         setConversationsVisibility(true, visibleTalkers)
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        classConversationStorage.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {classConversationStorage.find(dexKit) {
             searchPackages("com.tencent.mm.storage")
             matcher {
                 usingEqStrings("rconversation", "PRAGMA table_info( rconversation)")
             }
         }
 
-        methodUpdateUnreadByTalker.find(dexKit, descriptors) {
+        methodUpdateUnreadByTalker.find(dexKit) {
             matcher {
                 declaredClass(classConversationStorage.clazz)
                 usingEqStrings("MicroMsg.ConversationStorage", "updateUnreadByTalker %s")
             }
         }
 
-        methodHiddenConvParent.find(dexKit, descriptors) {
+        methodHiddenConvParent.find(dexKit) {
             matcher {
                 declaredClass(classConversationStorage.clazz)
                 usingEqStrings("Update rconversation set parentRef = '", "' where 1 != 1 ")
             }
         }
 
-        methodGetConvByName.find(dexKit, descriptors) {
+        methodGetConvByName.find(dexKit) {
             matcher {
                 declaredClass(classConversationStorage.clazz)
                 usingEqStrings("MicroMsg.ConversationStorage", "get null with username:")
             }
         }
 
-        methodChatroomStorageGetMemberCount.find(dexKit, descriptors) {
+        methodChatroomStorageGetMemberCount.find(dexKit) {
             searchPackages("com.tencent.mm.storage")
             matcher {
                 usingEqStrings("MicroMsg.ChatroomStorage", "[getMemberCount] cost:%sms")
             }
         }
 
-        classChatroomMember.find(dexKit, descriptors) {
+        classChatroomMember.find(dexKit) {
             searchPackages("com.tencent.mm.storage")
             matcher {
                 usingEqStrings("MicroMsg.ChatRoomMember", "service is null")
             }
         }
-
-        return descriptors
     }
 }

@@ -210,10 +210,7 @@ object SwipeToQuote : SwitchHookItem(), IResolvesDex,
     private val classChattingUiFootComponent by dexClass()
     private val methodGetMsgInfo by dexMethod()
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        classChattingUiFootComponent.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {classChattingUiFootComponent.find(dexKit) {
             searchPackages("com.tencent.mm.ui.chatting.component")
             matcher {
                 usingEqStrings(
@@ -223,13 +220,11 @@ object SwipeToQuote : SwitchHookItem(), IResolvesDex,
             }
         }
 
-        methodGetMsgInfo.find(dexKit, descriptors) {
+        methodGetMsgInfo.find(dexKit) {
             searchPackages("com.tencent.mm.ui.chatting.viewitems")
             matcher {
                 usingEqStrings("ItemDataTag", "getCurrentMsg2 err")
             }
         }
-
-        return descriptors
     }
 }

@@ -9,9 +9,7 @@ import dev.ujhhgtg.wekit.utils.KnownPaths
 import dev.ujhhgtg.wekit.utils.createDirectoriesNoThrow
 import dev.ujhhgtg.wekit.utils.logging.WeLogger
 import org.json.JSONObject
-import org.luckypray.dexkit.DexKitBridge
 import java.nio.file.Path
-import java.security.MessageDigest
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.div
 import kotlin.io.path.exists
@@ -22,7 +20,10 @@ import kotlin.io.path.writeText
 
 /**
  * Dex 缓存管理器
- * 负责管理 Dex 查找结果的缓存，支持版本控制和增量更新
+ * 负责管理 Dex 查找结果的缓存，支持版本控制和增量更新。
+ *
+ * 缓存的 key→value 由各 [dev.ujhhgtg.wekit.dexkit.dsl.DexDelegateBase] 直接提供，
+ * 不再通过 resolveDex 返回的 Map 传递。
  */
 object DexCacheManager {
 
@@ -31,6 +32,7 @@ object DexCacheManager {
     private const val CACHE_DIR_NAME = "dex_cache"
     private const val HOST_VERSION_FILE = "host_version.txt"
     private const val CACHE_FILE_SUFFIX = ".json"
+
     private val cacheDir: Path by lazy {
         (KnownPaths.moduleData / CACHE_DIR_NAME).createDirectoriesNoThrow()
     }
@@ -39,34 +41,27 @@ object DexCacheManager {
     fun init(hostVersion: String) {
         currentHostVersion = hostVersion
 
-        // 检查宿主版本是否变化
         val versionFile = cacheDir / HOST_VERSION_FILE
         if (versionFile.exists()) {
             val cachedVersion = versionFile.readText().trim()
             if (cachedVersion != hostVersion) {
-                WeLogger.i(
-                    TAG,
-                    "Host version changed: $cachedVersion -> $hostVersion, clearing all cache"
-                )
+                WeLogger.i(TAG, "Host version changed: $cachedVersion -> $hostVersion, clearing all cache")
                 clearAllCache()
-
-                // 重置"禁用版本适配"配置，确保新版本能够正常适配
                 WePrefs.putBool(PreferenceKeys.NO_DEX_RESOLVE, false)
-                WeLogger.i(
-                    TAG,
-                    "Reset disable_version_adaptation to false due to version change"
-                )
+                WeLogger.i(TAG, "Reset disable_version_adaptation to false due to version change")
             }
         }
 
-        // 保存当前版本
         versionFile.writeText(hostVersion)
     }
 
     /**
-     * 检查 HookItem 的缓存是否有效
-     * @param item 实现了 IDexFind 的 HookItem
-     * @return true 表示缓存有效，false 表示需要重新查找
+     * 检查 HookItem 的缓存是否完整有效。
+     *
+     * 有效条件：
+     * 1. 缓存文件存在
+     * 2. methodHash 匹配（检测代码变化）
+     * 3. [item] 的每个委托 key 都有非空值
      */
     fun isItemCacheValid(item: IResolvesDex): Boolean {
         if (item !is BaseHookItem) {
@@ -80,105 +75,41 @@ object DexCacheManager {
             return false
         }
 
-        try {
+        return try {
             val json = JSONObject(cacheFile.readText())
 
-            val cachedMethodHash = json.optString("methodHash", "")
-            val currentMethodHash = calculateMethodHash(item)
-
-            if (cachedMethodHash != currentMethodHash) {
-                WeLogger.d(
-                    TAG,
-                    "dex location method of ${item.path} changed: cached=$cachedMethodHash, current=$currentMethodHash"
-                )
+            val cachedHash = json.optString("methodHash", "")
+            val currentHash = calculateMethodHash(item)
+            if (cachedHash != currentHash) {
+                WeLogger.d(TAG, "resolveDex of ${item.path} changed: cached=$cachedHash, current=$currentHash")
                 return false
             }
 
-            // 检查缓存数据是否为空
-            val dataKeys = json.keys().asSequence()
-                .filter { key -> key !in listOf("methodHash", "hostVersion", "timestamp") }
-                .toList()
+            // 每个委托对应一个 key，全部必须存在且非空
+            val missingOrEmpty = item.dexDelegates.filter { delegate ->
+                val v = json.optString(delegate.key, "")
+                v.isEmpty() || v == "null"
+            }
 
-            if (dataKeys.isEmpty()) {
-                WeLogger.d(TAG, "cache is empty for ${item.path}, need rescan")
+            if (missingOrEmpty.isNotEmpty()) {
+                WeLogger.d(TAG, "cache incomplete for ${item.path}, missing keys: ${missingOrEmpty.map { it.key }}")
                 return false
             }
 
-            // 验证缓存数据的完整性：检查所有值是否有效
-            var hasInvalidData = false
-            for (key in dataKeys) {
-                val value = json.optString(key, "")
-                if (value.isEmpty() || value == "null") {
-                    WeLogger.d(
-                        TAG,
-                        "cache has invalid data for key: $key in ${item.path}"
-                    )
-                    hasInvalidData = true
-                    break
-                }
-            }
-
-            if (hasInvalidData) {
-                WeLogger.d(
-                    TAG,
-                    "cache data incomplete for: ${item.path}, need rescan"
-                )
-                return false
-            }
-
-//            WeLogger.d(TAG, "Cache valid for: ${item.path}, keys: $dataKeys")
-            return true
+            true
         } catch (e: Exception) {
             WeLogger.e(TAG, "failed to read cache for: ${item.path}", e)
-            return false
+            false
         }
     }
 
     /**
-     * 计算 dexFind 方法的哈希值
-     * 用于检测方法逻辑是否发生变化
-     * 使用编译时生成的hash值，避免运行时通过classLoader获取资源失败的问题
+     * 将 [item] 所有委托的当前描述符持久化到缓存文件。
+     * 数据来自 [IResolvesDex.collectDescriptors]，不需要调用方传入 Map。
      */
-    private fun calculateMethodHash(item: IResolvesDex): String {
-        try {
-            val clazz = item::class.java
-            val className = clazz.name
-
-            // 优先使用编译时生成的hash值
-            val generatedHash = GeneratedMethodHashes.getHash(className)
-            if (generatedHash.isNotEmpty()) {
-                return generatedHash
-            }
-
-            WeLogger.w(
-                TAG,
-                "No generated hash for $className, using method signature fallback"
-            )
-            val method =
-                clazz.getDeclaredMethod("resolveDex", DexKitBridge::class.java)
-
-            val signature = buildString {
-                append(method.declaringClass.name)
-                append("::")
-                append(method.name)
-                append("(")
-                method.parameterTypes.forEach { append(it.name).append(",") }
-                append(")")
-            }
-
-            val md = MessageDigest.getInstance("MD5")
-            val digest = md.digest(signature.toByteArray())
-            return digest.joinToString("") { "%02x".format(it) }
-        } catch (e: Exception) {
-            WeLogger.e("DexCacheManager: Failed to calculate method hash", e)
-            return ""
-        }
-    }
-
-    fun saveItemCache(item: IResolvesDex, data: Map<String, Any>) {
+    fun saveItemCache(item: IResolvesDex) {
         if (item !is BaseHookItem) {
-            WeLogger.w(TAG, "Item is not BaseHookItem, cannot get path")
-            return
+            error("item is not BaseHookItem")
         }
 
         val cacheFile = getCacheFile(item.path)
@@ -188,67 +119,72 @@ object DexCacheManager {
             json.put("hostVersion", currentHostVersion)
             json.put("timestamp", System.currentTimeMillis())
 
-            // 保存自定义数据
-            data.forEach { (key, value) ->
+            item.collectDescriptors().forEach { (key, value) ->
                 json.put(key, value)
             }
 
             cacheFile.writeText(json.toString(2))
-            WeLogger.d(TAG, "Cache saved for: ${item.path}")
+            WeLogger.d(TAG, "cache saved for: ${item.path}")
         } catch (e: Exception) {
-            WeLogger.e("DexCacheManager: Failed to save cache for: ${item.path}", e)
+            WeLogger.e(TAG, "failed to save cache for: ${item.path}", e)
         }
     }
 
+    /**
+     * 从缓存文件加载原始 Map（不包含元数据 key）。
+     * 由 [IResolvesDex.loadFromCache] 消费，后者负责逐委托分发。
+     */
     fun loadItemCache(item: IResolvesDex): Map<String, Any>? {
         if (item !is BaseHookItem) {
-            WeLogger.w(TAG, "Item is not BaseHookItem, cannot get path")
-            return null
+            error("item is not BaseHookItem")
         }
 
         val cacheFile = getCacheFile(item.path)
-        if (!cacheFile.exists()) {
-            return null
-        }
+        if (!cacheFile.exists()) return null
 
-        try {
+        return try {
             val json = JSONObject(cacheFile.readText())
-            val result = mutableMapOf<String, Any>()
-
-            json.keys().forEach { key ->
-                if (key !in listOf("methodHash", "hostVersion", "timestamp")) {
-                    result[key] = json.get(key)
+            buildMap {
+                for (key in json.keys()) {
+                    if (key !in META_KEYS) put(key, json.get(key))
                 }
             }
-
-            return result
         } catch (e: Exception) {
             WeLogger.e(TAG, "failed to load cache for: ${item.path}", e)
-            return null
+            null
         }
     }
 
     fun deleteCache(path: String) {
-        val cacheFile = getCacheFile(path)
-        cacheFile.deleteIfExists()
+        getCacheFile(path).deleteIfExists()
     }
 
     fun clearAllCache() {
         cacheDir.listDirectoryEntries().forEach { path ->
-            if (path.name != HOST_VERSION_FILE) {
-                path.deleteIfExists()
-            }
+            if (path.name != HOST_VERSION_FILE) path.deleteIfExists()
         }
-        WeLogger.i(TAG, "All cache cleared")
+        WeLogger.i(TAG, "all cache cleared")
     }
 
-    private fun getCacheFile(path: String): Path {
-        // 将路径转换为文件名（替换 / 为 _）
-        val fileName = path.replace("/", "_") + CACHE_FILE_SUFFIX
-        return cacheDir / fileName
-    }
+    fun getOutdatedItems(items: List<IResolvesDex>): List<IResolvesDex> =
+        items.filter { !isItemCacheValid(it) }
 
-    fun getOutdatedItems(items: List<IResolvesDex>): List<IResolvesDex> {
-        return items.filter { !isItemCacheValid(it) }
+    // ---------------------------------------------------------------------------
+
+    private val META_KEYS = setOf("methodHash", "hostVersion", "timestamp")
+
+    private fun getCacheFile(path: String): Path =
+        cacheDir / (path.replace("/", "_") + CACHE_FILE_SUFFIX)
+
+    /**
+     * 计算 resolveDex 方法的哈希，用于检测实现变化。
+     * 使用编译时生成的哈希
+     */
+    private fun calculateMethodHash(item: IResolvesDex): String {
+        val clazz = item::class.java
+        val generatedHash = GeneratedMethodHashes.getHash(clazz.name)
+        if (generatedHash.isNotEmpty())
+            return generatedHash
+        error("shouldn't happen")
     }
 }

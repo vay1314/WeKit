@@ -88,11 +88,10 @@ fun DexResolverDialogContent(
     val scanResults = remember { mutableStateMapOf<String, ScanResult>() }
 
     fun updateProgress(progress: ScanProgress) {
-        val total = outdatedItems.size
         when (progress) {
             is ScanProgress.Start -> {
                 taskCounter++
-                currentTask = "正在适配: ${progress.path} ($taskCounter/$total)..."
+                currentTask = "正在适配: ${progress.path}"
             }
 
             is ScanProgress.Complete -> {
@@ -117,12 +116,8 @@ fun DexResolverDialogContent(
         val path = if (item is BaseHookItem) item.path else item::class.java.simpleName
         return try {
             progressChannel.send(ScanProgress.Start(path))
-            val descriptors = item.resolveDex(dexKit)
-            WeLogger.i(
-                TAG,
-                "Total descriptors: ${descriptors.size}, keys: ${descriptors.keys}"
-            )
-            DexCacheManager.saveItemCache(item, descriptors)
+            item.resolveDex(dexKit)
+            DexCacheManager.saveItemCache(item)
             progressChannel.send(ScanProgress.Complete(path))
             ScanResult.Success(path)
         } catch (e: Exception) {

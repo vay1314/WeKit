@@ -64,22 +64,17 @@ object SaveVoicesToLocalStorage : SwitchHookItem(), IResolvesDex,
         WeChatMessageContextMenuApi.removeProvider(this)
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        classVoiceLogic.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {classVoiceLogic.find(dexKit) {
             matcher {
                 usingEqStrings("MicroMsg.VoiceLogic", "startRecord insert voicestg success")
             }
         }
 
-        methodGetAmrFullPath.find(dexKit, descriptors) {
+        methodGetAmrFullPath.find(dexKit) {
             matcher {
                 usingEqStrings("getAmrFullPath cost: ")
             }
         }
-
-        return descriptors
     }
 
     override fun getMenuItems(): List<WeChatMessageContextMenuApi.MenuItem> {

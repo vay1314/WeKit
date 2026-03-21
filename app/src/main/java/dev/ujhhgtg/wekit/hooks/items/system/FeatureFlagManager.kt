@@ -134,10 +134,7 @@ object FeatureFlagManager : ClickableHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        classRepairerConfigBaseImpl.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {classRepairerConfigBaseImpl.find(dexKit) {
             matcher {
                 addMethod {
                     usingEqStrings("Int")
@@ -151,7 +148,7 @@ object FeatureFlagManager : ClickableHookItem(), IResolvesDex {
             }
         }
 
-        methodRepairerConfigApiGet.find(dexKit, descriptors) {
+        methodRepairerConfigApiGet.find(dexKit) {
             matcher {
                 declaredClass {
                     usingEqStrings("RepairerConfigThread", "ValueStrategy_")
@@ -161,8 +158,6 @@ object FeatureFlagManager : ClickableHookItem(), IResolvesDex {
                 returnType(Any::class.java)
             }
         }
-
-        return descriptors
     }
 
     @OptIn(ExperimentalMaterial3ExpressiveApi::class)

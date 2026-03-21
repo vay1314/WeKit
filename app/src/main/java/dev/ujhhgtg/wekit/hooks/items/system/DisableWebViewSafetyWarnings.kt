@@ -21,10 +21,7 @@ object DisableWebViewSafetyWarnings : SwitchHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodGetIsInterceptEnabled.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodGetIsInterceptEnabled.find(dexKit) {
             matcher {
                 usingEqStrings(
                     "MicroMsg.WebViewHighRiskAdH5Interceptor",
@@ -33,13 +30,11 @@ object DisableWebViewSafetyWarnings : SwitchHookItem(), IResolvesDex {
             }
         }
 
-        methodGetIsUrlSafe.find(dexKit, descriptors) {
+        methodGetIsUrlSafe.find(dexKit) {
             matcher {
                 declaredClass(methodGetIsInterceptEnabled.method.declaringClass)
                 usingEqStrings("http", "https")
             }
         }
-
-        return descriptors
     }
 }

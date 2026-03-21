@@ -30,10 +30,7 @@ object SkipMiniAppSplashAds : SwitchHookItem(), IResolvesDex {
             }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodAdDataCallback.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodAdDataCallback.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.appbrand.jsapi.auth")
             matcher {
                 usingEqStrings(
@@ -42,7 +39,5 @@ object SkipMiniAppSplashAds : SwitchHookItem(), IResolvesDex {
                 )
             }
         }
-
-        return descriptors
     }
 }

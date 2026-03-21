@@ -6,6 +6,7 @@ import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import dev.ujhhgtg.wekit.constants.PreferenceKeys
 import dev.ujhhgtg.wekit.dexkit.dsl.DexConstructorDelegate
+import dev.ujhhgtg.wekit.dexkit.dsl.DexDelegateBase
 import dev.ujhhgtg.wekit.dexkit.dsl.DexMethodDelegate
 import dev.ujhhgtg.wekit.preferences.WePrefs
 import dev.ujhhgtg.wekit.utils.HookAction
@@ -45,6 +46,10 @@ abstract class BaseHookItem {
     open fun onEnable() {}
 
     open fun onDisable() {}
+
+    private val _dexDelegates = mutableListOf<DexDelegateBase>()
+    val dexDelegates: List<DexDelegateBase> get() = _dexDelegates
+    internal fun registerDexDelegate(d: DexDelegateBase) { _dexDelegates += d }
 
     // --- hookBefore ---
 

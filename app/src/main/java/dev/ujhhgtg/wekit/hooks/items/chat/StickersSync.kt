@@ -404,17 +404,14 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodGetEmojiGroupInfo.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodGetEmojiGroupInfo.find(dexKit) {
             matcher {
                 paramTypes(Int::class.java)
                 usingEqStrings("MicroMsg.emoji.EmojiGroupInfoStorage", "get Panel EmojiGroupInfo.")
             }
         }
 
-        methodAddAllGroupItems.find(dexKit, descriptors) {
+        methodAddAllGroupItems.find(dexKit) {
             matcher {
                 usingEqStrings("data")
                 addInvoke {
@@ -423,13 +420,13 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
             }
         }
 
-        ctorGroupItemInfo.find(dexKit, descriptors) {
+        ctorGroupItemInfo.find(dexKit) {
             matcher {
                 usingEqStrings("emojiInfo", "sosDocId")
             }
         }
 
-        classEmojiMgrImpl.find(dexKit, descriptors) {
+        classEmojiMgrImpl.find(dexKit) {
             matcher {
                 methods {
                     add {
@@ -439,7 +436,7 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
             }
         }
 
-        classEmojiStorageMgr.find(dexKit, descriptors) {
+        classEmojiStorageMgr.find(dexKit) {
             searchPackages("com.tencent.mm.storage")
             matcher {
                 methods {
@@ -450,7 +447,7 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
             }
         }
 
-        classEmojiInfoStorage.find(dexKit, descriptors) {
+        classEmojiInfoStorage.find(dexKit) {
             matcher {
                 methods {
                     add {
@@ -463,14 +460,14 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
             }
         }
 
-        methodSaveEmojiThumb.find(dexKit, descriptors) {
+        methodSaveEmojiThumb.find(dexKit) {
             matcher {
                 declaredClass("com.tencent.mm.storage.emotion.EmojiInfo")
                 usingEqStrings("save emoji thumb error")
             }
         }
 
-        ctorResourceLoadOptions.find(dexKit, descriptors) {
+        ctorResourceLoadOptions.find(dexKit) {
             matcher {
                 declaredClass {
                     modifiers = Modifier.FINAL
@@ -487,13 +484,11 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
             }
         }
 
-        methodDownloadImage.find(dexKit, descriptors) {
+        methodDownloadImage.find(dexKit) {
             matcher {
                 usingEqStrings("MicroMsg.Loader.DefaultImageDownloader.HttpClientFactory", "dz[httpURLConnectionGet 300]")
             }
         }
-
-        return descriptors
     }
 
     override fun onClick(context: Context) {

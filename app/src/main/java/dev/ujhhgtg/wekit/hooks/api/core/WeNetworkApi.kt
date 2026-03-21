@@ -111,9 +111,7 @@ object WeNetworkApi : ApiHookItem(), IResolvesDex {
     }
 
     // Dex 查找逻辑
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
+    override fun resolveDex(dexKit: DexKitBridge) {
         // 查找 NetSceneQueue 类
         val netSceneQueueClass = dexKit.findClass {
             matcher {
@@ -130,15 +128,13 @@ object WeNetworkApi : ApiHookItem(), IResolvesDex {
             error("NetSceneQueue class not found")
         }
 
-        methodGetNetSceneQueue.find(dexKit, allowMultiple = true, descriptors = descriptors) {
+        methodGetNetSceneQueue.find(dexKit, allowMultiple = true) {
             matcher {
                 modifiers = Modifier.STATIC
                 paramCount = 0
                 returnType = netSceneQueueClass.name
             }
         }
-
-        return descriptors
     }
 
     override fun onEnable() {

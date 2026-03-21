@@ -51,19 +51,17 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
     private const val PREFERENCE_CLASS_NAME = "com.tencent.mm.ui.base.preference.Preference"
 
     @SuppressLint("NonUniqueDexKitData")
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
+    override fun resolveDex(dexKit: DexKitBridge) {
         // 查找 Preference 类
         val prefClass = dexKit.findClass {
             matcher { className = PREFERENCE_CLASS_NAME }
         }.singleOrNull() ?: run {
             WeLogger.e(TAG, "Preference 类未找到")
-            return descriptors
+            return
         }
 
         // 查找 setKey 方法
-        methodSetKey.find(dexKit, allowMultiple = true, descriptors = descriptors) {
+        methodSetKey.find(dexKit, allowMultiple = true) {
             searchPackages("com.tencent.mm.ui.base.preference")
             matcher {
                 declaredClass = PREFERENCE_CLASS_NAME
@@ -89,9 +87,6 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
                     target.methodSign
                 )
             )
-            methodSetTitle.getDescriptorString()?.let {
-                descriptors[methodSetTitle.key] = it
-            }
         }
 
         // 查找 getKey 方法
@@ -112,9 +107,6 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
                     targetGetKey.methodSign
                 )
             )
-            methodGetKey.getDescriptorString()?.let {
-                descriptors[methodGetKey.key] = it
-            }
         }
 
         // 查找 Adapter 类和 addPreference 方法
@@ -137,7 +129,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
         }.singleOrNull()
 
         if (adapterClass != null) {
-            methodAddPref.find(dexKit, descriptors, allowMultiple = true) {
+            methodAddPref.find(dexKit, allowMultiple = true) {
                 searchPackages("com.tencent.mm.ui.base.preference")
                 matcher {
                     declaredClass = adapterClass.name
@@ -147,7 +139,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
             }
         }
 
-        if (!classSettingItemClassesProvider.find(dexKit, descriptors, throwOnFailure = false) {
+        classSettingItemClassesProvider.find(dexKit, allowFailure = true) {
             matcher {
                 usingEqStrings("Repairer_Setting")
 
@@ -155,12 +147,9 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
                     usingEqStrings("type")
                 }
             }
-        }) {
-            descriptors += "${nameof(WeSettingsInjector)}:${nameof(classSettingItemClassesProvider)}" to
-                    "com.tencent.mm.ui.LauncherUI"
         }
 
-        if (!classBaseSettingItem.find(dexKit, descriptors, throwOnFailure = false) {
+        classBaseSettingItem.find(dexKit, allowFailure = true) {
             matcher {
                 usingEqStrings("", "activity", "context", "intent")
 
@@ -173,32 +162,21 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
                     className("com.tencent.mm.plugin.newtips.model", StringMatchType.StartsWith)
                 }
             }
-        }) {
-            descriptors += "${nameof(WeSettingsInjector)}:${nameof(classBaseSettingItem)}" to
-                    "com.tencent.mm.ui.LauncherUI"
         }
 
-        if (!classSettingLocation.find(dexKit, descriptors, throwOnFailure = false) {
+        classSettingLocation.find(dexKit, allowFailure = true) {
             matcher {
                 usingEqStrings("SettingLocation(parentGroup=", ", frontItem=")
             }
-        }) {
-            descriptors += "${nameof(WeSettingsInjector)}:${nameof(classSettingLocation)}" to
-                    "com.tencent.mm.ui.LauncherUI"
         }
 
-        if (!methodSettingGroupAccountInfoReturns1.find(dexKit, descriptors, throwOnFailure = false) {
+        methodSettingGroupAccountInfoReturns1.find(dexKit, allowFailure = true) {
             matcher {
                 declaredClass = "com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupAccountInfo"
                 usingNumbers(1)
                 returnType = "int"
             }
-        }) {
-            descriptors += "${nameof(WeSettingsInjector)}:${nameof(methodSettingGroupAccountInfoReturns1)}" to
-                    "Lcom/tencent/mm/ui/LauncherUI;->()Lcom/tencent/mm/ui/LauncherUI;"
         }
-
-        return descriptors
     }
 
     override fun onEnable() {

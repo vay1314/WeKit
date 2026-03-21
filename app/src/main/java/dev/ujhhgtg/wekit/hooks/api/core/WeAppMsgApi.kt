@@ -2,10 +2,10 @@ package dev.ujhhgtg.wekit.hooks.api.core
 
 import android.annotation.SuppressLint
 import dev.ujhhgtg.nameof.nameof
+import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexClass
 import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
 import dev.ujhhgtg.wekit.hooks.core.ApiHookItem
-import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.utils.logging.WeLogger
 import org.luckypray.dexkit.DexKitBridge
@@ -29,29 +29,27 @@ object WeAppMsgApi : ApiHookItem(), IResolvesDex {
     private val TAG = nameof(WeAppMsgApi)
 
     @SuppressLint("NonUniqueDexKitData")
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
+    override fun resolveDex(dexKit: DexKitBridge) {
         // 查找 AppMsgContent (op0.q)
-        classAppMsgContent.find(dexKit, descriptors) {
+        classAppMsgContent.find(dexKit) {
             matcher {
                 usingStrings("<appmsg appid=\"", "parse amessage xml failed")
             }
         }
 
         // 查找 AppMsgLogic (k0)
-        classAppMsgLogic.find(dexKit, descriptors) {
+        classAppMsgLogic.find(dexKit) {
             matcher {
                 usingStrings("MicroMsg.AppMsgLogic", "summerbig sendAppMsg attachFilePath")
             }
         }
 
-        val contentDesc = descriptors[classAppMsgContent.key]
-        val logicDesc = descriptors[classAppMsgLogic.key]
+        val contentDesc = classAppMsgContent.getDescriptorString()
+        val logicDesc = classAppMsgLogic.getDescriptorString()
 
         if (contentDesc != null) {
             // 查找 Parse 方法 (u)
-            methodParseXml.find(dexKit, descriptors, true) {
+            methodParseXml.find(dexKit, true) {
                 matcher {
                     declaredClass = contentDesc
                     modifiers = Modifier.PUBLIC or Modifier.STATIC
@@ -64,7 +62,7 @@ object WeAppMsgApi : ApiHookItem(), IResolvesDex {
             if (logicDesc != null) {
                 WeLogger.i(TAG, "dexkit: logicDesc=$logicDesc, contentDesc=$contentDesc")
                 // 查找 Send 方法 (J)
-                methodSendAppMsg.find(dexKit, descriptors) {
+                methodSendAppMsg.find(dexKit) {
                     matcher {
                         declaredClass = logicDesc
                         modifiers = Modifier.STATIC
@@ -81,8 +79,6 @@ object WeAppMsgApi : ApiHookItem(), IResolvesDex {
                 }
             }
         }
-
-        return descriptors
     }
 
     override fun onEnable() {

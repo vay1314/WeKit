@@ -293,11 +293,9 @@ object AutoOpenRedPacket : ClickableHookItem(), WeDatabaseListenerApi.IInsertLis
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
+    override fun resolveDex(dexKit: DexKitBridge) {
         // 查找接收红包类
-        classReceiveLuckyMoney.find(dexKit, descriptors, allowMultiple = true) {
+        classReceiveLuckyMoney.find(dexKit, allowMultiple = true) {
             matcher {
                 methods {
                     add {
@@ -309,7 +307,7 @@ object AutoOpenRedPacket : ClickableHookItem(), WeDatabaseListenerApi.IInsertLis
         }
 
         // 查找开红包类
-        classOpenLuckyMoney.find(dexKit, descriptors, allowMultiple = true) {
+        classOpenLuckyMoney.find(dexKit, allowMultiple = true) {
             matcher {
                 methods {
                     add {
@@ -321,7 +319,7 @@ object AutoOpenRedPacket : ClickableHookItem(), WeDatabaseListenerApi.IInsertLis
         }
 
         // 查找 onGYNetEnd 回调方法
-        methodOnGYNetEnd.find(dexKit, descriptors, true) {
+        methodOnGYNetEnd.find(dexKit, true) {
             matcher {
                 declaredClass = classReceiveLuckyMoney.getDescriptorString()!!
                 name = "onGYNetEnd"
@@ -329,15 +327,13 @@ object AutoOpenRedPacket : ClickableHookItem(), WeDatabaseListenerApi.IInsertLis
             }
         }
 
-        methodOnOpenGYNetEnd.find(dexKit, descriptors, true) {
+        methodOnOpenGYNetEnd.find(dexKit, true) {
             matcher {
                 declaredClass = classReceiveLuckyMoney.getDescriptorString()!!
                 name = "onGYNetEnd"
                 paramCount = 3
             }
         }
-
-        return descriptors
     }
 
     override fun onBeforeToggle(newState: Boolean, context: Context): Boolean {

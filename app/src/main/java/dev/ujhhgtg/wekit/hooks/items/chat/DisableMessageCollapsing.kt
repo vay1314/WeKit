@@ -11,10 +11,7 @@ object DisableMessageCollapsing : SwitchHookItem(), IResolvesDex {
 
     private val methodFoldMsg by dexMethod()
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodFoldMsg.find(dexKit, descriptors = descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodFoldMsg.find(dexKit) {
             matcher {
                 usingStrings(".msgsource.sec_msg_node.clip-len")
                 paramTypes(
@@ -27,8 +24,6 @@ object DisableMessageCollapsing : SwitchHookItem(), IResolvesDex {
                 )
             }
         }
-
-        return descriptors
     }
 
     override fun onEnable() {

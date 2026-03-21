@@ -45,10 +45,7 @@ object WeServiceApi : ApiHookItem(), IResolvesDex {
         return methodApiManagerGetApi.method.invoke(apiManager, clazz.interfaces[0])!!
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodServiceManagerGetService.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodServiceManagerGetService.find(dexKit) {
             matcher {
                 modifiers(Modifier.STATIC)
                 paramTypes(Class::class.java)
@@ -56,7 +53,7 @@ object WeServiceApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classEmojiFeatureService.find(dexKit, descriptors) {
+        classEmojiFeatureService.find(dexKit) {
             searchPackages("com.tencent.mm.feature.emoji")
             matcher {
                 methods {
@@ -67,28 +64,28 @@ object WeServiceApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classContactStorage.find(dexKit, descriptors) {
+        classContactStorage.find(dexKit) {
             searchPackages("com.tencent.mm.storage")
             matcher {
                 usingEqStrings("PRAGMA table_info( contact_ext )")
             }
         }
 
-        classConversationStorage.find(dexKit, descriptors) {
+        classConversationStorage.find(dexKit) {
             searchPackages("com.tencent.mm.storage")
             matcher {
                 usingEqStrings("PRAGMA table_info( rconversation)")
             }
         }
 
-        classMsgInfoStorage.find(dexKit, descriptors) {
+        classMsgInfoStorage.find(dexKit) {
             searchPackages("com.tencent.mm.storage")
             matcher {
                 usingEqStrings("MicroMsg.MsgInfoStorage", "deleted dirty msg ,count is %d")
             }
         }
 
-        classStorageFeatureService.find(dexKit, descriptors) {
+        classStorageFeatureService.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.messenger.foundation")
             matcher {
                 addMethod {
@@ -103,27 +100,25 @@ object WeServiceApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classChatroomService.find(dexKit, descriptors) {
+        classChatroomService.find(dexKit) {
             matcher {
                 usingEqStrings("MicroMsg.ChatroomService", "[isEnableRoomManager]")
             }
         }
 
-        methodApiManagerGetApi.find(dexKit, descriptors) {
+        methodApiManagerGetApi.find(dexKit) {
             searchPackages("com.tencent.mm.ui.chatting.manager")
             matcher {
                 usingEqStrings("[get] ", " is not a interface!")
             }
         }
 
-        methodMmKernelGetServiceImpl.find(dexKit, descriptors) {
+        methodMmKernelGetServiceImpl.find(dexKit) {
             matcher {
                 declaredClass(WeDatabaseApi.classMmKernel.clazz)
                 paramTypes(Class::class.java)
             }
         }
-
-        return descriptors
     }
 
 }

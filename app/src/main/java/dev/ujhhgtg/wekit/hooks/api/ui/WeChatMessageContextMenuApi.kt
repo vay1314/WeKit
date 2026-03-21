@@ -144,24 +144,21 @@ object WeChatMessageContextMenuApi : ApiHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodCreateMenu.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodCreateMenu.find(dexKit) {
             searchPackages("com.tencent.mm.ui.chatting.viewitems")
             matcher {
                 usingEqStrings("MicroMsg.ChattingItem", "msg is null!")
             }
         }
 
-        methodSelectMenuItem.find(dexKit, descriptors) {
+        methodSelectMenuItem.find(dexKit) {
             searchPackages("com.tencent.mm.ui.chatting.viewitems")
             matcher {
                 usingEqStrings("MicroMsg.ChattingItem", "context item select failed, null dataTag")
             }
         }
 
-        classChattingMessBox.find(dexKit, descriptors) {
+        classChattingMessBox.find(dexKit) {
             searchPackages("com.tencent.mm.ui.chatting.component")
             matcher {
                 usingEqStrings(
@@ -170,7 +167,5 @@ object WeChatMessageContextMenuApi : ApiHookItem(), IResolvesDex {
                 )
             }
         }
-
-        return descriptors
     }
 }

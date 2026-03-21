@@ -11,16 +11,11 @@ object WeMainActivityBeautifyApi : ApiHookItem(), IResolvesDex {
 
     val methodDoOnCreate by dexMethod()
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodDoOnCreate.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodDoOnCreate.find(dexKit) {
             matcher {
                 declaredClass = "com.tencent.mm.ui.MainTabUI"
                 usingEqStrings("MicroMsg.LauncherUI.MainTabUI", "doOnCreate")
             }
         }
-
-        return descriptors
     }
 }

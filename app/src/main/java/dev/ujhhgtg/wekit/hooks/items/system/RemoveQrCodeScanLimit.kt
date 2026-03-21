@@ -17,14 +17,12 @@ object RemoveQrCodeScanLimit : SwitchHookItem(), IResolvesDex {
 
     private val methodQBarString by dexMethod()
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-        methodQBarString.find(dexKit, descriptors = descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {
+        methodQBarString.find(dexKit) {
             matcher {
                 usingEqStrings("MicroMsg.QBarStringHandler", "key_offline_scan_show_tips")
             }
         }
-        return descriptors
     }
 
     override fun onEnable() {

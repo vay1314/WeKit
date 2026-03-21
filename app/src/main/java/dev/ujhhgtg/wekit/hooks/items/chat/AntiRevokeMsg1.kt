@@ -10,14 +10,12 @@ import org.luckypray.dexkit.DexKitBridge
 object AntiRevokeMsg1 : SwitchHookItem(), IResolvesDex {
     private val methodRevokeMsg by dexMethod()
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-        methodRevokeMsg.find(dexKit, descriptors = descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {
+        methodRevokeMsg.find(dexKit) {
             matcher {
                 usingEqStrings("doRevokeMsg xmlSrvMsgId=%d talker=%s isGet=%s")
             }
         }
-        return descriptors
     }
 
     override fun onEnable() {

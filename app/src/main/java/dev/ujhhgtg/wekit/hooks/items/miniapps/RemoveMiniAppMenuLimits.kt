@@ -26,10 +26,7 @@ object RemoveMiniAppMenuLimits : SwitchHookItem(), IResolvesDex {
 
     private val methodGetMenuItemVisibility1 by dexMethod()
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodGetMenuItemVisibility1.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodGetMenuItemVisibility1.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.appbrand.menu")
             matcher {
                 declaredClass {
@@ -43,7 +40,5 @@ object RemoveMiniAppMenuLimits : SwitchHookItem(), IResolvesDex {
                 }
             }
         }
-
-        return descriptors
     }
 }

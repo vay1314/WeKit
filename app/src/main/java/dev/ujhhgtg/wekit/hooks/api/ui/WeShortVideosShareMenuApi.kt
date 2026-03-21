@@ -121,10 +121,7 @@ object WeShortVideosShareMenuApi : ApiHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodCreateMenu1.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodCreateMenu1.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.finder.feed")
             matcher {
                 name = "onCreateMMMenu"
@@ -132,7 +129,7 @@ object WeShortVideosShareMenuApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        methodOnSelectMenuItem1.find(dexKit, descriptors) {
+        methodOnSelectMenuItem1.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.finder.feed")
             matcher {
                 name = "onMMMenuItemSelected"
@@ -140,14 +137,14 @@ object WeShortVideosShareMenuApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        methodCreateMenu2.find(dexKit, descriptors) {
+        methodCreateMenu2.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.finder.feed")
             matcher {
                 usingEqStrings("feed", "menu", "sheet", "holder", "KEY_FINDER_SELF_FLAG")
             }
         }
 
-        methodOnSelectMenuItem2.find(dexKit, descriptors) {
+        methodOnSelectMenuItem2.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.finder.feed")
             matcher {
                 declaredClass {
@@ -157,7 +154,5 @@ object WeShortVideosShareMenuApi : ApiHookItem(), IResolvesDex {
                 usingEqStrings("getMoreMenuItemSelectedListener feed ")
             }
         }
-
-        return descriptors
     }
 }

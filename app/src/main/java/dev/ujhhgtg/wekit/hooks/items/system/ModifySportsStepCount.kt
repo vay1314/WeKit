@@ -26,24 +26,19 @@ object ModifySportsStepCount : ClickableHookItem(), IResolvesDex {
     private val methodGetSteps by dexMethod()
     private val methodUploadSteps by dexMethod()
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodGetSteps.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodGetSteps.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.sport.model")
             matcher {
                 usingEqStrings("MicroMsg.Sport.DeviceStepManager", "get today step from %s todayStep %d")
             }
         }
 
-        methodUploadSteps.find(dexKit, descriptors) {
+        methodUploadSteps.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.sport.model")
             matcher {
                 usingEqStrings("MicroMsg.Sport.DeviceStepManager", "update device Step time: %s stepCount: %s")
             }
         }
-
-        return descriptors
     }
 
     override fun onEnable() {

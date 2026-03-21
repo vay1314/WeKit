@@ -78,22 +78,20 @@ object ApplyDialogBackgroundBlur : ClickableHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        classMmAlertDialog.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {
+        classMmAlertDialog.find(dexKit) {
             matcher {
                 usingEqStrings("MicroMsg.MMAlertDialog", "dialog dismiss error!")
             }
         }
 
-        classMmProgressDialog.find(dexKit, descriptors) {
+        classMmProgressDialog.find(dexKit) {
             matcher {
                 usingEqStrings($$"com/tencent/mm/ui/widget/dialog/MMProgressDialog$Builder", "show")
             }
         }
 
-        classMmQuickDialog.find(dexKit, descriptors) {
+        classMmQuickDialog.find(dexKit) {
             matcher {
                 superClass("android.app.Dialog")
                 addField {
@@ -111,8 +109,6 @@ object ApplyDialogBackgroundBlur : ClickableHookItem(), IResolvesDex {
                 }
             }
         }
-
-        return descriptors
     }
 
     override fun onClick(context: Context) {

@@ -126,10 +126,7 @@ object WeHomeScreenPopupMenuApi : ApiHookItem(), IResolvesDex {
         }
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodAddItem.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodAddItem.find(dexKit) {
             searchPackages("com.tencent.mm.ui")
             matcher {
                 usingEqStrings(
@@ -139,14 +136,14 @@ object WeHomeScreenPopupMenuApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        methodHandleItemClick.find(dexKit, descriptors) {
+        methodHandleItemClick.find(dexKit) {
             searchPackages("com.tencent.mm.ui")
             matcher {
                 usingEqStrings("MicroMsg.PlusSubMenuHelper", "processOnItemClick")
             }
         }
 
-        classMenuItemData.find(dexKit, descriptors) {
+        classMenuItemData.find(dexKit) {
             searchPackages("com.tencent.mm.ui")
             matcher {
                 addFieldForType(String::class.java)
@@ -163,14 +160,12 @@ object WeHomeScreenPopupMenuApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        classMenuItemWrapper.find(dexKit, descriptors) {
+        classMenuItemWrapper.find(dexKit) {
             searchPackages("com.tencent.mm.ui")
             matcher {
                 addFieldForType(Boolean::class.java)
                 addFieldForType(classMenuItemData.clazz)
             }
         }
-
-        return descriptors
     }
 }

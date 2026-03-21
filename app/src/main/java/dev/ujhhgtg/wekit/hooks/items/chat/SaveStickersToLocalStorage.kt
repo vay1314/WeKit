@@ -38,10 +38,7 @@ object SaveStickersToLocalStorage : SwitchHookItem(), IResolvesDex,
         WeChatMessageContextMenuApi.removeProvider(this)
     }
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        classEmojiFileEncryptMgr.find(dexKit, descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {classEmojiFileEncryptMgr.find(dexKit) {
             matcher {
                 methods {
                     add {
@@ -53,8 +50,6 @@ object SaveStickersToLocalStorage : SwitchHookItem(), IResolvesDex,
                 }
             }
         }
-
-        return descriptors
     }
 
     override fun getMenuItems(): List<WeChatMessageContextMenuApi.MenuItem> {

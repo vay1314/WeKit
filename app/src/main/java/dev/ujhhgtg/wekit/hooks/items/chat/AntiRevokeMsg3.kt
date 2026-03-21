@@ -22,17 +22,12 @@ object AntiRevokeMsg3 : SwitchHookItem(), IResolvesDex {
 
     private val methodXmlParser by dexMethod()
 
-    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
-        val descriptors = mutableMapOf<String, String>()
-
-        methodXmlParser.find(dexKit, descriptors = descriptors) {
+    override fun resolveDex(dexKit: DexKitBridge) {methodXmlParser.find(dexKit) {
             searchPackages("com.tencent.mm.sdk.platformtools")
             matcher {
                 usingEqStrings("MicroMsg.SDK.XmlParser", "[ %s ]")
             }
         }
-
-        return descriptors
     }
 
     private val nameRegex = Regex("([\"「])(.*?)([」\"])")
