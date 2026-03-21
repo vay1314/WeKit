@@ -48,7 +48,7 @@ object ModifySportsStepCount : ClickableHookItem(), IResolvesDex {
 
     override fun onEnable() {
         methodGetSteps.hookBefore { param ->
-            val count = WePrefs.getLong(KEY_STEP_COUNT, -1L)
+            val count = WePrefs.getLongOrDef(KEY_STEP_COUNT, -1L)
             if (count == -1L) return@hookBefore
             param.result = count
         }

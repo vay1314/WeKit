@@ -3,28 +3,30 @@ package dev.ujhhgtg.wekit.hooks.items.chat
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.toClass
 import dev.ujhhgtg.nameof.nameof
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexClass
 import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
-import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
-import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.hooks.api.core.WeServiceApi
 import dev.ujhhgtg.wekit.hooks.api.core.model.MessageType
 import dev.ujhhgtg.wekit.hooks.api.ui.WeChatMessageContextMenuApi
 import dev.ujhhgtg.wekit.hooks.core.HookItem
+import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.utils.KnownPaths
 import dev.ujhhgtg.wekit.utils.ModuleRes
 import dev.ujhhgtg.wekit.utils.ToastUtils
 import dev.ujhhgtg.wekit.utils.logging.WeLogger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.luckypray.dexkit.DexKitBridge
 import xyz.xxin.silkdecoder.SilkDecoder
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import kotlin.io.path.Path
+import kotlin.io.path.copyTo
 import kotlin.io.path.div
+import kotlin.io.path.name
 import kotlin.io.path.nameWithoutExtension
 
 @HookItem(
@@ -95,13 +97,15 @@ object SaveVoicesToLocalStorage : SwitchHookItem(), IResolvesDex,
                         service =
                             WeServiceApi.getServiceByClass(methodGetAmrFullPath.method.declaringClass)
                     }
-                    val amrPath =
+                    val amrOriginalPath =
                         Path(methodGetAmrFullPath.method.invoke(service, null, encPath, true) as String)
-                    val mp3Name = amrPath.nameWithoutExtension + ".mp3"
+                    val mp3Name = amrOriginalPath.nameWithoutExtension + ".mp3"
+                    val amrPath = KnownPaths.downloads / amrOriginalPath.name
                     val mp3Path = KnownPaths.downloads / mp3Name
 
                     runCatching {
-                        SilkDecoder.decodeToMp3(amrPath.toString(), mp3Path.toString())
+                        amrOriginalPath.copyTo(amrPath)
+                        SilkDecoder.decodeToMp3(amrOriginalPath.toString(), mp3Path.toString())
                     }.onSuccess {
                         withContext(Dispatchers.Main) {
                             ToastUtils.showToast("已将语音保存到 /sdcard/Download/WeKit/$mp3Name")

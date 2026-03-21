@@ -22,6 +22,7 @@ import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
@@ -93,9 +94,9 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     private var imageMetadataMapField: Field? = null
     private var imageServiceApiClass: Class<*>? = null
     private var sendImageMethod: Method? = null
-    private var taskConstructor: java.lang.reflect.Constructor<*>? = null
+    private var taskConstructor: Constructor<*>? = null
     private var crossParamsClass: Class<*>? = null
-    private var crossParamsConstructor: java.lang.reflect.Constructor<*>? = null
+    private var crossParamsConstructor: Constructor<*>? = null
 
     // 文件
     private var wxFileObjectClass: Class<*>? = null
@@ -111,7 +112,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     private var pathGenMethod: Method? = null         // h1.c
     private var voiceParamsClass: Class<*>? = null
     private var voiceTaskClass: Class<*>? = null
-    private var voiceTaskConstructor: java.lang.reflect.Constructor<*>? = null
+    private var voiceTaskConstructor: Constructor<*>? = null
     private var voiceServiceInterfaceClass: Class<*>? = null // sc0.e
     private var voiceSendMethod: Method? = null       // gh
     private var voiceDurationField: Field? = null     // 语音时长字段
@@ -355,13 +356,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
 
         classVoiceParams.find(dexKit, descriptors) {
             matcher {
-                methods {
-                    add {
-                        name = "<init>"
-                        returnType = "void"
-                        usingStrings("send_voice_msg")
-                    }
-                }
+                usingEqStrings("toUserName", "fileName", "send_voice_msg")
             }
         }
 
@@ -371,7 +366,6 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
                 methods {
                     add {
                         name = "<init>"
-                        returnType = "void"
                         paramTypes(classVoiceParams.clazz)
                     }
                 }
@@ -460,107 +454,104 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     }
 
     override fun onEnable() {
-        runCatching {
-            // 初始化 Unsafe 反射
-            initUnsafe()
+        // 初始化 Unsafe 反射
+        initUnsafe()
 
-            // -----------------------------------------------------------------------------
-            // 文本/文件组件初始化
-            // -----------------------------------------------------------------------------
-            netSceneSendMsgClass = classNetSceneSendMsg.clazz
-            getSendMsgObjectMethod = methodGetSendMsgObject.method
-            postToQueueMethod = methodPostToQueue.method
-            shareFileMethod = methodShareFile.method
-            p6Method = methodImageSendEntry.method
+        // -----------------------------------------------------------------------------
+        // 文本/文件组件初始化
+        // -----------------------------------------------------------------------------
+        netSceneSendMsgClass = classNetSceneSendMsg.clazz
+        getSendMsgObjectMethod = methodGetSendMsgObject.method
+        postToQueueMethod = methodPostToQueue.method
+        shareFileMethod = methodShareFile.method
+        p6Method = methodImageSendEntry.method
 
-            wxFileObjectClass = "com.tencent.mm.opensdk.modelmsg.WXFileObject".toClass()
-            wxMediaMessageClass = "com.tencent.mm.opensdk.modelmsg.WXMediaMessage".toClass()
+        wxFileObjectClass = "com.tencent.mm.opensdk.modelmsg.WXFileObject".toClass()
+        wxMediaMessageClass = "com.tencent.mm.opensdk.modelmsg.WXMediaMessage".toClass()
 
-            // -----------------------------------------------------------------------------
-            // 图片组件初始化
-            // -----------------------------------------------------------------------------
-            val taskClazz = classImageTask.clazz
-            taskConstructor = taskClazz.asResolver()
-                .firstConstructor { parameterCount = 5 }
-                .self
+        // -----------------------------------------------------------------------------
+        // 图片组件初始化
+        // -----------------------------------------------------------------------------
+        val taskClazz = classImageTask.clazz
+        taskConstructor = taskClazz.asResolver()
+            .firstConstructor { parameterCount = 5 }
+            .self
 
-            crossParamsClass = taskConstructor!!.parameterTypes[4]
-            crossParamsConstructor = crossParamsClass?.asResolver()
-                ?.firstConstructor { emptyParameters() }
-                ?.self
+        crossParamsClass = taskConstructor!!.parameterTypes[4]
+        crossParamsConstructor = crossParamsClass?.asResolver()
+            ?.firstConstructor { emptyParameters() }
+            ?.self
 
-            imageMetadataMapField = taskClazz.asResolver()
-                .firstField { type { Map::class.java.isAssignableFrom(it) } }
-                .self
+        imageMetadataMapField = taskClazz.asResolver()
+            .firstField { type { Map::class.java.isAssignableFrom(it) } }
+            .self
 
-            // -----------------------------------------------------------------------------
-            // 语音/VFS 组件初始化
-            // -----------------------------------------------------------------------------
+        // -----------------------------------------------------------------------------
+        // 语音/VFS 组件初始化
+        // -----------------------------------------------------------------------------
 
-            // VFS
-            classVfs.asResolver().let { vfs ->
-                vfsReadMethod = vfs.firstMethod {
-                    modifiers(Modifiers.STATIC)
-                    parameters(String::class)
-                    returnType = InputStream::class
-                }.self
+        // VFS
+        classVfs.asResolver().let { vfs ->
+            vfsReadMethod = vfs.firstMethod {
+                modifiers(Modifiers.STATIC)
+                parameters(String::class)
+                returnType = InputStream::class
+            }.self
 
-                vfsCopyMethod = vfs.firstMethod {
-                    modifiers(Modifiers.STATIC)
-                    parameters(String::class, Boolean::class)
-                    returnType = OutputStream::class
-                }.self
+            vfsCopyMethod = vfs.firstMethod {
+                modifiers(Modifiers.STATIC)
+                parameters(String::class, Boolean::class)
+                returnType = OutputStream::class
+            }.self
 
-                vfsExistsMethod = vfs.firstMethod {
-                    modifiers(Modifiers.STATIC)
-                    parameters(String::class)
-                    returnType = Boolean::class
-                }.self
-            }
+            vfsExistsMethod = vfs.firstMethod {
+                modifiers(Modifiers.STATIC)
+                parameters(String::class)
+                returnType = Boolean::class
+            }.self
+        }
 
-            // Kernel
-            kernelStorageMethod = methodMmKernelGetStorage.method
+        // Kernel
+        kernelStorageMethod = methodMmKernelGetStorage.method
 
-            // PathUtil
-            classPathUtil.asResolver().let { pathUtil ->
-                pathGenMethod = pathUtil.firstMethod {
-                    modifiers(Modifiers.STATIC)
-                    parameters(VagueType, VagueType, VagueType, VagueType, Int::class)
-                    returnType = String::class
-                }.self
-            }
+        // PathUtil
+        classPathUtil.asResolver().let { pathUtil ->
+            pathGenMethod = pathUtil.firstMethod {
+                modifiers(Modifiers.STATIC)
+                parameters(VagueType, VagueType, VagueType, VagueType, Int::class)
+                returnType = String::class
+            }.self
+        }
 
-            // Voice Components
-            classVoiceNameGen.asResolver().let { voice ->
-                voiceNameGenMethod = voice.firstMethod {
-                    modifiers(Modifiers.STATIC)
-                    parameters(String::class, VagueType)
-                    returnType = String::class
-                }.self
-            }
+        // Voice Components
+        classVoiceNameGen.asResolver().let { voice ->
+            voiceNameGenMethod = voice.firstMethod {
+                modifiers(Modifiers.STATIC)
+                parameters(String::class, VagueType)
+                returnType = String::class
+            }.self
+        }
 
-            classVoiceParams.asResolver().let { voiceParams ->
-                voiceParamsClass = classVoiceParams.clazz
-                val intFields = voiceParams.field { type = Int::class }
-                voiceDurationField = intFields.firstOrNull()?.self
-                voiceOffsetField = intFields.getOrNull(1)?.self
-            }
+        voiceParamsClass = classVoiceParams.clazz
+        classVoiceParams.asResolver().let { voiceParams ->
+            val intFields = voiceParams.field { type = Int::class }
+            voiceDurationField = intFields.firstOrNull()?.self
+            voiceOffsetField = intFields.getOrNull(1)?.self
+        }
 
-            classVoiceTask.asResolver().let { voiceTask ->
-                voiceTaskClass = classVoiceTask.clazz
-                voiceTaskConstructor = voiceTask.firstConstructor {
-                    parameters(voiceParamsClass!!)
-                }.self
-            }
+        voiceTaskClass = classVoiceTask.clazz
+        classVoiceTask.asResolver().let { voiceTask ->
+            voiceTaskConstructor = voiceTask.firstConstructor {
+                parameters(voiceParamsClass!!)
+            }.self
+        }
 
-            // Voice Service
-            voiceServiceInterfaceClass = classVoiceServiceInterface.clazz
-            voiceSendMethod = methodSendVoice.method
+        // Voice Service
+        voiceServiceInterfaceClass = classVoiceServiceInterface.clazz
+        voiceSendMethod = methodSendVoice.method
 
-            bindServiceFramework()
-            bindImageBusinessLogic()
-
-        }.onFailure { e -> WeLogger.e(TAG, "Entry 初始化失败", e) }
+        bindServiceFramework()
+        bindImageBusinessLogic()
     }
 
     /**
@@ -701,11 +692,9 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     /** 发送私有路径下的语音文件 */
     fun sendVoice(toUser: String, path: String, durationMs: Int): Boolean {
         return try {
-            val selfWxid = selfCustomWxId
-
             // 获取 Service 实例
             val serviceInterface = voiceServiceInterfaceClass
-                ?: throw IllegalStateException("VoiceService interface not found")
+                ?: error("VoiceService interface not found")
 
             // 尝试通过 ServiceManager 获取
             var finalServiceObj: Any? = null
@@ -729,26 +718,26 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
                 }
             }
 
-            if (finalServiceObj == null) throw IllegalStateException("无法获取 VoiceService 实例")
+            if (finalServiceObj == null) error("无法获取 VoiceService 实例")
 
             // 准备文件
-            val fileName = voiceNameGenMethod?.invoke(null, selfWxid, "amr_") as? String
-                ?: throw IllegalStateException("VoiceName Gen Failed")
+            val fileName = voiceNameGenMethod?.invoke(null, selfCustomWxId, "amr_") as? String
+                ?: error("VoiceName Gen Failed")
             val accPath = getAccPath()
             val voice2Root = if (accPath.endsWith("/")) "${accPath}voice2/" else "$accPath/voice2/"
             val destFullPath =
                 pathGenMethod?.invoke(null, voice2Root, "msg_", fileName, ".amr", 2) as? String
-                    ?: throw IllegalStateException("Path Gen Failed")
+                    ?: error("Path Gen Failed")
 
-            if (!copyFileViaVFS(path, destFullPath)) return false
+            if (!copyFileViaVfs(path, destFullPath)) return false
 
             // 构造任务
-            val paramsObj = XposedHelpers.newInstance(voiceParamsClass, toUser, fileName)
+            val paramsObj = voiceParamsClass!!.createInstance(toUser, fileName)
             voiceDurationField?.set(paramsObj, durationMs)
             voiceOffsetField?.set(paramsObj, 0)
 
             val taskObj = voiceTaskConstructor?.newInstance(paramsObj)
-                ?: throw IllegalStateException("Task 构造失败")
+                ?: error("Task 构造失败")
 
             voiceSendMethod?.invoke(finalServiceObj, taskObj)
             WeLogger.i(TAG, "语音发送指令已下发: $fileName")
@@ -770,7 +759,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     /**
      * 使用微信内部 VFS 引擎进行物理拷贝
      */
-    private fun copyFileViaVFS(sourcePath: String, destPath: String): Boolean {
+    private fun copyFileViaVfs(sourcePath: String, destPath: String): Boolean {
         WeLogger.d(TAG, "VFS Copy: $sourcePath -> $destPath")
         return try {
             if (vfsReadMethod == null) throw IllegalStateException("VFS Read Method not found")

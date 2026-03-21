@@ -1,0 +1,79 @@
+package dev.ujhhgtg.wekit.hooks.items.chat
+
+import android.content.Context
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
+import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
+import dev.ujhhgtg.wekit.hooks.core.ClickableHookItem
+import dev.ujhhgtg.wekit.hooks.core.HookItem
+import dev.ujhhgtg.wekit.preferences.WePrefs
+import dev.ujhhgtg.wekit.ui.content.AlertDialogContent
+import dev.ujhhgtg.wekit.ui.content.Button
+import dev.ujhhgtg.wekit.ui.content.TextButton
+import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
+import dev.ujhhgtg.wekit.utils.ToastUtils
+import org.luckypray.dexkit.DexKitBridge
+
+@HookItem(path = "聊天/伪装语音时长", desc = "预设定伪装发送语音显示的时长")
+object FakeVoiceDuration : ClickableHookItem(), IResolvesDex {
+
+    private val methodVoiceRecorderGetLength by dexMethod()
+    private const val KEY_DURATION = "fake_voice_duration"
+
+    override fun onEnable() {
+        methodVoiceRecorderGetLength.hookBefore { param ->
+            if (WePrefs.containsKey(KEY_DURATION)) {
+                param.result = WePrefs.getLongOrDef(KEY_DURATION, 0L)
+            }
+        }
+    }
+
+    override fun onClick(context: Context) {
+        showComposeDialog(context) {
+            var durationInput by remember { mutableStateOf(WePrefs.getLongOrDef(KEY_DURATION, 0).toString()) }
+            AlertDialogContent(title = { Text("修改语音时长") },
+                text = {
+                    TextField(value = durationInput,
+                        onValueChange = { durationInput = it.filter { c -> c.isDigit() } },
+                        label = { Text("语音时长 (毫秒)") })
+                },
+                dismissButton = {
+                    TextButton(dismiss) { Text("取消") }
+                    TextButton(onClick = {
+                        WePrefs.remove(KEY_DURATION)
+                        dismiss()
+                    }) { Text("清除") }
+                },
+                confirmButton = { Button(onClick = {
+                    val durationMs = durationInput.toLongOrNull()
+                    if (durationMs == null) {
+                        ToastUtils.showToast("时长格式不正确!")
+                        return@Button
+                    }
+
+                    WePrefs.putLong(KEY_DURATION, durationMs)
+                    dismiss()
+                }) { Text("确定") } })
+        }
+    }
+
+    override fun resolveDex(dexKit: DexKitBridge): Map<String, String> {
+        val descriptors = mutableMapOf<String, String>()
+
+        methodVoiceRecorderGetLength.find(dexKit, descriptors) {
+            matcher {
+                declaredClass {
+                    usingEqStrings("MicroMsg.SceneVoice.Recorder", "Stop file success: ")
+                }
+                returnType = "long"
+            }
+        }
+
+        return descriptors
+    }
+}

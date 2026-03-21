@@ -94,7 +94,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun AppContent(onUrlClick: (String) -> Unit) {
         val context = LocalContext.current

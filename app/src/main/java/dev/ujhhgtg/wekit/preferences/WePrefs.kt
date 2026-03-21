@@ -96,7 +96,7 @@ abstract class WePrefs protected constructor() : SharedPreferences, SharedPrefer
             return default.getStringSet(key, null)
         }
 
-        fun getLong(key: String, def: Long): Long {
+        fun getLongOrDef(key: String, def: Long): Long {
             return default.getLong(key, def)
         }
 
@@ -112,24 +112,18 @@ abstract class WePrefs protected constructor() : SharedPreferences, SharedPrefer
             default.putInt(key, value)
         }
 
-        fun putBool(key: String, value: Boolean) {
-            default.putBoolean(key, value)
-        }
+        fun putBool(key: String, value: Boolean) = default.putBoolean(key, value)
 
-        fun putLong(key: String, value: Long) {
-            default.putLong(key, value)
-        }
+        fun putLong(key: String, value: Long) = default.putLong(key, value)
 
-        fun putFloat(key: String, value: Float) {
-            default.putFloat(key, value)
-        }
+        fun putFloat(key: String, value: Float) = default.putFloat(key, value)
 
         fun putStringSet(key: String, value: Set<String>) {
             default.putStringSet(key, value)
         }
 
-        fun remove(key: String) {
-            default.remove(key)
-        }
+        fun containsKey(key: String) = default.containsKey(key)
+
+        fun remove(key: String) = default.remove(key)
     }
 }

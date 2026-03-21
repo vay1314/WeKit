@@ -496,7 +496,6 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
         return descriptors
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onClick(context: Context) {
         showComposeDialog(context) {
             AlertDialogContent(

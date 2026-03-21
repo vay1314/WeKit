@@ -279,7 +279,6 @@ abstract class BasePrefsDialog(
 
 private const val TAG = "BasePrefDialog"
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DialogContent(
     title: String,

@@ -390,6 +390,8 @@ dependencies {
     implementation(libs.svg)
     implementation(libs.gif)
 
+    implementation(libs.mp3agic)
+
     implementation(libs.mcp.server)
     implementation(platform(libs.ktor.bom))
     implementation(libs.ktor.server.netty)
@@ -415,6 +417,7 @@ tasks.withType<KotlinJvmCompile>().configureEach {
     compilerOptions {
         val pluginJarPath = pluginJarTask.get().archiveFile.get().asFile.absolutePath
         freeCompilerArgs.add("-Xplugin=$pluginJarPath")
+        freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
         freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
     }
 }
