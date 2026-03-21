@@ -161,30 +161,10 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > $RUNNER_TEMP/wekit-keystore.jks
 
-      - name: Download latest NPatch release artifact
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download NPatch release artifact
         run: |
-          # Fetch the latest successful run of NPatch's build workflow
-          RUN_ID=$(gh api \
-            "repos/7723mod/NPatch/actions/workflows/build.yml/runs?status=success&per_page=1" \
-            --jq '.workflow_runs[0].id')
-          
-          echo "Using NPatch run ID: $RUN_ID"
-          
-          # List artifacts for that run and find the release one (name starts with "npatch-release-")
-          ARTIFACT_ID=$(gh api \
-            "repos/7723mod/NPatch/actions/runs/${RUN_ID}/artifacts" \
-            --jq '.artifacts[] | select(.name | startswith("npatch-release-")) | .id')
-          
-          echo "Downloading artifact ID: $ARTIFACT_ID"
-          
-          # Download and extract the artifact zip
-          gh api "repos/7723mod/NPatch/actions/artifacts/${ARTIFACT_ID}/zip" > npatch-release.zip
-          unzip npatch-release.zip -d npatch-release/
-          
-          # Find and move the jar
-          find npatch-release/ -name "*.jar" | head -1 | xargs -I{} mv {} npatch.jar
+          curl -L -o npatch.jar \
+            "https://github.com/Ujhhgtg/NPatch/releases/download/v1/npatch.jar"
           echo "NPatch jar ready: $(ls -lh npatch.jar)"
 
       - name: Download WeChat APK
