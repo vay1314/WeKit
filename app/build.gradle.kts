@@ -172,6 +172,11 @@ configure<ApplicationExtension> {
                 ?: project.property("WEKIT_KEY_ALIAS") as String
             keyPassword = System.getenv("WEKIT_KEY_PASSWORD")
                 ?: project.property("WEKIT_KEY_PASSWORD") as String
+
+            enableV1Signing = false
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = true
         }
     }
 

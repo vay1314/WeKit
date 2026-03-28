@@ -55,8 +55,7 @@ object AntiMomentsDelete : SwitchHookItem(), WeDatabaseListenerApi.IUpdateListen
         val contentBytes = values.getAsByteArray("content")
         if (contentBytes != null) {
             try {
-                val proto = WeProtoData()
-                proto.fromMessageBytes(contentBytes)
+                val proto = WeProtoData.fromMessageBytes(contentBytes)
 
                 if (appendWatermark(proto, 5)) {
                     values.put("content", proto.toMessageBytes())

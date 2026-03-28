@@ -112,13 +112,12 @@ object WeLogger {
             Log.println(
                 priority,
                 BuildConfig.TAG,
-                ("[" + tag + "]" + "[chunked] too long (" + len + " chars, " + chunkCount
-                        + " chunks). head:\n" + head)
+                ("$tag: [chunked] too long ($len chars, $chunkCount chunks). head:\n$head")
             )
             Log.println(
                 priority,
                 BuildConfig.TAG,
-                "[$tag][chunked] truncated. Consider writing to file for full dump."
+                "$tag: [chunked] truncated. consider writing to file for full dump."
             )
             return
         }

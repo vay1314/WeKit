@@ -42,10 +42,10 @@ import kotlin.random.Random
 
 @SuppressLint("DiscouragedApi")
 @HookItem(path = "红包与支付/自动抢红包", desc = "监听消息并自动拆开红包")
-object AutoOpenRedPacket : ClickableHookItem(), WeDatabaseListenerApi.IInsertListener,
+object AutoOpenRedPackets : ClickableHookItem(), WeDatabaseListenerApi.IInsertListener,
     IResolvesDex {
 
-    private val TAG = nameof(AutoOpenRedPacket)
+    private val TAG = nameof(AutoOpenRedPackets)
 
     private val classReceiveLuckyMoney by dexClass()
     private val classOpenLuckyMoney by dexClass()

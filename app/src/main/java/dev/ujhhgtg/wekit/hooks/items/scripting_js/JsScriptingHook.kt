@@ -93,8 +93,7 @@ object JsScriptingHook : SwitchHookItem(),
         }
 
         try {
-            val data = WeProtoData()
-            data.fromBytes(reqBytes)
+            val data = WeProtoData.fromBytes(reqBytes)
             val json = data.toJsonObject()
             val modifiedJson = JsEngine.executeAllOnRequest(uri, cgiId, json)
             data.applyViewJson(modifiedJson, true)
@@ -115,8 +114,7 @@ object JsScriptingHook : SwitchHookItem(),
         }
 
         try {
-            val data = WeProtoData()
-            data.fromBytes(respBytes)
+            val data = WeProtoData.fromBytes(respBytes)
             val json = data.toJsonObject()
             val modifiedJson = JsEngine.executeAllOnResponse(uri, cgiId, json)
             data.applyViewJson(modifiedJson, true)

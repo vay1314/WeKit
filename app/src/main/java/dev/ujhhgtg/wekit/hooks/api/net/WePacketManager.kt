@@ -16,8 +16,7 @@ object WePacketManager {
 
     internal fun handleRequestTamper(uri: String, cgiId: Int, reqBytes: ByteArray): ByteArray? {
         if (WePrefs.getBoolOrFalse(PreferenceKeys.VERBOSE_LOG)) {
-            val data = WeProtoData()
-            data.fromBytes(reqBytes)
+            val data = WeProtoData.fromBytes(reqBytes)
             WeLogger.logChunkedI(
                 "WePacketInterceptor.Request",
                 "Request: $uri, CGI=$cgiId, LEN=${reqBytes.size}, Data=${data.toJsonObject()}, Stack=${WeLogger.getStackTraceString()}"
@@ -33,8 +32,7 @@ object WePacketManager {
 
     internal fun handleResponseTamper(uri: String, cgiId: Int, respBytes: ByteArray): ByteArray? {
         if (WePrefs.getBoolOrFalse(PreferenceKeys.VERBOSE_LOG)) {
-            val data = WeProtoData()
-            data.fromBytes(respBytes)
+            val data = WeProtoData.fromBytes(respBytes)
             WeLogger.logChunkedI(
                 "WePacketInterceptor.Response",
                 "Received: $uri, CGI=$cgiId, LEN=${respBytes.size}, Data=${data.toJsonObject()}"

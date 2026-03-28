@@ -558,8 +558,7 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
                                 bytes =
                                     XposedHelpers.callMethod(protoObj, "toByteArray") as? ByteArray
                                 if (bytes != null) {
-                                    json = WeProtoData().also { it.fromBytes(bytes) }.toJsonObject()
-                                        .toString()
+                                    json = WeProtoData.fromBytes(bytes).toJsonObject().toString()
                                 }
                             }
                         } catch (e: Throwable) {
@@ -599,7 +598,7 @@ object WePacketHelper : ApiHookItem(), IResolvesDex {
                         }
                             ?: XposedHelpers.callMethod(yd, "toByteArray") as? ByteArray
                         val json =
-                            if (bytes != null) WeProtoData().also { it.fromBytes(bytes) }
+                            if (bytes != null) WeProtoData.fromBytes(bytes)
                                 .toJsonObject()
                                 .toString() else "{}"
                         userCallback?.onSuccess(json, bytes)

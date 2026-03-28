@@ -41,8 +41,7 @@ object ModifyTransferWalletBalanceDisplay : ClickableHookItem(), IWePacketInterc
         WeLogger.i(TAG, "拦截到收银台数据包: $uri")
 
         try {
-            val data = WeProtoData()
-            data.fromBytes(respBytes)
+            val data = WeProtoData.fromBytes(respBytes)
             val json = data.toJsonObject()
             processJsonObject(json)
             data.applyViewJson(json, true)

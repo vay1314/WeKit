@@ -23,8 +23,7 @@ object RemoveArticleAds : SwitchHookItem(), IWePacketInterceptor {
         if (cgiId != 21909) return null
 
         try {
-            val data = WeProtoData()
-            data.fromBytes(respBytes)
+            val data = WeProtoData.fromBytes(respBytes)
             val json = data.toJsonObject()
 
             // 获取字段2

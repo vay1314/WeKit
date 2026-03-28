@@ -3,8 +3,8 @@ package dev.ujhhgtg.wekit.hooks.api.net
 import com.google.protobuf.CodedInputStream
 import com.google.protobuf.CodedOutputStream
 import dev.ujhhgtg.nameof.nameof
-import dev.ujhhgtg.wekit.utils.hexToBytes
 import dev.ujhhgtg.wekit.utils.WeLogger
+import dev.ujhhgtg.wekit.utils.hexToBytes
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets
 import java.util.regex.Pattern
 
 @Suppress("unused")
-class WeProtoData {
+class WeProtoData private constructor() {
 
     private val fields = mutableListOf<Field>()
     var packetPrefix: ByteArray = ByteArray(0)
@@ -35,6 +35,44 @@ class WeProtoData {
     }
 
     companion object {
+        fun fromBytes(b: ByteArray): WeProtoData {
+            val data = WeProtoData()
+            if (hasPacketPrefix(b)) {
+                data.packetPrefix = b.copyOfRange(0, 4)
+                data.parseMessageBytes(b.copyOfRange(4, b.size))
+            } else {
+                data.parseMessageBytes(b)
+            }
+            return data
+        }
+
+        fun fromMessageBytes(b: ByteArray): WeProtoData {
+            val data = WeProtoData()
+            data.parseMessageBytes(b)
+            return data
+        }
+
+        fun fromJsonObject(json: JSONObject): WeProtoData {
+            val data = WeProtoData()
+            runCatching {
+                for (key in json.keys()) {
+                    val fieldNumber = key.toInt()
+                    when (val value = json.get(key)) {
+                        is JSONObject -> data.fields.add(data.subMessageField(fieldNumber, value))
+                        is JSONArray -> repeat(value.length()) {
+                            data.addJsonValueAsField(
+                                fieldNumber,
+                                value.get(it)
+                            )
+                        }
+
+                        else -> data.addJsonValueAsField(fieldNumber, value)
+                    }
+                }
+            }
+            return data
+        }
+
         fun hasPacketPrefix(b: ByteArray?) =
             b != null && b.size >= 4 && (b[0].toInt() and 0xFF) == 0
 
@@ -108,23 +146,6 @@ class WeProtoData {
 
     fun setPacketPrefix(prefix: ByteArray?) {
         packetPrefix = prefix?.copyOf() ?: ByteArray(0)
-    }
-
-    fun fromBytes(b: ByteArray?) {
-        clear()
-        if (b == null) return
-        if (hasPacketPrefix(b)) {
-            packetPrefix = b.copyOfRange(0, 4)
-            parseMessageBytes(b.copyOfRange(4, b.size))
-        } else {
-            parseMessageBytes(b)
-        }
-    }
-
-    fun fromMessageBytes(b: ByteArray?) {
-        clear()
-        packetPrefix = ByteArray(0)
-        parseMessageBytes(b)
     }
 
     private fun parseMessageBytes(b: ByteArray?) {
@@ -380,28 +401,8 @@ class WeProtoData {
         return total
     }
 
-    fun fromJSON(json: JSONObject) {
-        runCatching {
-            clear()
-            for (key in json.keys()) {
-                val fieldNumber = key.toInt()
-                when (val value = json.get(key)) {
-                    is JSONObject -> fields.add(subMessageField(fieldNumber, value))
-                    is JSONArray -> repeat(value.length()) {
-                        addJsonValueAsField(
-                            fieldNumber,
-                            value.get(it)
-                        )
-                    }
-
-                    else -> addJsonValueAsField(fieldNumber, value)
-                }
-            }
-        }
-    }
-
     private fun subMessageField(fieldNumber: Int, obj: JSONObject): Field {
-        val sub = WeProtoData().also { it.fromJSON(obj) }
+        val sub = fromJsonObject(obj)
         val lv = LenValue(sub.toMessageBytes()).also { it.subMessage = sub; it.view = LenView.SUB }
         return Field(fieldNumber, 2, lv)
     }
@@ -425,7 +426,7 @@ class WeProtoData {
                 }
 
                 null -> Unit
-                else -> WeLogger.w(nameof(WeProtoData), "fromJSON Unknown type: ${value.javaClass.name}")
+                else -> WeLogger.w(nameof(WeProtoData::class), "fromJSON Unknown type: ${value.javaClass.name}")
             }
         }
     }
