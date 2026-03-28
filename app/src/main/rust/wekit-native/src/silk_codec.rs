@@ -79,82 +79,93 @@ pub fn resample_to(samples: &[i16], from_rate: u32, to_rate: u32) -> Vec<i16> {
         .collect()
 }
 
-pub fn pcm_bytes_2_silk(pcm: &[i16], mut out: impl Write) -> Result<()> {
+pub fn pcm_bytes_to_silk(pcm: &[i16], mut out: impl Write) -> Result<()> {
     const SAMPLE_RATE: i32 = 24000;
     const FRAME_MS: i32 = 20;
     const FRAME_SIZE: usize = (SAMPLE_RATE as usize * FRAME_MS as usize) / 1000; // 480 samples/frame
     const SILK_HEADER: &[u8] = b"#!SILK_V3";
 
+    // WeChat-specific: prepend 0x02 before the SILK header
+    out.write_all(&[0x02])?;
     out.write_all(SILK_HEADER)?;
 
-    unsafe {
-        // Allocate and initialize encoder
-        let mut enc_size: i32 = 0;
-        SKP_Silk_SDK_Get_Encoder_Size(&mut enc_size);
-        let mut enc_state = vec![0u8; enc_size as usize];
-        let enc_state_ptr = enc_state.as_mut_ptr() as *mut c_void;
+    // Allocate and initialize encoder
+    let mut enc_size: i32 = 0;
+    unsafe { SKP_Silk_SDK_Get_Encoder_Size(&mut enc_size) };
+    if enc_size <= 0 {
+        bail!("Invalid encoder size: {}", enc_size);
+    }
 
-        let mut enc_ctrl = std::mem::zeroed::<SKP_SILK_SDK_EncControlStruct>();
-        let ret = SKP_Silk_SDK_InitEncoder(enc_state_ptr, &mut enc_ctrl);
-        if ret != 0 {
-            bail!("Failed to init SILK encoder: {}", ret);
+    let mut enc_state = vec![0u8; enc_size as usize];
+    let enc_state_ptr = enc_state.as_mut_ptr() as *mut c_void;
+
+    let mut enc_ctrl = unsafe { std::mem::zeroed::<SKP_SILK_SDK_EncControlStruct>() };
+    let ret = unsafe { SKP_Silk_SDK_InitEncoder(enc_state_ptr, &mut enc_ctrl) };
+    if ret != 0 {
+        bail!("Failed to init SILK encoder: {}", ret);
+    }
+
+    // Apply encoder params
+    enc_ctrl.API_sampleRate = SAMPLE_RATE;
+    enc_ctrl.maxInternalSampleRate = SAMPLE_RATE;
+    enc_ctrl.packetSize = FRAME_SIZE as i32;
+    enc_ctrl.bitRate = 25000;
+    enc_ctrl.packetLossPercentage = 0;
+    enc_ctrl.complexity = 2;
+    enc_ctrl.useInBandFEC = 0;
+    enc_ctrl.useDTX = 0;
+
+    // Encode frames
+    let mut frame_buf = vec![0i16; FRAME_SIZE];
+    let mut out_buf = vec![0u8; 1024]; // output buffer for each frame
+
+    let mut offset = 0;
+    while offset < pcm.len() {
+        let end = (offset + FRAME_SIZE).min(pcm.len());
+        let frame_len = end - offset;
+
+        // Copy samples and pad last frame with zeros
+        frame_buf[..frame_len].copy_from_slice(&pcm[offset..end]);
+        if frame_len < FRAME_SIZE {
+            frame_buf[frame_len..].fill(0);
         }
 
-        enc_ctrl.API_sampleRate = SAMPLE_RATE;
-        enc_ctrl.maxInternalSampleRate = SAMPLE_RATE;
-        enc_ctrl.packetSize = FRAME_SIZE as i32;
-        enc_ctrl.bitRate = 25000;
-        enc_ctrl.packetLossPercentage = 0;
-        enc_ctrl.complexity = 2;
-        enc_ctrl.useInBandFEC = 0;
-        enc_ctrl.useDTX = 0;
-
-        // Encode frames
-        let mut frame_buf = vec![0i16; FRAME_SIZE];
-        let mut out_buf = vec![0u8; 1024]; // output buffer for each frame
-        let mut n_bytes_out: i16;
-
-        let mut offset = 0;
-        while offset < pcm.len() {
-            let end = (offset + FRAME_SIZE).min(pcm.len());
-            let frame_len = end - offset;
-
-            // Copy samples and pad last frame with zeros
-            frame_buf[..frame_len].copy_from_slice(&pcm[offset..end]);
-            if frame_len < FRAME_SIZE {
-                for i in frame_len..FRAME_SIZE {
-                    frame_buf[i] = 0;
-                }
-            }
-
-            n_bytes_out = out_buf.len() as i16;
-            let ret = SKP_Silk_SDK_Encode(
+        let mut n_bytes_out = out_buf.len() as i16;
+        let ret = unsafe {
+            SKP_Silk_SDK_Encode(
                 enc_state_ptr,
                 &enc_ctrl,
                 frame_buf.as_ptr(),
                 FRAME_SIZE as i32,
                 out_buf.as_mut_ptr(),
                 &mut n_bytes_out,
-            );
+            )
+        };
 
-            if ret != 0 {
-                bail!("SILK encode error: {}", ret);
-            }
-
-            out.write_all(&(n_bytes_out as i16).to_le_bytes())?;
-            out.write_all(&out_buf[..n_bytes_out as usize])?;
-            offset += FRAME_SIZE;
+        if ret != 0 {
+            bail!("SILK encode error: {}", ret);
         }
+
+        out.write_all(&(n_bytes_out as i16).to_le_bytes())?;
+        out.write_all(&out_buf[..n_bytes_out as usize])?;
+        offset += FRAME_SIZE;
     }
 
     Ok(())
 }
 
-pub fn silk_to_pcm(
-    silk_path: &str,
-    pcm_path: &str,
-    mut sample_rate: i32,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn mp3_to_silk(mp3_path: &str, silk_path: &str) -> Result<()> {
+    let (pcm, src_rate) = mp3_to_pcm_mono(mp3_path)?;
+    logi!("mp3_to_pcm_mono done");
+    let pcm = resample_to(&pcm, src_rate, 24000);
+    logi!("resample_to done");
+    let out_file = File::create(silk_path)?;
+    pcm_bytes_to_silk(&pcm, out_file)?;
+    logi!("encode_to_silk done");
+    Ok(())
+}
+
+pub fn silk_to_pcm(silk_path: &str, pcm_path: &str, mut sample_rate: i32) -> Result<()> {
     const MAX_BYTES_PER_FRAME: usize = 1024;
     const MAX_INPUT_FRAMES: usize = 5;
     const FRAME_LENGTH_MS: usize = 20;
@@ -174,7 +185,7 @@ pub fn silk_to_pcm(
         if header[0] == 0x02 {
             silk_file.seek(SeekFrom::Start(10))?; // Skip WeChat's extra byte + header
         } else {
-            return Err("Invalid Silk Header".into());
+            bail!("Invalid Silk Header");
         }
     }
 
@@ -193,22 +204,18 @@ pub fn silk_to_pcm(
 
     // 4. Initialize Decoder State
     let mut decode_size_bytes: i32 = 0;
-    unsafe {
-        let res = SKP_Silk_SDK_Get_Decoder_Size(&mut decode_size_bytes);
-        if res != 0 {
-            return Err(format!("SKP_Silk_SDK_Get_Decoder_Size failed: {}", res).into());
-        }
+    let res = unsafe { SKP_Silk_SDK_Get_Decoder_Size(&mut decode_size_bytes) };
+    if res != 0 {
+        bail!("SKP_Silk_SDK_Get_Decoder_Size failed: {}", res);
     }
 
     // Allocate memory for the decoder state
     let mut decode_state_vec = vec![0u8; decode_size_bytes as usize];
     let decode_state_ptr = decode_state_vec.as_mut_ptr() as *mut std::ffi::c_void;
 
-    unsafe {
-        let res = SKP_Silk_SDK_InitDecoder(decode_state_ptr);
-        if res != 0 {
-            return Err(format!("SKP_Silk_SDK_InitDecoder failed: {}", res).into());
-        }
+    let res = unsafe { SKP_Silk_SDK_InitDecoder(decode_state_ptr) };
+    if res != 0 {
+        bail!("SKP_Silk_SDK_InitDecoder failed: {}", res);
     }
 
     // 5. Decoding Buffers
@@ -237,8 +244,8 @@ pub fn silk_to_pcm(
         loop {
             let mut out_data_len: i16 = 0;
 
-            unsafe {
-                let res = SKP_Silk_SDK_Decode(
+            let res = unsafe {
+                SKP_Silk_SDK_Decode(
                     decode_state_ptr,
                     &mut decode_control,
                     0,                                    // lostFlag
@@ -246,12 +253,12 @@ pub fn silk_to_pcm(
                     valid_data_len as i32,
                     out_buffer.as_mut_ptr().add(out_offset),
                     &mut out_data_len,
-                );
+                )
+            };
 
-                if res != 0 {
-                    loge!("SKP_Silk_SDK_Decode error: {}", res);
-                    break;
-                }
+            if res != 0 {
+                loge!("SKP_Silk_SDK_Decode error: {}", res);
+                break;
             }
 
             frames += 1;

@@ -27,9 +27,7 @@ object FakeVoiceDuration : ClickableHookItem(), IResolvesDex {
 
     override fun onEnable() {
         methodVoiceRecorderGetLength.hookBefore { param ->
-            if (WePrefs.containsKey(KEY_DURATION)) {
-                param.result = WePrefs.getLongOrDef(KEY_DURATION, 0L)
-            }
+            param.result = WePrefs.getLongOrDef(KEY_DURATION, 0L)
         }
     }
 

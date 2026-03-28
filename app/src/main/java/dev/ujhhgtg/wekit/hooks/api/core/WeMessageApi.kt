@@ -45,6 +45,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     val classChattingContext by dexClass()
     val classChattingDataAdapter by dexClass()
     val classTransformChattingComponent by dexClass()
+    val methodGetIsTransformed by dexMethod()
 
     // -------------------------------------------------------------------------------------
     // 图片发送组件
@@ -229,6 +230,19 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             searchPackages("com.tencent.mm.ui.chatting.component")
             matcher {
                 usingEqStrings("MicroMsg.TransformComponent", "[onChattingPause]")
+            }
+        }
+
+        methodGetIsTransformed.find(dexKit) {
+            matcher {
+                declaredClass(classMsgInfo.clazz)
+                usingNumbers(64, 0)
+                usingFields {
+                    add {
+                        type = "int"
+                    }
+                }
+                returnType = "boolean"
             }
         }
 
@@ -447,23 +461,18 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             }.self
         }
 
-        // PathUtil
-        classPathUtil.asResolver().let { pathUtil ->
-            pathGenMethod = pathUtil.firstMethod {
-                modifiers(Modifiers.STATIC)
-                parameters(VagueType, VagueType, VagueType, VagueType, Int::class)
-                returnType = String::class
-            }.self
-        }
+        pathGenMethod = classPathUtil.asResolver().firstMethod {
+            modifiers(Modifiers.STATIC)
+            parameters(VagueType, VagueType, VagueType, VagueType, Int::class)
+            returnType = String::class
+        }.self
 
         // Voice Components
-        classVoiceNameGen.asResolver().let { voice ->
-            voiceNameGenMethod = voice.firstMethod {
-                modifiers(Modifiers.STATIC)
-                parameters(String::class, VagueType)
-                returnType = String::class
-            }.self
-        }
+        voiceNameGenMethod = classVoiceNameGen.asResolver().firstMethod {
+            modifiers(Modifiers.STATIC)
+            parameters(String::class, VagueType)
+            returnType = String::class
+        }.self
 
         classVoiceParams.asResolver().let { voiceParams ->
             val intFields = voiceParams.field { type = Int::class }
@@ -472,11 +481,10 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
         }
 
         voiceTaskClass = classVoiceTask.clazz
-        classVoiceTask.asResolver().let { voiceTask ->
-            voiceTaskConstructor = voiceTask.firstConstructor {
+        voiceTaskConstructor = classVoiceTask.asResolver()
+            .firstConstructor {
                 parameters(classVoiceParams.clazz)
             }.self
-        }
 
         getServiceMethod = classServiceManager.asResolver()
             .firstMethod {

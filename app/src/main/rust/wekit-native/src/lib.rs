@@ -7,9 +7,7 @@ mod shared;
 mod silk_codec;
 mod utils;
 
-use std::{ffi::CString, fs::File};
-
-use anyhow::Result;
+use std::ffi::CString;
 
 use crash_handler::{install_crash_handler, uninstall_crash_handler};
 use crash_triggerer::trigger_test_crash;
@@ -20,10 +18,7 @@ use jni::sys::{
 };
 use libc::c_void;
 
-use crate::{
-    silk_codec::{mp3_to_pcm_mono, pcm_bytes_2_silk, resample_to},
-    utils::with_jstring,
-};
+use crate::utils::with_jstring;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // JNI exports
@@ -104,7 +99,7 @@ pub extern "C" fn Java_dev_ujhhgtg_wekit_utils_SilkCodec_mp3ToSilk(
     with_jstring(env, mp3_path, |mp3| {
         with_jstring(env, silk_path, |silk| {
             logi!("converting {} to {}", mp3, silk);
-            match mp3_to_silk(mp3, silk) {
+            match silk_codec::mp3_to_silk(mp3, silk) {
                 Ok(_) => {
                     logi!("mp3ToSilk succeeded");
                     JNI_TRUE
@@ -163,17 +158,6 @@ pub extern "C" fn Java_dev_ujhhgtg_wekit_utils_SilkCodec_pcmToMp3(
             }
         })
     })
-}
-
-fn mp3_to_silk(mp3_path: &str, silk_path: &str) -> Result<()> {
-    let (pcm, src_rate) = mp3_to_pcm_mono(mp3_path)?;
-    logi!("mp3_to_pcm_mono done");
-    let pcm = resample_to(&pcm, src_rate, 24000);
-    logi!("resample_to done");
-    let out_file = File::create(silk_path)?;
-    pcm_bytes_2_silk(&pcm, out_file)?;
-    logi!("encode_to_silk done");
-    Ok(())
 }
 
 /// Required JNI library entry point — returns the JNI version we target.

@@ -17,9 +17,10 @@ object WeServiceApi : ApiHookItem(), IResolvesDex {
     private val classConversationStorage by dexClass()
     private val classStorageFeatureService by dexClass()
     private val classChatroomService by dexClass()
-    val methodApiManagerGetApi by dexMethod()
+    private val methodApiManagerGetApi by dexMethod()
     private val methodMmKernelGetServiceImpl by dexMethod()
     private val classMsgInfoStorage by dexClass()
+    val classApiManager: Class<*> by lazy { methodApiManagerGetApi.method.declaringClass }
 
     val emojiFeatureService by lazy {
         getServiceByClass(classEmojiFeatureService.clazz)

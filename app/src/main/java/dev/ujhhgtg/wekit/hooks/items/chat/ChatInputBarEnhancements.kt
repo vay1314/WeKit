@@ -116,9 +116,9 @@ object ChatInputBarEnhancements : SwitchHookItem() {
 
                                 lifecycleScope.launch(Dispatchers.IO) {
                                     val tempPath = KnownPaths.moduleCache / "voice.tmp"
-                                    contentResolver.openInputStream(uri)!!.use { fis ->
-                                        tempPath.outputStream().use { fos ->
-                                            fis.copyTo(fos)
+                                    contentResolver.openInputStream(uri)!!.use { input ->
+                                        tempPath.outputStream().use { output ->
+                                            input.copyTo(output)
                                         }
                                     }
                                     val mimeType = contentResolver.getType(uri) ?: return@launch
@@ -175,7 +175,6 @@ object ChatInputBarEnhancements : SwitchHookItem() {
                                                                 showToast("转换失败! 查看日志以了解错误详情")
                                                             }
                                                             tempSilkPath.deleteIfExists()
-                                                            return@Button
                                                         }
                                                         showToast("语音发送${if (success) "成功" else "失败!"}")
                                                         tempPath.deleteIfExists()

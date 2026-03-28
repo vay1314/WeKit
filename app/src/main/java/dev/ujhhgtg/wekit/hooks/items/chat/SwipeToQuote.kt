@@ -145,7 +145,7 @@ object SwipeToQuote : SwitchHookItem(), IResolvesDex,
 
     private fun onSwipeLeft(originalView: View, chattingContext: Any) {
         val apiMan = chattingContext.asResolver()
-            .firstField { type = WeServiceApi.methodApiManagerGetApi.method.declaringClass }
+            .firstField { type = WeServiceApi.classApiManager }
             .get()!!
         val api = WeServiceApi.getApiByClass(apiMan, classChattingUiFootComponent.clazz)
         val chatFooter = api.asResolver()

@@ -41,7 +41,7 @@ object AutoSpeechToText : SwitchHookItem(),
         val chattingContext = WeChatMessageViewApi.getChattingContextFromParam(param)
         val apiMan = chattingContext.asResolver()
             .firstField {
-                type = WeServiceApi.methodApiManagerGetApi.method.declaringClass
+                type = WeServiceApi.classApiManager
             }
             .get()!!
         val api = WeServiceApi.getApiByClass(apiMan, WeMessageApi.classTransformChattingComponent.clazz)
@@ -54,24 +54,26 @@ object AutoSpeechToText : SwitchHookItem(),
             }
             .invoke(id)
 
-        if (chatViewItem.toString() == "NoTransform") {
-            processedMessages[id] = true
-            try {
-                api.asResolver()
-                    .firstMethod {
-                        parameters(
-                            WeMessageApi.classMsgInfo.clazz,
-                            Boolean::class.java,
-                            Int::class.java,
-                            Int::class.java
-                        )
-                        returnType = Void::class.javaPrimitiveType
-                    }
-                    .invoke(msgInfo.instance, false, -1, 0)
-            } catch (_: InvocationTargetException) {
-                // WeChat throws `java.lang.NullPointerException: getImgPath(...) must not be null`,
-                // but that's not what we should care about and doesn't affect functionality
-            }
+        if (chatViewItem.toString() != "NoTransform") return
+
+        processedMessages[id] = true
+
+        if (WeMessageApi.methodGetIsTransformed.method.invoke(msgInfo.instance) as Boolean) return
+        try {
+            api.asResolver()
+                .firstMethod {
+                    parameters(
+                        WeMessageApi.classMsgInfo.clazz,
+                        Boolean::class,
+                        Int::class,
+                        Int::class
+                    )
+                    returnType = Void::class.javaPrimitiveType
+                }
+                .invoke(msgInfo.instance, false, -1, 0)
+        } catch (_: InvocationTargetException) {
+            // WeChat throws `java.lang.NullPointerException: getImgPath(...) must not be null`,
+            // but that's not what we should care about and doesn't affect functionality
         }
     }
 }

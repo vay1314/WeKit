@@ -22,9 +22,11 @@ import dev.ujhhgtg.wekit.hooks.api.core.WeDatabaseApi
 import dev.ujhhgtg.wekit.hooks.api.core.WeMessageApi
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
+import dev.ujhhgtg.wekit.preferences.WePrefs
 import dev.ujhhgtg.wekit.utils.HostInfo
 import dev.ujhhgtg.wekit.utils.KnownPaths
 import dev.ujhhgtg.wekit.utils.LruCache
+import dev.ujhhgtg.wekit.utils.TargetProcesses
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.replaceEmojis
 import dev.ujhhgtg.wekit.utils.replaceRichContent
@@ -46,6 +48,12 @@ import kotlin.io.path.writeBytes
 object NotificationsEvolved : SwitchHookItem() {
 
     private val TAG = nameof(NotificationsEvolved)
+
+    override fun startup(process: Int) {
+        if (process != TargetProcesses.PROC_MAIN && process != TargetProcesses.PROC_PUSH) return
+        _isEnabled = WePrefs.getBoolOrFalse(path)
+        if (_isEnabled) enable()
+    }
 
     private val lastGroupChatSender = LruCache<String, String>()
 
@@ -91,7 +99,7 @@ object NotificationsEvolved : SwitchHookItem() {
         }
     }
 
-    private val MESSAGE_REGEX = Regex("""^(\[\d+条])?(.+?)?: (.*)$""")
+    private val MESSAGE_REGEX = Regex("""^(\[\d+条])?(.+?)?: (.*)$""", RegexOption.DOT_MATCHES_ALL)
 
     override fun onEnable() {
         CoroutineScope(Dispatchers.IO).launch {

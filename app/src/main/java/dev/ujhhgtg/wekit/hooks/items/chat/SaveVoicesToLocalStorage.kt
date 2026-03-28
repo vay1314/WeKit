@@ -104,6 +104,7 @@ object SaveVoicesToLocalStorage : SwitchHookItem(), IResolvesDex,
                     val mp3Path = KnownPaths.downloads / mp3Name
 
                     runCatching {
+                        silkPath.deleteIfExists()
                         silkOriginalPath.copyTo(silkPath, overwrite = true)
                         SilkCodec.silkToPcm(silkPath.absolutePathString(), pcmPath.absolutePathString())
                         SilkCodec.pcmToMp3(pcmPath.absolutePathString(), mp3Path.absolutePathString())
