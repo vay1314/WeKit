@@ -1,14 +1,14 @@
 package dev.ujhhgtg.wekit.hooks.items.debug
 
+import com.tencent.mm.ui.LauncherUI
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.utils.HostInfo
-import dev.ujhhgtg.wekit.utils.RuntimeConfig
-import dev.ujhhgtg.wekit.utils.showToast
+import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.crash.CrashLogsManager
 import dev.ujhhgtg.wekit.utils.crash.NativeCrashHandler
-import dev.ujhhgtg.wekit.utils.WeLogger
+import dev.ujhhgtg.wekit.utils.showToast
 
 @HookItem(
     path = "调试/崩溃拦截 (Native)",
@@ -48,7 +48,7 @@ object NativeCrashInterceptor : SwitchHookItem() {
 
     private fun showPendingNativeCrashDialog() {
         runCatching {
-            val activity = RuntimeConfig.getLauncherUiActivity()
+            val activity = LauncherUI.getInstance()
             if (activity == null || activity.isFinishing || activity.isDestroyed) return
             val crashLogFile = CrashLogsManager.pendingNativeCrashLogFile ?: return
             CrashInterceptorUtils.showPendingCrashDialog(

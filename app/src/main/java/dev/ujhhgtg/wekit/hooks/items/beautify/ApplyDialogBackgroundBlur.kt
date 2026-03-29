@@ -17,7 +17,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.ui.halfscreen.HalfScreenTransparentActivity
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.hooks.core.ClickableHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItem
@@ -40,7 +40,7 @@ object ApplyDialogBackgroundBlur : ClickableHookItem() {
     override fun onEnable() {
         listOf(
             Dialog::class,
-            "com.tencent.mm.ui.halfscreen.HalfScreenTransparentActivity".toClass()
+            HalfScreenTransparentActivity::class
         ).forEach {
             it.asResolver()
                 .firstMethod {

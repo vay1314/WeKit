@@ -2,7 +2,7 @@ package dev.ujhhgtg.wekit.hooks.items.chat
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.condition.type.Modifiers
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.plugin.gif.MMWXGFJNI
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.R
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
@@ -13,8 +13,8 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.utils.KnownPaths
 import dev.ujhhgtg.wekit.utils.ModuleRes
-import dev.ujhhgtg.wekit.utils.showToast
 import dev.ujhhgtg.wekit.utils.WeLogger
+import dev.ujhhgtg.wekit.utils.showToast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -77,11 +77,7 @@ object SaveStickersToLocalStorage : SwitchHookItem(), IResolvesDex,
                         returnType = ByteArray::class
                     }
                     .invoke(emojiInfo) as ByteArray
-                bytes = "com.tencent.mm.plugin.gif.MMWXGFJNI".toClass().asResolver()
-                    .firstMethod {
-                        name = "nativeWxamToGif"
-                    }
-                    .invoke(bytes) as ByteArray
+                bytes = MMWXGFJNI.nativeWxamToGif(bytes)
 
                 val fileName = "sticker_${System.currentTimeMillis()}.gif"
                 CoroutineScope(Dispatchers.IO).launch {

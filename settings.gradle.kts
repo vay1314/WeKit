@@ -60,3 +60,4 @@ include(":app",
     ":libs:external:nameof-kt:api",
     ":libs:common:libxposed-api"
 )
+include(":libs:common:stubs")

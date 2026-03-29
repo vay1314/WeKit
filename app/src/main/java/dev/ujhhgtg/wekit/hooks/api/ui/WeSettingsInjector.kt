@@ -12,9 +12,17 @@ import com.highcapable.kavaref.extension.ClassLoaderProvider
 import com.highcapable.kavaref.extension.createInstance
 import com.highcapable.kavaref.extension.toClass
 import com.highcapable.kavaref.extension.toClassOrNull
+import com.tencent.mm.plugin.setting.ui.setting_new.base.BaseSettingPrefUI
+import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingAdditionHeaderSearch
+import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupAccountInfo
+import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupMain
+import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupPersonalInfo
+import com.tencent.mm.ui.LauncherUI
+import com.tencent.mm.ui.base.preference.IconPreference
 import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.BuildConfig
+import dev.ujhhgtg.wekit.constants.PackageNames
 import dev.ujhhgtg.wekit.dexkit.DexMethodDescriptor
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexClass
@@ -197,7 +205,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
      */
     private fun tryHookLegacySettings() {
         // 检查类是否存在
-        val clsSettingsUi = "com.tencent.mm.plugin.setting.ui.setting.SettingsUI"
+        val clsSettingsUi = "${PackageNames.WECHAT}.plugin.setting.ui.setting.SettingsUI"
             .toClassOrNull() ?: return
 
         val setKeyMethod = methodSetKey.method
@@ -213,9 +221,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
             val context = activity as Context
 
             try {
-                val clsIconPref =
-                    "com.tencent.mm.ui.base.preference.IconPreference".toClass()
-                val prefInstance = clsIconPref.createInstance(context)
+                val prefInstance = IconPreference(context)
 
                 setKeyMethod.invoke(prefInstance, PREFS_KEY)
                 setTitleMethod.invoke(prefInstance, PREFS_TITLE)
@@ -275,10 +281,8 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
 
     private val settingItemClass by lazy {
         val baseClass = classBaseSettingItem.clazz
-        val settingGroupMainClass =
-            "com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupMain".toClass()
-        val settingGroupAccountInfoClass =
-            "com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupAccountInfo".toClass()
+        val settingGroupMainClass = SettingGroupMain::class.java
+        val settingGroupAccountInfoClass = SettingGroupAccountInfo::class.java
         settingGroupAccountInfoClass.declaredMethods.run {
                 val mGetClass = this.first { m -> m.returnType == Class::class.java }.name // C6
                 val mReturns1 = methodSettingGroupAccountInfoReturns1.method.name // K6
@@ -309,7 +313,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
                         mGetStringId -> return@InvocationHandler "SettingGroup_Main_Other_WeKit"
                         mGetSettingLocation -> return@InvocationHandler classSettingLocation.clazz.createInstance(
                             settingGroupMainClass,
-                            "com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingAdditionHeaderSearch".toClass()
+                            SettingAdditionHeaderSearch::class.java
                         )
 
                         mGetNameResId -> return@InvocationHandler WEKIT_SETTING_ITEM_NAME_RES_ID
@@ -339,7 +343,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
 
     private fun tryHookNewSettingsMethod2() {
         val settingGroupMainClass =
-            "com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupMain".toClassOrNull()
+            "${PackageNames.WECHAT}.plugin.setting.ui.setting_new.settings.SettingGroupMain".toClassOrNull()
                 ?: return
 
         // a simple way to inject string resource
@@ -355,14 +359,13 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
             }
 
         // create dependency chain
-        "com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupPersonalInfo".toClass()
-            .asResolver()
+        SettingGroupPersonalInfo::class.asResolver()
             .firstMethod {
                 returnType = classSettingLocation.clazz
             }
             .hookBefore { param ->
                 param.result = classSettingLocation.clazz.createInstance(
-                    settingGroupMainClass.toClass(),
+                    settingGroupMainClass,
                     settingItemClass
                 )
             }
@@ -376,11 +379,11 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
             }
 
         // inject into page
-        "com.tencent.mm.plugin.setting.ui.setting_new.base.BaseSettingPrefUI"
-            .toClass().asResolver().firstMethod { name = "superImportUIComponents" }
+        BaseSettingPrefUI::class.asResolver()
+            .firstMethod { name = "superImportUIComponents" }
             .hookAfter { param ->
                 if (param.thisObject.javaClass.name
-                    != "com.tencent.mm.plugin.setting.ui.setting_new.MainSettingsUI"
+                    != "${PackageNames.WECHAT}.plugin.setting.ui.setting_new.MainSettingsUI"
                 ) return@hookAfter
 
                 @Suppress("UNCHECKED_CAST")
@@ -398,7 +401,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
 //    }
 
     private fun hookLauncherUi() {
-        "com.tencent.mm.ui.LauncherUI".toClass().asResolver().apply {
+        LauncherUI::class.asResolver().apply {
             firstMethod { name = "onCreate" }
                 .hookBefore { param ->
                     val activity = param.thisObject as Activity

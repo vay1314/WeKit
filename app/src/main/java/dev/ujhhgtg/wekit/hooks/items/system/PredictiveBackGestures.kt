@@ -1,9 +1,9 @@
 package dev.ujhhgtg.wekit.hooks.items.system
 
+import android.app.ActivityThread
 import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
 import dev.ujhhgtg.wekit.constants.PackageNames
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
@@ -39,7 +39,7 @@ object PredictiveBackGestures : SwitchHookItem() {
                 applyPbgFlag(info)
             }
 
-        "android.app.ActivityThread".toClass().asResolver()
+        ActivityThread::class.asResolver()
             .firstMethod { name = "handleLaunchActivity" }
             .hookBefore { param ->
                 val record = param.args[0]

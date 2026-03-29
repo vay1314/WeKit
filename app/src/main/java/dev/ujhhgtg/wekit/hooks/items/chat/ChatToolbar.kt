@@ -46,7 +46,7 @@ import com.composables.icons.materialsymbols.outlined.Video_chat
 import com.composables.icons.materialsymbols.outlined.Voice_chat
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.createInstance
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.pluginsdk.ui.chat.ChatFooter
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
@@ -146,7 +146,7 @@ object ChatToolbar : SwitchHookItem(), IResolvesDex {
             }
         }
 
-        "com.tencent.mm.pluginsdk.ui.chat.ChatFooter".toClass().asResolver()
+        ChatFooter::class.asResolver()
             .firstConstructor {
                 parameters(Context::class, AttributeSet::class, Int::class)
             }

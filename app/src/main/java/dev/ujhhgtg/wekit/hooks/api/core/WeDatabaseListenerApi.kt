@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.ContentValues
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.VariousClass
-import com.highcapable.kavaref.extension.toClass
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.constants.PreferenceKeys
 import dev.ujhhgtg.wekit.constants.WeChatVersion
@@ -32,9 +31,6 @@ object WeDatabaseListenerApi : ApiHookItem() {
     }
 
     private val TAG = nameof(WeDatabaseApi)
-
-    private const val DB_CLASS_NAME = "com.tencent.wcdb.database.SQLiteDatabase"
-    private const val DB_COMPAT_CLASS_NAME = "com.tencent.wcdb.compat.SQLiteDatabase"
 
     private val insertListeners = CopyOnWriteArrayList<IInsertListener>()
     private val updateListeners = CopyOnWriteArrayList<IUpdateListener>()
@@ -113,8 +109,7 @@ object WeDatabaseListenerApi : ApiHookItem() {
     // ==================== Insert Hook ====================
 
     private fun hookDatabaseInsert() {
-        val clsDb = DB_CLASS_NAME.toClass()
-        clsDb.asResolver()
+        com.tencent.wcdb.database.SQLiteDatabase::class.asResolver()
             .firstMethod {
                 name = "insertWithOnConflict"
                 parameters(String::class, String::class, ContentValues::class, Int::class)
@@ -137,7 +132,7 @@ object WeDatabaseListenerApi : ApiHookItem() {
     // ==================== Update Hook ====================
 
     private fun hookDatabaseUpdate() {
-        val clsDb = VariousClass(DB_COMPAT_CLASS_NAME, DB_CLASS_NAME).load()
+        val clsDb = VariousClass("com.tencent.wcdb.compat.SQLiteDatabase", "com.tencent.wcdb.database.SQLiteDatabase").load()
 
         clsDb.asResolver()
             .firstMethod {
@@ -191,8 +186,7 @@ object WeDatabaseListenerApi : ApiHookItem() {
     }
 
     private fun hookNewQueryMethod() {
-        val clsDb = DB_COMPAT_CLASS_NAME.toClass()
-        clsDb.asResolver()
+        com.tencent.wcdb.compat.SQLiteDatabase::class.asResolver()
             .firstMethod {
                 name = "rawQuery"
                 parameters(String::class, Array<Any>::class)
@@ -224,14 +218,14 @@ object WeDatabaseListenerApi : ApiHookItem() {
     }
 
     private fun hookOldQueryMethod() {
-        DB_CLASS_NAME.toClass().asResolver().firstMethod {
+        com.tencent.wcdb.database.SQLiteDatabase::class.asResolver().firstMethod {
             name = "rawQueryWithFactory"
             parameters(
-                $$"com.tencent.wcdb.database.SQLiteDatabase$CursorFactory",
+                com.tencent.wcdb.database.SQLiteDatabase.CursorFactory::class,
                 String::class,
                 Array<String>::class,
                 String::class,
-                "com.tencent.wcdb.support.CancellationSignal"
+                com.tencent.wcdb.support.CancellationSignal::class
             )
         }.hookBefore { param ->
             try {

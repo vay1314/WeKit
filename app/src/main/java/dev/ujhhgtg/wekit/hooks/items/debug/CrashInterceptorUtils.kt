@@ -15,14 +15,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
+import com.tencent.mm.ui.LauncherUI
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.ui.content.AlertDialogContent
 import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
-import dev.ujhhgtg.wekit.utils.RuntimeConfig
+import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.copyToClipboard
 import dev.ujhhgtg.wekit.utils.crash.CrashLogsManager
-import dev.ujhhgtg.wekit.utils.WeLogger
 import java.io.File
 import java.nio.file.Path
 
@@ -60,7 +60,7 @@ internal object CrashInterceptorUtils {
         val runnable = object : Runnable {
             override fun run() {
                 try {
-                    val activity = RuntimeConfig.getLauncherUiActivity()
+                    val activity = LauncherUI.getInstance()
                     if (activity != null && !activity.isFinishing && !activity.isDestroyed) {
                         WeLogger.i(tag, "activity is ready")
                         onReady(activity)

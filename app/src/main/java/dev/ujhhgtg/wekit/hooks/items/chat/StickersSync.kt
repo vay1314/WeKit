@@ -18,7 +18,7 @@ import com.highcapable.kavaref.condition.type.Modifiers
 import com.highcapable.kavaref.extension.ClassLoaderProvider
 import com.highcapable.kavaref.extension.createInstance
 import com.highcapable.kavaref.extension.isSubclassOf
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.storage.emotion.EmojiGroupInfo
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexClass
@@ -280,8 +280,6 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
     private var actualRetTypeInitArg2Type: Class<*>? = null
 
     override fun onEnable() {
-        val emojiGroupInfoCls = "com.tencent.mm.storage.emotion.EmojiGroupInfo".toClass()
-
         @Suppress("UNCHECKED_CAST")
         methodGetEmojiGroupInfo.hookAfter { param ->
             if (param.result !is List<*>) {
@@ -306,13 +304,8 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
                 stickersPackData.put("status", 7)
                 stickersPackData.put("sync", 2)
 
-                val emojiGroupInfo = emojiGroupInfoCls.createInstance()
-                emojiGroupInfoCls.getMethod(
-                    "convertFrom",
-                    ContentValues::class.java,
-                    Boolean::class.java
-                )
-                    .invoke(emojiGroupInfo, stickersPackData, true)
+                val emojiGroupInfo = EmojiGroupInfo()
+                emojiGroupInfo.convertFrom(stickersPackData, true)
 
                 (param.result as MutableList<Any?>).add(index, emojiGroupInfo)
             }

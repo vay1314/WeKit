@@ -1,7 +1,5 @@
 package dev.ujhhgtg.wekit.hooks.items.chat
 
-import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.R
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
@@ -12,9 +10,9 @@ import dev.ujhhgtg.wekit.hooks.api.core.model.MessageType
 import dev.ujhhgtg.wekit.hooks.api.ui.WeChatMessageContextMenuApi
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
+import dev.ujhhgtg.wekit.utils.AudioUtils
 import dev.ujhhgtg.wekit.utils.KnownPaths
 import dev.ujhhgtg.wekit.utils.ModuleRes
-import dev.ujhhgtg.wekit.utils.AudioUtils
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.showToast
 import kotlinx.coroutines.CoroutineScope
@@ -22,7 +20,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.luckypray.dexkit.DexKitBridge
-import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
@@ -44,22 +41,8 @@ object SaveVoicesToLocalStorage : SwitchHookItem(), IResolvesDex,
     private val classVoiceLogic by dexClass()
     private val methodGetAmrFullPath by dexMethod()
 
-    private lateinit var methodStreamSilkDecInit: Method
-    private lateinit var methodStreamSilkDecUnInit: Method
-    private lateinit var methodStreamSilkDoDec: Method
 
     override fun onEnable() {
-        val clazz = "com.tencent.mm.modelvoice.MediaRecorder".toClass()
-        methodStreamSilkDecInit = clazz.asResolver()
-            .firstMethod { name = "StreamSilkDecInit" }
-            .self
-        methodStreamSilkDecUnInit = clazz.asResolver()
-            .firstMethod { name = "StreamSilkDecUnInit" }
-            .self
-        methodStreamSilkDoDec = clazz.asResolver()
-            .firstMethod { name = "StreamSilkDoDec" }
-            .self
-
         WeChatMessageContextMenuApi.addProvider(this)
     }
 

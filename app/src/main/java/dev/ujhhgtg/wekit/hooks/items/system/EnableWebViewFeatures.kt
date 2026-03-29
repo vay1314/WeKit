@@ -3,7 +3,7 @@ package dev.ujhhgtg.wekit.hooks.items.system
 import android.app.Activity
 import android.content.Intent
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.plugin.webview.ui.tools.WebViewUI
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
 import dev.ujhhgtg.wekit.hooks.core.HookItem
@@ -13,31 +13,24 @@ import org.luckypray.dexkit.DexKitBridge
 @HookItem(path = "系统与隐私/强制启用 WebView 菜单", desc = "强制显示 WebView 页面右上角菜单按钮")
 object EnableWebViewFeatures : SwitchHookItem(), IResolvesDex {
 
-    private const val WEBVIEW_UI_CLASS_NAME = "com.tencent.mm.plugin.webview.ui.tools.WebViewUI"
-
     private val TRUE_INTENT_KEYS =
         setOf("show_feedback", "KRightBtn", "KShowFixToolsBtn", "key_enable_fts_quick")
 
     private val methodInitWebViewFeatures by dexMethod()
 
     override fun onEnable() {
-        val cls = WEBVIEW_UI_CLASS_NAME.toClass()
-
-        cls.asResolver()
-            .method {
+        WebViewUI::class.asResolver()
+            .firstMethod {
                 name = "showOptionMenu"
-            }
-            .forEach {
-                it.hookBefore { param ->
-                    if (param.args[0] is Boolean) {
-                        param.args[0] = true
-                    } else if (param.args[1] is Boolean) {
-                        param.args[1] = true
-                    }
-
-                    val activity = param.thisObject as Activity
-                    activity.intent.putExtra("hide_option_menu", false)
+            }.hookBefore { param ->
+                if (param.args[0] is Boolean) {
+                    param.args[0] = true
+                } else if (param.args[1] is Boolean) {
+                    param.args[1] = true
                 }
+
+                val activity = param.thisObject as Activity
+                activity.intent.putExtra("hide_option_menu", false)
             }
 
         methodInitWebViewFeatures.hookBefore { param ->
@@ -54,7 +47,7 @@ object EnableWebViewFeatures : SwitchHookItem(), IResolvesDex {
     override fun resolveDex(dexKit: DexKitBridge) {
         methodInitWebViewFeatures.find(dexKit) {
             matcher {
-                declaredClass = WEBVIEW_UI_CLASS_NAME
+                declaredClass = "com.tencent.mm.plugin.webview.ui.tools.WebViewUI"
                 usingEqStrings(
                     "banRightBtn:%b, showFixToolsBtn:%b",
                     "MicroMsg.WebViewFtsQuickHelper"

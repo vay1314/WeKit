@@ -1,6 +1,8 @@
 package dev.ujhhgtg.wekit.hooks.items.chat
 
 import android.app.Activity
+import android.view.ContextThemeWrapper
+import android.view.View
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -36,8 +38,8 @@ import dev.ujhhgtg.wekit.ui.content.Button
 import dev.ujhhgtg.wekit.ui.content.DefaultColumn
 import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
-import dev.ujhhgtg.wekit.utils.RuntimeConfig
 import dev.ujhhgtg.wekit.utils.WeLogger
+import dev.ujhhgtg.wekit.utils.cast
 import dev.ujhhgtg.wekit.utils.invokeOriginal
 import dev.ujhhgtg.wekit.utils.showToast
 import org.luckypray.dexkit.DexKitBridge
@@ -130,9 +132,11 @@ object EmojiGameControl : SwitchHookItem(), IResolvesDex {
                         )
                         val emojiMd5 = getMd5Method.invoke(emojiInfo) as? String
 
+                        val activity = param.args[0].cast<View>().context.cast<ContextThemeWrapper>().baseContext as Activity
+
                         when (emojiMd5) {
-                            MD5_MORRA -> showSelectDialog(param, isDice = false)
-                            MD5_DICE -> showSelectDialog(param, isDice = true)
+                            MD5_MORRA -> showSelectDialog(param, false, activity)
+                            MD5_DICE -> showSelectDialog(param, true, activity)
                         }
                     }
                 }
@@ -140,10 +144,8 @@ object EmojiGameControl : SwitchHookItem(), IResolvesDex {
         }
     }
 
-    private fun showSelectDialog(param: XC_MethodHook.MethodHookParam, isDice: Boolean) {
+    private fun showSelectDialog(param: XC_MethodHook.MethodHookParam, isDice: Boolean, activity: Activity) {
         param.result = null
-
-        val activity = RuntimeConfig.getLauncherUiActivity()!!
 
         showComposeDialog(activity) {
             EmojiGameDialogContent(
@@ -155,15 +157,14 @@ object EmojiGameControl : SwitchHookItem(), IResolvesDex {
                         } else {
                             val values = parseMultipleInput(inputText, isDice)
                             if (values.isEmpty()) {
-                                Toast.makeText(activity, "输入格式错误，请重试", Toast.LENGTH_SHORT)
-                                    .show()
+                                showToast(activity, "输入格式错误!")
                                 return@EmojiGameDialogContent
                             }
                             sendMultiple(param, values, isDice, activity)
                         }
                     } catch (e: Throwable) {
                         WeLogger.e(TAG, "failed to send", e)
-                        Toast.makeText(activity, "发送失败", Toast.LENGTH_SHORT).show()
+                        showToast(activity, "发送失败")
                     }
                 },
                 onRandom = { isSingle ->
@@ -181,7 +182,7 @@ object EmojiGameControl : SwitchHookItem(), IResolvesDex {
                         }
                     } catch (e: Throwable) {
                         WeLogger.e(TAG, "failed to send random", e)
-                        Toast.makeText(activity, "发送失败", Toast.LENGTH_SHORT).show()
+                        showToast(activity, "发送失败")
                     }
                 },
                 onDismiss = onDismiss

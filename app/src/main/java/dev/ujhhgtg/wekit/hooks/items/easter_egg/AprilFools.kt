@@ -12,6 +12,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.ui.base.NoMeasuredTextView
 import dev.ujhhgtg.wekit.hooks.core.BaseHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.preferences.WePrefs
@@ -67,7 +68,7 @@ object AprilFools : BaseHookItem() {
             applyRainbowEffect(tv, tv.text, tv.paint)
         }
 
-        "com.tencent.mm.ui.base.NoMeasuredTextView".toClass().asResolver()
+        NoMeasuredTextView::class.asResolver()
             .firstMethod { name = "onDraw" }.hookBefore { param ->
                 val view = param.thisObject as View
 

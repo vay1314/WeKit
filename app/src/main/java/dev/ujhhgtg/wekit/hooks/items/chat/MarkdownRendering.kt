@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withTranslation
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.ui.widget.MMNeat7extView
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexClass
@@ -79,7 +79,7 @@ object MarkdownRendering : ClickableHookItem(), IResolvesDex {
     private const val MAX_WIDTH_BUFFER = 40
 
     override fun onEnable() {
-        "com.tencent.mm.ui.widget.MMNeat7extView".toClass().asResolver()
+        MMNeat7extView::class.asResolver()
             .firstMethod { name = "onDraw" }
             .hookBefore { param ->
                 val neatTextView = param.thisObject as View

@@ -6,7 +6,8 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.condition.type.Modifiers
 import com.highcapable.kavaref.condition.type.VagueType
 import com.highcapable.kavaref.extension.createInstance
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.opensdk.modelmsg.WXFileObject
+import com.tencent.mm.opensdk.modelmsg.WXMediaMessage
 import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
@@ -89,10 +90,6 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     private lateinit var sendImageMethod: Method
     private lateinit var taskConstructor: Constructor<*>
     private lateinit var crossParamsClass: Class<*>
-
-    // 文件
-    private val wxFileObjectClass by lazy { "com.tencent.mm.opensdk.modelmsg.WXFileObject".toClass() }
-    private val wxMediaMessageClass by lazy { "com.tencent.mm.opensdk.modelmsg.WXMediaMessage".toClass() }
 
     // 语音 & VFS
     private lateinit var vfsCopyMethod: Method         // VFS.L (write)
@@ -589,15 +586,13 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             val paramsObj = XposedHelpers.newInstance(paramsClass)
             assignValueToFirstFieldByType(paramsObj, Int::class.javaPrimitiveType!!, 4)
 
-            val taskObj =
-                XposedHelpers.newInstance(
-                    taskClass,
-                    imgPath,
-                    0,
-                    selfCustomWxId,
-                    toUser,
-                    paramsObj
-                )
+            val taskObj = taskClass.createInstance(
+                imgPath,
+                0,
+                selfCustomWxId,
+                toUser,
+                paramsObj
+            )
             assignValueToLastFieldByType(taskObj, String::class.java, "media_generate_send_img")
 
             sendImageMethod.invoke(serviceObj, taskObj)
@@ -610,20 +605,12 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
         }
     }
 
-
     /** 发送文本消息 */
     fun sendText(toUser: String, text: String): Boolean {
         return try {
             WeLogger.i(TAG, "[sendText] 准备发送文本消息: $text")
             val sendMsgObject = methodGetSendMsgObject.method.invoke(null) ?: return false
-            val constructor = classNetSceneSendMsg.clazz.getConstructor(
-                String::class.java,
-                String::class.java,
-                Int::class.javaPrimitiveType,
-                Int::class.javaPrimitiveType,
-                Any::class.java
-            ) ?: return false
-            val msgObj = constructor.newInstance(toUser, text, 1, 0, null)
+            val msgObj = classNetSceneSendMsg.clazz.createInstance(toUser, text, 1, 0, null)
             methodPostToQueue.method.invoke(sendMsgObject, msgObj) as? Boolean ?: false
         } catch (e: Exception) {
             WeLogger.e(TAG, "[sendText] Text 发送失败", e)
@@ -635,11 +622,11 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     fun sendFile(talker: String, filePath: String, title: String, appId: String? = null): Boolean {
         return try {
             WeLogger.i(TAG, "[sendFile] 准备发送文件消息: $filePath")
-            val fileObject = wxFileObjectClass.createInstance()
-            wxFileObjectClass.getField("filePath").set(fileObject, filePath)
-            val mediaMessage = wxMediaMessageClass.createInstance()
-            wxMediaMessageClass.getField("mediaObject").set(mediaMessage, fileObject)
-            wxMediaMessageClass.getField("title").set(mediaMessage, title)
+            val fileObject = WXFileObject()
+            fileObject.filePath = filePath
+            val mediaMessage = WXMediaMessage()
+            mediaMessage.mediaObject = fileObject
+            mediaMessage.title = title
             methodShareFile.method.invoke(null, mediaMessage, appId ?: "", "", talker, 2, null)
             true
         } catch (e: Exception) {

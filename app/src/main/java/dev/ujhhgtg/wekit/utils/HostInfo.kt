@@ -4,8 +4,6 @@ import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import androidx.core.content.pm.PackageInfoCompat
-import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
 import dev.ujhhgtg.wekit.constants.PackageNames
 
 enum class HostSpecies { WeChat, WeKit, Unknown }
@@ -34,11 +32,7 @@ object HostInfo {
     val isHost: Boolean get() = !isModule
 
     val isHostGooglePlay: Boolean by lazy {
-        runCatching {
-            "com.tencent.mm.boot.BuildConfig".toClass().asResolver()
-                .firstField { name = "BUILD_TAG" }
-                .get() as? String?
-        }.getOrNull()?.contains("GP", ignoreCase = true) ?: false
+        com.tencent.mm.boot.BuildConfig.BUILD_TAG.contains("GP", ignoreCase = true)
     }
 
     fun init(application: Application) {

@@ -1,6 +1,7 @@
 package dev.ujhhgtg.wekit.loader.startup
 
 import android.annotation.SuppressLint
+import android.app.ActivityThread
 import android.app.Application
 import android.os.Build
 import com.highcapable.kavaref.extension.toClass
@@ -24,8 +25,8 @@ object StartupAgent {
 
     @OptIn(ExperimentalPathApi::class)
     fun startup(
-        modulePath: String,
-        loaderService: ILoaderService
+        loaderService: ILoaderService,
+        modulePath: String
     ) {
         if (sInitialized) return
         sInitialized = true
@@ -60,10 +61,8 @@ object StartupAgent {
         }.onFailure { WeLogger.e(TAG, "getBaseApplication: failed to call TinkerApplication.getInstance()", it) }
 
         runCatching {
-            val activityThreadClz = "android.app.ActivityThread".toClass()
-            val currentAppMethod = activityThreadClz.getDeclaredMethod("currentApplication")
-            currentAppMethod.isAccessible = true
-            return currentAppMethod.invoke(null) as Application
+            val app = ActivityThread.currentApplication()!!
+            return app
         }.onFailure { WeLogger.e(TAG, "getBaseApplication: ActivityThread fallback failed", it) }
 
         error("failed to retrieve Application instance")

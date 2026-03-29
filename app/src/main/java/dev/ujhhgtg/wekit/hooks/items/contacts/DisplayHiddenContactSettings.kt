@@ -2,8 +2,7 @@ package dev.ujhhgtg.wekit.hooks.items.contacts
 
 import android.widget.BaseAdapter
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
-import dev.ujhhgtg.wekit.constants.PackageNames
+import com.tencent.mm.plugin.profile.ui.ProfileSettingUI
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.utils.cast
@@ -12,15 +11,11 @@ import dev.ujhhgtg.wekit.utils.cast
 object DisplayHiddenContactSettings : SwitchHookItem() {
 
     override fun onEnable() {
-        "${PackageNames.WECHAT}.plugin.profile.ui.ProfileSettingUI".toClass().asResolver()
+        ProfileSettingUI::class.asResolver()
             .firstMethod {
                 name = "initView"
             }.hookAfter { param ->
-                val prefScreen = param.thisObject.asResolver()
-                    .firstMethod {
-                        name = "getPreferenceScreen"
-                        superclass()
-                    }.invoke()!!
+                val prefScreen = param.thisObject.cast<ProfileSettingUI>().preferenceScreen
                 val hiddenSet = prefScreen.asResolver()
                     .firstField {
                         type = HashSet::class

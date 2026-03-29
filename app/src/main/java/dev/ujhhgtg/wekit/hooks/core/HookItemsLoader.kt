@@ -1,6 +1,7 @@
 package dev.ujhhgtg.wekit.hooks.core
 
 import android.content.pm.ApplicationInfo
+import com.tencent.mm.ui.LauncherUI
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.constants.PreferenceKeys.NO_DEX_RESOLVE
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
@@ -9,7 +10,6 @@ import dev.ujhhgtg.wekit.preferences.WePrefs
 import dev.ujhhgtg.wekit.ui.content.DexResolverDialogContent
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.HostInfo
-import dev.ujhhgtg.wekit.utils.RuntimeConfig
 import dev.ujhhgtg.wekit.utils.TargetProcesses
 import dev.ujhhgtg.wekit.utils.WeLogger
 import kotlinx.coroutines.CoroutineScope
@@ -121,7 +121,7 @@ object HookItemsLoader {
             val activity = withTimeoutOrNull(90_000L.milliseconds) {
                 while (true) {
                     delay(200.milliseconds)
-                    RuntimeConfig.getLauncherUiActivity()?.let { return@withTimeoutOrNull it }
+                    LauncherUI.getInstance()?.let { return@withTimeoutOrNull it }
                 }
                 @Suppress("UNREACHABLE_CODE")
                 null

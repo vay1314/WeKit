@@ -1,8 +1,7 @@
 package dev.ujhhgtg.wekit.hooks.items.miniapps
 
 import android.app.Activity
-import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.plugin.appbrand.ad.ui.AppBrandAdUI
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
 import dev.ujhhgtg.wekit.hooks.core.HookItem
@@ -19,15 +18,11 @@ object SkipMiniAppSplashAds : SwitchHookItem(), IResolvesDex {
             param.result = null
         }
 
-        "com.tencent.mm.plugin.appbrand.ad.ui.AppBrandAdUI".toClass().asResolver()
-            .firstMethod {
-                name = "onCreate"
-            }
-            .hookBefore { param ->
-                val activity = param.thisObject as Activity
-                activity.finish()
-                param.result = null
-            }
+        AppBrandAdUI::class.java.hookBeforeOnCreate { param ->
+            val activity = param.thisObject as Activity
+            activity.finish()
+            param.result = null
+        }
     }
 
     override fun resolveDex(dexKit: DexKitBridge) {

@@ -7,13 +7,6 @@ plugins {
 
 configure<LibraryExtension> {
     namespace = "io.github.libxposed.api"
-    sourceSets {
-        val main by getting
-        main.apply {
-            manifest.srcFile("src/main/AndroidManifest.xml")
-            java.directories += "src/main/java"
-        }
-    }
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
@@ -22,8 +15,8 @@ configure<LibraryExtension> {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jdk.get().toInt())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jdk.get().toInt())
     }
 }
 

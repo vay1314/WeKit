@@ -1,7 +1,7 @@
 package dev.ujhhgtg.wekit.hooks.items.moments
 
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.plugin.sns.storage.ADInfo
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
@@ -13,12 +13,10 @@ object RemoveMomentsAds : SwitchHookItem() {
     private val TAG = nameof(RemoveMomentsAds)
 
     override fun onEnable() {
-        val adInfoClass = "com.tencent.mm.plugin.sns.storage.ADInfo".toClass()
-        adInfoClass.asResolver()
+        ADInfo::class.asResolver()
             .firstConstructor {
                 parameters(String::class)
             }
-            .self
             .hookBefore { param ->
                 if (param.args.isNotEmpty() && param.args[0] is String) {
                     param.args[0] = ""

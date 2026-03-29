@@ -6,7 +6,10 @@ import android.widget.BaseAdapter
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.condition.type.Modifiers
 import com.highcapable.kavaref.extension.isSubclassOf
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.chatroom.ui.ChatroomInfoUI
+import com.tencent.mm.plugin.profile.ui.ContactInfoUI
+import com.tencent.mm.ui.base.preference.MMPreference
+import com.tencent.mm.ui.base.preference.Preference
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.hooks.core.ApiHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItem
@@ -55,10 +58,10 @@ object WeContactPrefsScreenApi : ApiHookItem() {
         initReflection()
 
         listOf(
-            "com.tencent.mm.plugin.profile.ui.ContactInfoUI",
-            "com.tencent.mm.chatroom.ui.ChatroomInfoUI"
+            ContactInfoUI::class,
+            ChatroomInfoUI::class
         ).forEach {
-            it.toClass().asResolver().apply {
+            it.asResolver().apply {
                 firstMethod { name = "initView" }
                     .hookAfter { param ->
                         val adapterInstance = adapterField.get(param.thisObject as Activity)
@@ -105,7 +108,7 @@ object WeContactPrefsScreenApi : ApiHookItem() {
     }
 
     private fun initReflection() {
-        val prefClass = "com.tencent.mm.ui.base.preference.Preference".toClass()
+        val prefClass = Preference::class
 
         prefConstructor = prefClass.asResolver()
             .firstConstructor {
@@ -118,7 +121,7 @@ object WeContactPrefsScreenApi : ApiHookItem() {
                 modifiers { !it.contains(Modifiers.FINAL) }
             }.self.also { it.isAccessible = true }
 
-        adapterField = "com.tencent.mm.ui.base.preference.MMPreference".toClass().asResolver()
+        adapterField = MMPreference::class.asResolver()
             .firstField {
                 modifiers { !it.contains(Modifiers.STATIC) }
                 type { it isSubclassOf BaseAdapter::class }

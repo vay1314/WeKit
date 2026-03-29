@@ -3,7 +3,7 @@ package dev.ujhhgtg.wekit.hooks.items.system
 import android.app.Activity
 import android.widget.Button
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.plugin.webwx.ui.ExtDeviceWXLoginUI
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 
@@ -15,7 +15,7 @@ object AutoApproveDeviceLogin : SwitchHookItem() {
     private const val AUTO_LOGIN_DEVICE = 0x4
 
     override fun onEnable() {
-        val targetClass = "com.tencent.mm.plugin.webwx.ui.ExtDeviceWXLoginUI".toClass()
+        val targetClass = ExtDeviceWXLoginUI::class.java
 
         targetClass.hookBeforeOnCreate { param ->
             val activity = param.thisObject as Activity

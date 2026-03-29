@@ -118,8 +118,6 @@ configure<ApplicationExtension> {
     }
 
     namespace = libs.versions.namespace.get()
-    compileSdk = libs.versions.targetSdk.get().toInt()
-
     ndkVersion = ndkVer
 
     val commitCount = getCommitCount()
@@ -141,6 +139,7 @@ configure<ApplicationExtension> {
         applicationId = libs.versions.namespace.get()
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
+        compileSdk = libs.versions.targetSdk.get().toInt()
         versionCode = commitCount
         versionName = "git+$gitHash"
 
@@ -181,6 +180,10 @@ configure<ApplicationExtension> {
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("release")
+        }
+
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -431,6 +434,7 @@ dependencies {
     implementation(libs.osmdroid.android)
 
     implementation(project(":libs:external:nameof-kt:api"))
+    compileOnly(project(":libs:common:stubs"))
 }
 
 // markwon conflict

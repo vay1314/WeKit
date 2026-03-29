@@ -30,7 +30,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.outlined.Search
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.ui.LauncherUI
+import com.tencent.mm.ui.chatting.ChattingUI
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.hooks.api.core.WeDatabaseApi
 import dev.ujhhgtg.wekit.hooks.api.core.model.WeGroup
@@ -40,9 +41,8 @@ import dev.ujhhgtg.wekit.ui.content.AlertDialogContent
 import dev.ujhhgtg.wekit.ui.content.Button
 import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
-import dev.ujhhgtg.wekit.utils.RuntimeConfig
-import dev.ujhhgtg.wekit.utils.showToast
 import dev.ujhhgtg.wekit.utils.WeLogger
+import dev.ujhhgtg.wekit.utils.showToast
 
 @HookItem(path = "联系人与群组/分裂群组", desc = "让群聊一分为二")
 object SplitChatroom : ClickableHookItem() {
@@ -76,14 +76,9 @@ object SplitChatroom : ClickableHookItem() {
     }
 
     private fun jumpToSplitChatroom(chatroomId: String) {
-        try {
-            val activity = RuntimeConfig.getLauncherUiActivity()
-            if (activity == null) {
-                WeLogger.e(TAG, "LauncherUI Activity is null")
-                return
-            }
-
-            val chattingUIClass = "com.tencent.mm.ui.chatting.ChattingUI".toClass()
+        runCatching {
+            val activity = LauncherUI.getInstance()!!
+            val chattingUIClass = ChattingUI::class.java
             val intent = Intent(activity, chattingUIClass)
 
             val rawId = chatroomId.substringBefore("@")
@@ -95,9 +90,7 @@ object SplitChatroom : ClickableHookItem() {
             intent.putExtra("Chat_Mode", 1)
 
             activity.startActivity(intent)
-        } catch (e: Exception) {
-            WeLogger.e(TAG, "跳转失败", e)
-        }
+        }.onFailure { WeLogger.e(TAG, "exception occured", it) }
     }
 
     override val noSwitchWidget: Boolean

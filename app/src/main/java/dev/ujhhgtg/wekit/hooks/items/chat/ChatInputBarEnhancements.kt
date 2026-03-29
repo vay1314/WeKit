@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.View
 import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.ImageButton
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -34,7 +33,7 @@ import com.composables.icons.materialsymbols.outlined.Alternate_email
 import com.composables.icons.materialsymbols.outlined.Send_time_extension
 import com.composables.icons.materialsymbols.outlined.Voice_chat
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
+import com.tencent.mm.pluginsdk.ui.chat.ChatFooter
 import dev.ujhhgtg.wekit.activity.StubFragmentActivity
 import dev.ujhhgtg.wekit.hooks.api.core.WeApi
 import dev.ujhhgtg.wekit.hooks.api.core.WeDatabaseApi
@@ -61,7 +60,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
-import java.lang.reflect.Method
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.div
@@ -75,16 +73,13 @@ import android.widget.Button as AndroidButton
 object ChatInputBarEnhancements : SwitchHookItem() {
 
     lateinit var currentConv: String
-    private lateinit var methodGetLastText: Method
 
     override fun onEnable() {
-        "com.tencent.mm.pluginsdk.ui.chat.ChatFooter".toClass().asResolver().apply {
-            methodGetLastText = firstMethod { name = "getLastText" }.self
-
+        ChatFooter::class.asResolver().apply {
             firstConstructor {
                 parameters(Context::class, AttributeSet::class, Int::class) }
                 .hookAfter { param ->
-                    val chatFooter = param.thisObject as FrameLayout
+                    val chatFooter = param.thisObject as ChatFooter
                     val searchedView = chatFooter.findViewByChildIndexes<View>(0)!!
                     val imgButtons = searchedView.findViewsWhich<ImageButton> { view ->
                         view.javaClass.simpleName == "WeImageButton"
@@ -126,7 +121,7 @@ object ChatInputBarEnhancements : SwitchHookItem() {
                                                 onClick = {
                                                     onDismiss()
                                                     val currentConv = currentConv
-                                                    val content = getInputBarText(chatFooter)
+                                                    val content = chatFooter.lastText
 
                                                     if (content.isEmpty()) {
                                                         showToast("输入内容为空!")
@@ -157,7 +152,7 @@ object ChatInputBarEnhancements : SwitchHookItem() {
                                                     val contacts = WeDatabaseApi
                                                         .getGroupMembers(currentConv)
                                                         .filter { c -> c.wxId != WeApi.selfWxId }
-                                                    val content = getInputBarText(chatFooter)
+                                                    val content = chatFooter.lastText
 
                                                     val reqBody = buildJsonObject {
                                                         put("1", 1)
@@ -204,8 +199,6 @@ object ChatInputBarEnhancements : SwitchHookItem() {
             }
         }
     }
-
-    private fun getInputBarText(chatFooter: Any) = methodGetLastText.invoke(chatFooter) as String
 }
 
 private fun selectAndSendVoice(context: Context, currentConv: String) {

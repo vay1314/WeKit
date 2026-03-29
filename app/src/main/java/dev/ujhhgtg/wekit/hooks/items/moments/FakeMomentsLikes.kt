@@ -18,7 +18,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.highcapable.kavaref.extension.toClass
+import com.highcapable.kavaref.KavaRef.Companion.asResolver
+import com.highcapable.kavaref.extension.createInstance
+import com.tencent.mm.plugin.sns.ui.SnsCommentFooter
+import com.tencent.mm.protocal.protobuf.SnsObject
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.R
 import dev.ujhhgtg.wekit.hooks.api.core.WeDatabaseApi
@@ -31,8 +34,8 @@ import dev.ujhhgtg.wekit.ui.content.Button
 import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.ModuleRes
-import dev.ujhhgtg.wekit.utils.showToast
 import dev.ujhhgtg.wekit.utils.WeLogger
+import dev.ujhhgtg.wekit.utils.showToast
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.LinkedList
@@ -47,20 +50,16 @@ object FakeMomentsLikes : SwitchHookItem(), WeMomentsContextMenuApi.IMenuItemsPr
     private val TAG = nameof(FakeMomentsLikes)
     private const val TBL_SNS_INFO = "SnsInfo"
 
-    // 存储每个朋友圈动态的伪点赞用户配置 (snsId -> Set<微信id>)
+    // 存储每个朋友圈动态的伪点赞用户配置 (snsId -> Set<WxId>)
     private val fakeLikeWxIds = mutableMapOf<Long, Set<String>>()
-
-    private var snsObjectClass: Class<*>? = null
-    private var parseFromMethod: Method? = null
-    private var toByteArrayMethod: Method? = null
-    private var likeUserListField: Field? = null
-    private var likeUserListCountField: Field? = null
-    private var likeCountField: Field? = null
-    private var likeFlagField: Field? = null
-    private var snsUserProtobufClass: Class<*>? = null
+    private lateinit var parseFromMethod: Method
+    private lateinit var snsUserProtobufClass: Class<*>
+    private lateinit var snsUserProtobufClassWxIdField: Field
 
     override fun onEnable() {
-        initReflection()
+        snsUserProtobufClass = SnsCommentFooter::class.java.getMethod("getCommentInfo").returnType
+        snsUserProtobufClassWxIdField = snsUserProtobufClass.asResolver().firstField { type = String::class }.self
+        parseFromMethod = SnsObject::class.asResolver().firstMethod { name = "parseFrom"; superclass() }.self
         WeMomentsContextMenuApi.addProvider(this)
         WeDatabaseListenerApi.addListener(this)
     }
@@ -171,66 +170,33 @@ object FakeMomentsLikes : SwitchHookItem(), WeMomentsContextMenuApi.IMenuItemsPr
             WeLogger.e(TAG, "处理数据库更新异常", e)
         }
 
-        return false // 返回 false 表示继续原有流程
-    }
-
-    private fun initReflection() {
-        try {
-            snsObjectClass = "com.tencent.mm.protocal.protobuf.SnsObject".toClass()
-
-            snsObjectClass?.let { clazz ->
-                parseFromMethod = clazz.getMethod("parseFrom", ByteArray::class.java)
-                toByteArrayMethod = clazz.getMethod("toByteArray")
-
-                listOf(
-                    "LikeUserList",
-                    "LikeUserListCount",
-                    "LikeCount",
-                    "LikeFlag"
-                ).forEach { name ->
-                    clazz.getDeclaredField(name).also { field ->
-                        field.isAccessible = true
-                        when (name) {
-                            "LikeUserList" -> likeUserListField = field
-                            "LikeUserListCount" -> likeUserListCountField = field
-                            "LikeCount" -> likeCountField = field
-                            "LikeFlag" -> likeFlagField = field
-                        }
-                    }
-                }
-            }
-
-            snsUserProtobufClass = "com.tencent.mm.plugin.sns.ui.SnsCommentFooter".toClass()
-                .getMethod("getCommentInfo").returnType
-        } catch (e: Exception) {
-            WeLogger.e(TAG, "反射初始化失败", e)
-        }
+        return false
     }
 
     private fun injectFakeLikes(tableName: String, values: ContentValues) = runCatching {
         if (tableName != TBL_SNS_INFO) return@runCatching
         val snsId = values.get("snsId") as? Long ?: return@runCatching
         val fakeWxIds = fakeLikeWxIds[snsId] ?: emptySet()
-        if (fakeWxIds.isEmpty() || snsObjectClass == null || snsUserProtobufClass == null) return@runCatching
+        if (fakeWxIds.isEmpty()) return@runCatching
 
-        val snsObj = snsObjectClass!!.getDeclaredConstructor().newInstance()
-        parseFromMethod?.invoke(snsObj, values.get("attrBuf") as? ByteArray ?: return@runCatching)
+        val snsObj = SnsObject()
+        parseFromMethod.invoke(snsObj, values.get("attrBuf") as? ByteArray ?: return@runCatching)
 
         val fakeList = LinkedList<Any>().apply {
             fakeWxIds.forEach { wxid ->
-                snsUserProtobufClass!!.getDeclaredConstructor().newInstance().apply {
-                    javaClass.getDeclaredField("d").apply { isAccessible = true }.set(this, wxid)
+                snsUserProtobufClass.createInstance().apply {
+                    snsUserProtobufClassWxIdField.set(this, wxid)
                     add(this)
                 }
             }
         }
 
-        likeUserListField?.set(snsObj, fakeList)
-        likeUserListCountField?.set(snsObj, fakeList.size)
-        likeCountField?.set(snsObj, fakeList.size)
-        likeFlagField?.set(snsObj, 1)
+        snsObj.LikeUserList = fakeList
+        snsObj.LikeUserListCount = fakeList.size
+        snsObj.LikeCount = fakeList.size
+        snsObj.LikeFlag = 1
 
-        values.put("attrBuf", toByteArrayMethod?.invoke(snsObj) as? ByteArray ?: return@runCatching)
+        values.put("attrBuf", snsObj.toByteArray())
         WeLogger.i(TAG, "成功为朋友圈 $snsId 注入 ${fakeList.size} 个伪点赞")
     }.onFailure { WeLogger.e(TAG, "注入伪点赞失败", it) }
 }

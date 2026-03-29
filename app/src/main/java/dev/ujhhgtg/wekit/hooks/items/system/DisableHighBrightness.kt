@@ -1,8 +1,8 @@
 package dev.ujhhgtg.wekit.hooks.items.system
 
 import android.view.WindowManager
+import com.android.internal.policy.PhoneWindow
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 
@@ -10,7 +10,7 @@ import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 object DisableHighBrightness : SwitchHookItem() {
 
     override fun onEnable() {
-        "com.android.internal.policy.PhoneWindow".toClass().asResolver()
+        PhoneWindow::class.asResolver()
             .firstMethod {
                 name = "setAttributes"
                 parameters(WindowManager.LayoutParams::class)

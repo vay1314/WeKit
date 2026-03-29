@@ -1,11 +1,9 @@
 package dev.ujhhgtg.wekit.hooks.items.system
 
-import dev.ujhhgtg.wekit.dexkit.DexMethodDescriptor
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
-import dev.ujhhgtg.wekit.utils.HostInfo
 import org.luckypray.dexkit.DexKitBridge
 
 @HookItem(path = "系统与隐私/禁止应用检测 Xposed", desc = "防止应用检测 Xposed 框架是否存在")
@@ -14,8 +12,7 @@ object DisableXposedDetection : SwitchHookItem(), IResolvesDex {
     private val methodCheckStackTraceElements by dexMethod()
 
     override fun onEnable() {
-        // google play version doesn't have tinker
-        if (HostInfo.isHostGooglePlay) return
+        if (methodCheckStackTraceElements.isPlaceholder) return
 
         methodCheckStackTraceElements.hookBefore { param ->
             param.result = false
@@ -23,13 +20,7 @@ object DisableXposedDetection : SwitchHookItem(), IResolvesDex {
     }
 
     override fun resolveDex(dexKit: DexKitBridge) {
-        // placeholder method
-        if (HostInfo.isHostGooglePlay)
-            methodCheckStackTraceElements.setDescriptor(
-                DexMethodDescriptor("Lcom/tencent/mm/ui/LauncherUI;->()Lcom/tencent/mm/ui/LauncherUI;")
-            )
-
-        methodCheckStackTraceElements.find(dexKit) {
+        methodCheckStackTraceElements.find(dexKit, allowFailure = true) {
             searchPackages("com.tencent.mm.app")
             matcher {
                 usingEqStrings(

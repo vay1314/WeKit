@@ -12,7 +12,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.condition.type.Modifiers
-import com.highcapable.kavaref.extension.toClass
 import dev.ujhhgtg.nameof.nameof
 import dev.ujhhgtg.wekit.hooks.core.ClickableHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItem
@@ -31,7 +30,7 @@ object RedirectHostLogs : ClickableHookItem() {
     private const val KEY_PREFIX = "redirect_"
 
     override fun onEnable() {
-        "com.tencent.mars.xlog.Log".toClass().asResolver().apply {
+        com.tencent.mars.xlog.Log::class.asResolver().apply {
             if (getBoolOrFalse("${KEY_PREFIX}v"))
                 firstMethod {
                     name = "v"

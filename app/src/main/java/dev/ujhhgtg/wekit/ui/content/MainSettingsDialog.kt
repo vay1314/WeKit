@@ -53,6 +53,7 @@ import com.composables.icons.materialsymbols.outlined.Volunteer_activism
 import com.composables.icons.materialsymbols.outlined.Wand_stars
 import com.mikepenz.aboutlibraries.entity.Library
 import com.mikepenz.aboutlibraries.ui.compose.android.produceLibraries
+import com.tencent.mm.ui.LauncherUI
 import dev.ujhhgtg.wekit.BuildConfig
 import dev.ujhhgtg.wekit.R
 import dev.ujhhgtg.wekit.activity.StubFragmentActivity
@@ -64,7 +65,6 @@ import dev.ujhhgtg.wekit.preferences.WePrefs
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.DefaultJson
 import dev.ujhhgtg.wekit.utils.HostInfo
-import dev.ujhhgtg.wekit.utils.RuntimeConfig
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.formatEpoch
 import dev.ujhhgtg.wekit.utils.openInSystem
@@ -221,7 +221,7 @@ class MainSettingsDialog(context: Context) : BasePrefsDialog(context, BuildConfi
 
                         lifecycleScope.launch(Dispatchers.IO) {
                             runCatching {
-                                val jsonString = RuntimeConfig.getLauncherUiActivity()!!.contentResolver.openInputStream(uri)?.use { fis ->
+                                val jsonString = LauncherUI.getInstance()!!.contentResolver.openInputStream(uri)?.use { fis ->
                                     fis.reader().readText()
                                 } ?: return@launch
                                 val jsonObject = DefaultJson.parseToJsonElement(jsonString).jsonObject

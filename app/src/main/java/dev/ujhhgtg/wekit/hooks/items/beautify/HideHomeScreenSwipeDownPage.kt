@@ -2,8 +2,8 @@ package dev.ujhhgtg.wekit.hooks.items.beautify
 
 import android.view.View
 import android.widget.AbsListView
+import android.widget.ListView
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
-import com.highcapable.kavaref.extension.toClass
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.hooks.items.chat.ConversationGrouping
@@ -13,7 +13,7 @@ import dev.ujhhgtg.wekit.utils.invokeOriginal
 object HideHomeScreenSwipeDownPage : SwitchHookItem() {
 
     override fun onEnable() {
-        "android.widget.ListView".toClass().asResolver()
+        ListView::class.asResolver()
             .firstMethod {
                 name = "addHeaderView"
                 parameterCount = 3
