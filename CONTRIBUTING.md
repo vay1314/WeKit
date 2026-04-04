@@ -167,7 +167,7 @@ graph BT
 ```kotlin
 methodTarget.toDexMethod {
     hook {
-        beforeIfEnabled { param ->
+        beforeIfEnabled {
             // Hook 逻辑
         }
     }
@@ -466,15 +466,15 @@ override fun entry(classLoader: ClassLoader) {
 
     methodTarget.toDexMethod {
         hook {
-            beforeIfEnabled { param ->
+            beforeIfEnabled {
                 if (currentVersion >= MMVersion.MM_8_0_90) {
                     // 新版本的 Hook 逻辑
-                    val newParam = param.args[0] as? String
+                    val newParam = args[0] as? String
                     WeLogger.d("NewVersion", "Processing: $newParam")
                     // 新版本的处理...
                 } else {
                     // 旧版本的 Hook 逻辑
-                    val oldParam = param.args[1] as? String
+                    val oldParam = args[1] as? String
                     WeLogger.d("OldVersion", "Processing: $oldParam")
                     // 旧版本的处理...
                 }
@@ -537,7 +537,7 @@ class VersionCompatExample : BaseSwitchFunctionHookItem(), IDexFind {
 
         methodTarget.toDexMethod {
             hook {
-                beforeIfEnabled { param ->
+                beforeIfEnabled {
                     try {
                         when {
                             currentVersion >= MMVersion.MM_8_0_90 -> {
@@ -560,24 +560,24 @@ class VersionCompatExample : BaseSwitchFunctionHookItem(), IDexFind {
 
     private fun handleNewVersion(param: XC_MethodHook.MethodHookParam) {
         // 新版本的处理逻辑
-        val arg1 = param.args[0]
-        val arg2 = param.args[1]
-        val arg3 = param.args[2]
+        val arg1 = args[0]
+        val arg2 = args[1]
+        val arg3 = args[2]
         WeLogger.d("VersionCompatExample", "处理新版本: $arg1, $arg2, $arg3")
         // ... 具体实现
     }
 
     private fun handleMidVersion(param: XC_MethodHook.MethodHookParam) {
         // 中间版本的处理逻辑
-        val arg1 = param.args[0]
-        val arg2 = param.args[1]
+        val arg1 = args[0]
+        val arg2 = args[1]
         WeLogger.d("VersionCompatExample", "处理中间版本: $arg1, $arg2")
         // ... 具体实现
     }
 
     private fun handleOldVersion(param: XC_MethodHook.MethodHookParam) {
         // 旧版本的处理逻辑
-        val arg1 = param.args[0]
+        val arg1 = args[0]
         WeLogger.d("VersionCompatExample", "处理旧版本: $arg1")
         // ... 具体实现
     }
@@ -759,9 +759,9 @@ class AntiRevokeMsg : BaseSwitchFunctionHookItem(), IDexFind {
         methodRevokeMsg.toDexMethod {
             hook {
                 // beforeIfEnabled: 仅在功能开启时执行
-                beforeIfEnabled { param ->
+                beforeIfEnabled {
                     // 阻止方法执行
-                    param.resultNull()
+                    resultNull()
 
                     // 记录日志
                     WeLogger.d("AntiRevokeMsg", "已阻止消息撤回")
@@ -809,7 +809,7 @@ class DangerousFeature : BaseSwitchFunctionHookItem(), IDexFind {
     override fun entry(classLoader: ClassLoader) {
         methodTarget.toDexMethod {
             hook {
-                beforeIfEnabled { param ->
+                beforeIfEnabled {
                     // Hook 逻辑
                 }
             }
@@ -1354,9 +1354,9 @@ methodTarget.find(dexKit) {
 #### 1. 修改参数
 ```kotlin
 hook {
-    beforeIfEnabled { param ->
+    beforeIfEnabled {
         // 修改第一个参数
-        param.args[0] = "新值"
+        args[0] = "新值"
     }
 }
 ```
@@ -1364,9 +1364,9 @@ hook {
 #### 2. 修改返回值
 ```kotlin
 hook {
-    afterIfEnabled { param ->
+    afterIfEnabled {
         // 修改返回值
-        param.result = "新返回值"
+        result = "新返回值"
     }
 }
 ```
@@ -1374,9 +1374,9 @@ hook {
 #### 3. 阻止方法执行
 ```kotlin
 hook {
-    beforeIfEnabled { param ->
+    beforeIfEnabled {
         // 直接返回 null，不执行原方法
-        param.resultNull()
+        resultNull()
     }
 }
 ```
@@ -1384,19 +1384,19 @@ hook {
 #### 4. 调用原方法
 ```kotlin
 hook {
-    beforeIfEnabled { param ->
+    beforeIfEnabled {
         // 先执行一些逻辑
         doSomething()
 
         // 调用原方法
         val result = XposedBridge.invokeOriginalMethod(
             param.method,
-            param.thisObject,
-            param.args
+            thisObject,
+            args
         )
 
         // 设置返回值
-        param.result = result
+        result = result
     }
 }
 ```
@@ -1404,7 +1404,7 @@ hook {
 #### 5. 异常处理
 ```kotlin
 hook {
-    beforeIfEnabled { param ->
+    beforeIfEnabled {
         try {
             // Hook 逻辑
             doSomething()
@@ -2074,12 +2074,12 @@ class MyHookItem : BaseSwitchFunctionHookItem() {
             // Hook 逻辑
             methodTarget.toDexMethod {
                 hook {
-                    beforeIfEnabled { param ->
+                    beforeIfEnabled {
                         // ✅ 使用带 Tag 的日志，便于定位
                         WeLogger.d("MyHookItem", "Hook 执行: ${param.method.name}")
 
                         // 处理逻辑
-                        param.resultNull()
+                        resultNull()
                     }
                 }
             }

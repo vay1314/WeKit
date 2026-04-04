@@ -6,7 +6,7 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "聊天/禁用消息折叠", desc = "阻止聊天消息被折叠")
+@HookItem(path = "聊天/禁用消息折叠", description = "阻止聊天消息被折叠")
 object DisableMessageCollapsing : SwitchHookItem(), IResolvesDex {
 
     private val methodFoldMsg by dexMethod()
@@ -28,8 +28,8 @@ object DisableMessageCollapsing : SwitchHookItem(), IResolvesDex {
     }
 
     override fun onEnable() {
-        methodFoldMsg.hookBefore { param ->
-            param.result = null
+        methodFoldMsg.hookBefore {
+            result = null
         }
     }
 }

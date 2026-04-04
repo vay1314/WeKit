@@ -10,7 +10,7 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "系统与隐私/强制启用 WebView 菜单", desc = "强制显示 WebView 页面右上角菜单按钮")
+@HookItem(path = "系统与隐私/强制启用 WebView 菜单", description = "强制显示 WebView 页面右上角菜单按钮")
 object EnableWebViewFeatures : SwitchHookItem(), IResolvesDex {
 
     private val TRUE_INTENT_KEYS =
@@ -22,19 +22,19 @@ object EnableWebViewFeatures : SwitchHookItem(), IResolvesDex {
         WebViewUI::class.asResolver()
             .firstMethod {
                 name = "showOptionMenu"
-            }.hookBefore { param ->
-                if (param.args[0] is Boolean) {
-                    param.args[0] = true
-                } else if (param.args[1] is Boolean) {
-                    param.args[1] = true
+            }.hookBefore {
+                if (args[0] is Boolean) {
+                    args[0] = true
+                } else if (args[1] is Boolean) {
+                    args[1] = true
                 }
 
-                val activity = param.thisObject as Activity
+                val activity = thisObject as Activity
                 activity.intent.putExtra("hide_option_menu", false)
             }
 
-        methodInitWebViewFeatures.hookBefore { param ->
-            val intent = param.thisObject.asResolver().firstMethod {
+        methodInitWebViewFeatures.hookBefore {
+            val intent = thisObject.asResolver().firstMethod {
                 name = "getIntent"
                 superclass()
             }.invoke() as Intent

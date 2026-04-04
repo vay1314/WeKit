@@ -18,7 +18,7 @@ import dev.ujhhgtg.wekit.utils.ModuleRes
 
 @HookItem(
     path = "聊天/修改文本消息显示",
-    desc = "向消息长按菜单添加菜单项, 可修改本地消息显示内容"
+    description = "向消息长按菜单添加菜单项, 可修改本地消息显示内容"
 )
 object ModifyTextMessageDisplay : SwitchHookItem(),
     WeChatMessageContextMenuApi.IMenuItemsProvider {

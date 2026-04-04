@@ -67,7 +67,7 @@ import kotlin.io.path.writeText
 
 @HookItem(
     path = "聊天/贴纸包同步",
-    desc = "从指定路径将所有图片注册为贴纸包\n搭配 Telegram Xposed 模块 StickersSync 使用, 或使用自带此功能的 (例如 Nagram) 的第三方客户端\n注意: 每张贴纸第一次加载由于需要计算 MD5 速度较慢, 后续加载得益于缓存与并发速度将大大加快 (~2000 个贴纸仅需 4 秒)"
+    description = "从指定路径将所有图片注册为贴纸包\n搭配 Telegram Xposed 模块 StickersSync 使用, 或使用自带此功能的 (例如 Nagram) 的第三方客户端\n注意: 每张贴纸第一次加载由于需要计算 MD5 速度较慢, 后续加载得益于缓存与并发速度将大大加快 (~2000 个贴纸仅需 4 秒)"
 )
 object StickersSync : ClickableHookItem(), IResolvesDex {
 
@@ -281,8 +281,8 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
 
     override fun onEnable() {
         @Suppress("UNCHECKED_CAST")
-        methodGetEmojiGroupInfo.hookAfter { param ->
-            if (param.result !is List<*>) {
+        methodGetEmojiGroupInfo.hookAfter {
+            if (result !is List<*>) {
                 WeLogger.d(TAG, "param result is not list, skipped")
                 return@hookAfter
             }
@@ -307,14 +307,14 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
                 val emojiGroupInfo = EmojiGroupInfo()
                 emojiGroupInfo.convertFrom(stickersPackData, true)
 
-                (param.result as MutableList<Any?>).add(index, emojiGroupInfo)
+                (result as MutableList<Any?>).add(index, emojiGroupInfo)
             }
             WeLogger.i(TAG, "injected ${stickerPacks.size} sticker packs")
         }
 
         @Suppress("UNCHECKED_CAST")
-        methodAddAllGroupItems.hookBefore { param ->
-            val manager = param.args[0]
+        methodAddAllGroupItems.hookBefore {
+            val manager = args[0]
             if (manager == null) {
                 WeLogger.w(TAG, "args[0] is null, skipped")
                 return@hookBefore
@@ -351,24 +351,24 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
             }
         }
 
-        ctorResourceLoadOptions.hookAfter { param ->
-            val url = param.args[0] as String
+        ctorResourceLoadOptions.hookAfter {
+            val url = args[0] as String
             if (url.startsWith(PLACEHOLDER_PACK_URL)) {
-                val fResSource = param.thisObject.asResolver()
+                val fResSource = thisObject.asResolver()
                     .firstField {
                         type { it isSubclassOf Enum::class }
                     }
                 val newResSource = enumValueOfClass(fResSource.get()!!.javaClass, "LOCAL_PATH")
                 fResSource.set(newResSource)
                 val path = (stickersDir / url.substringAfter(SEPERATOR) / ".pack_icon.png").absolutePathString()
-                param.thisObject.asResolver()
+                thisObject.asResolver()
                     .firstField { type = Any::class }
                     .set(path)
             }
         }
 
-        methodDownloadImage.hookBefore { param ->
-            val url = param.args[0] as String
+        methodDownloadImage.hookBefore {
+            val url = args[0] as String
             if (!url.startsWith("/")) return@hookBefore
             val retType = methodDownloadImage.method.returnType
             val path = runCatching { Path(url) }.getOrElse { e ->
@@ -394,7 +394,7 @@ object StickersSync : ClickableHookItem(), IResolvesDex {
                     }
                 }.getInstance(ClassLoaderProvider.classLoader!!)
             }
-            param.result = retType.createInstance(
+            result = retType.createInstance(
                 bytes, "image/png",
                 actualRetTypeInitArg2Type!!.createInstance(bytes)
             )

@@ -10,27 +10,27 @@ import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import org.luckypray.dexkit.DexKitBridge
 import java.lang.reflect.Field
 
-@HookItem(path = "系统与隐私/阻止微信清理模块数据", desc = "阻止微信「设置 → 存储空间 → 清理」删除模块数据")
+@HookItem(path = "系统与隐私/阻止微信清理模块数据", description = "阻止微信「设置 → 存储空间 → 清理」删除模块数据")
 object PreventModuleDataDeletion : SwitchHookItem(), IResolvesDex {
 
     private val methodNativeFileSystemEntryDelete by dexMethod()
     private lateinit var basePathField: Field
 
     override fun onEnable() {
-        methodNativeFileSystemEntryDelete.hookBefore { param ->
-            val relPath = param.args[0] as String
+        methodNativeFileSystemEntryDelete.hookBefore {
+            val relPath = args[0] as String
             if (!::basePathField.isInitialized) {
-                basePathField = param.thisObject.asResolver()
+                basePathField = thisObject.asResolver()
                     .firstField {
                         type = String::class
                         modifiers(Modifiers.FINAL)
                     }.self
             }
-            val basePath = basePathField.get(param.thisObject) as String
+            val basePath = basePathField.get(thisObject) as String
 
             val path = "$basePath/$relPath"
             if (path.contains(BuildConfig.TAG) || path.contains("Layout Inspect")) {
-                param.result = true
+                result = true
             }
         }
     }

@@ -8,20 +8,20 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "小程序/跳过开屏广告", desc = "跳过小程序开屏广告")
+@HookItem(path = "小程序/跳过开屏广告", description = "跳过小程序开屏广告")
 object SkipMiniAppSplashAds : SwitchHookItem(), IResolvesDex {
 
     private val methodAdDataCallback by dexMethod()
 
     override fun onEnable() {
-        methodAdDataCallback.hookBefore { param ->
-            param.result = null
+        methodAdDataCallback.hookBefore {
+            result = null
         }
 
-        AppBrandAdUI::class.java.hookBeforeOnCreate { param ->
-            val activity = param.thisObject as Activity
+        AppBrandAdUI::class.java.hookBeforeOnCreate {
+            val activity = thisObject as Activity
             activity.finish()
-            param.result = null
+            result = null
         }
     }
 

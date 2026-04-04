@@ -65,7 +65,7 @@ import org.luckypray.dexkit.DexKitBridge
 import kotlin.time.Duration.Companion.seconds
 
 @SuppressLint("StaticFieldLeak")
-@HookItem(path = "聊天/聊天工具栏", desc = "在输入框上方添加工具栏")
+@HookItem(path = "聊天/聊天工具栏", description = "在输入框上方添加工具栏")
 object ChatToolbar : SwitchHookItem(), IResolvesDex {
 
     private val TAG = nameOf(ChatToolbar)
@@ -90,8 +90,8 @@ object ChatToolbar : SwitchHookItem(), IResolvesDex {
 
     override fun onEnable() {
         methodAppPanelInitAppGrid.apply {
-            hookBefore { param ->
-                appPanel = param.args[0] as LinearLayout
+            hookBefore {
+                appPanel = args[0] as LinearLayout
 
                 val measurer = methodAppPanelOnMeasure.method.declaringClass
                     .createInstance(appPanel)
@@ -102,13 +102,13 @@ object ChatToolbar : SwitchHookItem(), IResolvesDex {
                 methodAppPanelOnMeasure.method.invoke(measurer, 1440, 1200)
             }
 
-            hookAfter { param ->
+            hookAfter {
                 val now = now()
                 if (now - lastToolListUpdateTime < 2.seconds) return@hookAfter
 
                 val tools = mutableListOf<Pair<String, MenuItem>>()
 
-                val appPanel = param.args[0] as LinearLayout
+                val appPanel = args[0] as LinearLayout
                 val grids = appPanel.findViewByChildIndexes<ViewGroup>(0, 0, 0)!!
                     .children.map { view -> view as GridView }
                 grids.forEach { grid ->
@@ -150,10 +150,10 @@ object ChatToolbar : SwitchHookItem(), IResolvesDex {
             .firstConstructor {
                 parameters(Context::class, AttributeSet::class, Int::class)
             }
-            .hookAfter { param ->
+            .hookAfter {
                 val lifecycleOwner = LifecycleOwnerProvider.lifecycleOwner
 
-                val chatFooter = param.thisObject as FrameLayout
+                val chatFooter = thisObject as FrameLayout
                 chatFooter.setLifecycleOwner(lifecycleOwner)
                 val linearLayout = chatFooter.findViewByChildIndexes<LinearLayout>(0, 1)!!
                 linearLayout.setLifecycleOwner(lifecycleOwner)

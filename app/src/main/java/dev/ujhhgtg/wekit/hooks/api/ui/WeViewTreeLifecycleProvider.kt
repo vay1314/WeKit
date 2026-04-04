@@ -12,8 +12,8 @@ import dev.ujhhgtg.wekit.ui.utils.setLifecycleOwner
 object WeViewTreeLifecycleProvider : ApiHookItem() {
 
     override fun onEnable() {
-        WeMainActivityBeautifyApi.methodDoOnCreate.hookAfter(100) { param ->
-            val activity = param.thisObject.asResolver()
+        WeMainActivityBeautifyApi.methodDoOnCreate.hookAfter(100) {
+            val activity = thisObject.asResolver()
                 .firstField {
                     type = "com.tencent.mm.ui.MMFragmentActivity"
                 }

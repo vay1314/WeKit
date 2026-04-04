@@ -27,7 +27,7 @@ import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
 @SuppressLint("DiscouragedApi")
-@HookItem(path = "API/消息发送服务", desc = "提供文本、图片、文件、语音消息发送能力")
+@HookItem(path = "API/消息发送服务", description = "提供文本、图片、文件、语音消息发送能力")
 object WeMessageApi : ApiHookItem(), IResolvesDex {
 
     // -------------------------------------------------------------------------------------

@@ -9,7 +9,7 @@ import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.utils.enumValueOfClass
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "聊天/引用消息直达", desc = "点击被引用消息时直接跳转至对应消息")
+@HookItem(path = "聊天/引用消息直达", description = "点击被引用消息时直接跳转至对应消息")
 object QuotedMessageDirectJump : SwitchHookItem(), IResolvesDex {
 
     private val methodClickEvent by dexMethod()
@@ -20,13 +20,13 @@ object QuotedMessageDirectJump : SwitchHookItem(), IResolvesDex {
     private val classChattingContext by dexClass()
 
     override fun onEnable() {
-        methodClickEvent.hookBefore { param ->
-            val chattingContext = param.args[0]
-            val view = param.args[2]
-            val longValue = param.args[3]
-            val stringValue = param.args[4]
-            val msgQuoteItem = param.args[5]
-            val chattingItemHolder = param.args[7]
+        methodClickEvent.hookBefore {
+            val chattingContext = args[0]
+            val view = args[2]
+            val longValue = args[3]
+            val stringValue = args[4]
+            val msgQuoteItem = args[5]
+            val chattingItemHolder = args[7]
             val chattingItem = chattingItemHolder.asResolver()
                 .firstField { type { it != String::class.java } }.get()!!
             val mGetQuoteMessageInfo = methodGetQuoteMessageInfo.method
@@ -76,7 +76,7 @@ object QuotedMessageDirectJump : SwitchHookItem(), IResolvesDex {
                     true
                 )
             }
-            param.result = null
+            result = null
         }
     }
 

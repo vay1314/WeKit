@@ -6,7 +6,7 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "聊天/禁止上传正在输入状态", desc = "禁止应用上传「对方正在输入」状态")
+@HookItem(path = "聊天/禁止上传正在输入状态", description = "禁止应用上传「对方正在输入」状态")
 object DisableTypingStatusUploading : SwitchHookItem(), IResolvesDex {
 
     private val classMmTypingSendReq by dexClass()
@@ -15,8 +15,8 @@ object DisableTypingStatusUploading : SwitchHookItem(), IResolvesDex {
         if (classMmTypingSendReq.isPlaceholder) return
 
         classMmTypingSendReq.asResolver().firstMethod { name = "doScene" }
-            .hookBefore { param ->
-                param.result = -1
+            .hookBefore {
+                result = -1
             }
     }
 

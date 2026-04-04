@@ -9,7 +9,7 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 
 // https://github.com/Ujhhgtg/PandorasBox
-@HookItem(path = "系统与隐私/预见性返回动画", desc = "为微信的活动强制启用预见性返回动画")
+@HookItem(path = "系统与隐私/预见性返回动画", description = "为微信的活动强制启用预见性返回动画")
 object PredictiveBackGestures : SwitchHookItem() {
 
     private const val PRIVATE_FLAG_ENABLE_ON_BACK_INVOKED_CALLBACK = 1 shl 2
@@ -20,8 +20,8 @@ object PredictiveBackGestures : SwitchHookItem() {
         ApplicationInfo::class.asResolver()
             .firstConstructor {
                 parameters(ApplicationInfo::class.java)
-            }.hookAfter { param ->
-                val info = param.args[0] as ApplicationInfo
+            }.hookAfter {
+                val info = args[0] as ApplicationInfo
                 val field =
                     info.asResolver().firstField { name = "privateFlagsExt" }
                 var flags = field.get() as Int
@@ -31,8 +31,8 @@ object PredictiveBackGestures : SwitchHookItem() {
 
         ActivityInfo::class.asResolver()
             .firstConstructor()
-            .hookAfter { param ->
-                val info = param.thisObject as ActivityInfo
+            .hookAfter {
+                val info = thisObject as ActivityInfo
                 if (PackageNames.isWeChat(info.packageName)) return@hookAfter
                 // FIXME: workaround for conversation page being part of main activity
                 if (info.name == "com.tencent.mm.ui.LauncherUI") return@hookAfter
@@ -41,8 +41,8 @@ object PredictiveBackGestures : SwitchHookItem() {
 
         ActivityThread::class.asResolver()
             .firstMethod { name = "handleLaunchActivity" }
-            .hookBefore { param ->
-                val record = param.args[0]
+            .hookBefore {
+                val record = args[0]
                 val infoField =
                     record.asResolver().firstField { name = "activityInfo" }
                 val info = infoField.get() as ActivityInfo

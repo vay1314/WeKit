@@ -22,5 +22,8 @@ public class ActivityThread {
         throw new RuntimeException("Stub!");
     }
 
-    public static final class ActivityClientRecord {}
+    public static final class ActivityClientRecord {
+        boolean paused;
+        Activity activity;
+    }
 }

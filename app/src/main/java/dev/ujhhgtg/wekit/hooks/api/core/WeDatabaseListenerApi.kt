@@ -15,7 +15,7 @@ import dev.ujhhgtg.wekit.utils.WeLogger
 import java.util.concurrent.CopyOnWriteArrayList
 
 @SuppressLint("DiscouragedApi")
-@HookItem(path = "API/数据库监听服务", desc = "为其他功能提供数据库插入、更新监听与查询能力")
+@HookItem(path = "API/数据库监听服务", description = "为其他功能提供数据库插入、更新监听与查询能力")
 object WeDatabaseListenerApi : ApiHookItem() {
 
     interface IInsertListener {
@@ -113,15 +113,14 @@ object WeDatabaseListenerApi : ApiHookItem() {
             .firstMethod {
                 name = "insertWithOnConflict"
                 parameters(String::class, String::class, ContentValues::class, Int::class)
-            }.hookAfter { param ->
+            }.hookAfter {
                 try {
                     if (insertListeners.isEmpty()) return@hookAfter
 
-                    val table = param.args[0] as String
-                    val values = param.args[2] as ContentValues
-                    val result = param.result
+                    val table = args[0] as String
+                    val values = args[2] as ContentValues
 
-                    logWithStack("Insert", table, param.args, result)
+                    logWithStack("Insert", table, args, result)
                     insertListeners.forEach { it.onInsert(table, values) }
                 } catch (e: Throwable) {
                     WeLogger.e(TAG, "Insert dispatch failed", e)
@@ -145,20 +144,20 @@ object WeDatabaseListenerApi : ApiHookItem() {
                     Int::class
                 )
             }
-            .hookBefore { param ->
+            .hookBefore {
                 try {
                     if (updateListeners.isEmpty()) return@hookBefore
 
-                    val table = param.args[0] as String
-                    val values = param.args[1] as ContentValues
+                    val table = args[0] as String
+                    val values = args[1] as ContentValues
 
-                    logWithStack("Update", table, param.args)
+                    logWithStack("Update", table, args)
 
                     // 如果有任何一个监听器返回 true，则阻止更新
                     val shouldBlock = updateListeners.any { it.onUpdate(table, values) }
 
                     if (shouldBlock) {
-                        param.result = 0 // 返回0表示没有行被更新
+                        result = 0 // 返回0表示没有行被更新
                         WeLogger.d(
                             TAG,
                             "[Update] 被监听器阻止, table=$table, stack=${WeLogger.getStackTraceString()}"
@@ -191,21 +190,21 @@ object WeDatabaseListenerApi : ApiHookItem() {
                 name = "rawQuery"
                 parameters(String::class, Array<Any>::class)
             }
-            .hookBefore { param ->
+            .hookBefore {
                 try {
                     if (queryListeners.isEmpty()) return@hookBefore
 
-                    val sql = param.args[0] as? String ?: return@hookBefore
+                    val sql = args[0] as? String ?: return@hookBefore
                     var currentSql = sql
 
-                    logWithStack("rawQuery", "N/A", param.args)
+                    logWithStack("rawQuery", "N/A", args)
 
                     queryListeners.forEach { listener ->
                         listener.onQuery(currentSql)?.let { currentSql = it }
                     }
 
                     if (currentSql != sql) {
-                        param.args[0] = currentSql
+                        args[0] = currentSql
                         WeLogger.d(
                             TAG,
                             "[rawQuery] SQL被修改: $sql -> $currentSql, stack=${WeLogger.getStackTraceString()}"
@@ -227,17 +226,17 @@ object WeDatabaseListenerApi : ApiHookItem() {
                 String::class,
                 com.tencent.wcdb.support.CancellationSignal::class
             )
-        }.hookBefore { param ->
+        }.hookBefore {
             try {
                 if (queryListeners.isEmpty()) return@hookBefore
 
-                val sql = param.args[1] as? String ?: return@hookBefore
+                val sql = args[1] as? String ?: return@hookBefore
                 var currentSql = sql
 
                 logWithStack(
                     "rawQueryWithFactory",
-                    param.args[3] as? String ?: "N/A",
-                    param.args
+                    args[3] as? String ?: "N/A",
+                    args
                 )
 
                 queryListeners.forEach { listener ->
@@ -245,7 +244,7 @@ object WeDatabaseListenerApi : ApiHookItem() {
                 }
 
                 if (currentSql != sql) {
-                    param.args[1] = currentSql
+                    args[1] = currentSql
                     WeLogger.d(
                         TAG,
                         "[rawQueryWithFactory] SQL modified: $sql -> $currentSql, stack=${WeLogger.getStackTraceString()}"

@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 
 @SuppressLint("DiscouragedApi")
-@HookItem(path = "红包与支付/自动抢红包", desc = "监听消息并自动拆开红包")
+@HookItem(path = "红包与支付/自动抢红包", description = "监听消息并自动拆开红包")
 object AutoOpenRedPackets : ClickableHookItem(), WeDatabaseListenerApi.IInsertListener,
     IResolvesDex {
 
@@ -164,8 +164,8 @@ object AutoOpenRedPackets : ClickableHookItem(), WeDatabaseListenerApi.IInsertLi
     }
 
     private fun hookReceiveCallback() {
-        methodOnGYNetEnd.hookAfter { param ->
-            val json = param.args[2] as? JSONObject ?: return@hookAfter
+        methodOnGYNetEnd.hookAfter {
+            val json = args[2] as? JSONObject ?: return@hookAfter
             val sendId = json.optString("sendId")
             val timingIdentifier = json.optString("timingIdentifier")
 
@@ -196,11 +196,11 @@ object AutoOpenRedPackets : ClickableHookItem(), WeDatabaseListenerApi.IInsertLi
     }
 
     private fun hookOpenReqEndCallback() {
-        methodOnOpenGYNetEnd.hookAfter { param ->
+        methodOnOpenGYNetEnd.hookAfter {
             val notifEnabled = WePrefs.getBoolOrFalse("red_packet_notification")
             if (!notifEnabled) return@hookAfter
 
-            val json = param.args[2] as? JSONObject ?: return@hookAfter
+            val json = args[2] as? JSONObject ?: return@hookAfter
             val sendId = json.optString("sendId")
             if (sendId.isNullOrEmpty()) return@hookAfter
 

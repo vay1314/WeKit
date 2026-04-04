@@ -23,7 +23,7 @@ import java.time.Month
 import java.util.WeakHashMap
 
 
-@HookItem(path = "愚人节彩蛋", desc = "不显示于模块界面, 愚人节自动启用")
+@HookItem(path = "愚人节彩蛋", description = "不显示于模块界面, 愚人节自动启用")
 object AprilFools : BaseHookItem() {
 
     const val KEY_SURRENDER = "april_fools_surrender"
@@ -54,23 +54,23 @@ object AprilFools : BaseHookItem() {
 
     override fun onEnable() {
         ImageView::class.asResolver()
-            .firstConstructor { parameterCount = 4 }.hookAfter { param ->
-            applyRotation(param.thisObject as View)
+            .firstConstructor { parameterCount = 4 }.hookAfter {
+            applyRotation(thisObject as View)
         }
 
         "com.tencent.mm.ui.widget.QImageView".toClass().asResolver()
-            .firstConstructor().hookAfter { param ->
-                applyRotation(param.thisObject as View)
+            .firstConstructor().hookAfter {
+                applyRotation(thisObject as View)
             }
 
-        TextView::class.asResolver().firstMethod { name = "onDraw" }.hookBefore { param ->
-            val tv = param.thisObject as TextView
+        TextView::class.asResolver().firstMethod { name = "onDraw" }.hookBefore {
+            val tv = thisObject as TextView
             applyRainbowEffect(tv, tv.text, tv.paint)
         }
 
         NoMeasuredTextView::class.asResolver()
-            .firstMethod { name = "onDraw" }.hookBefore { param ->
-                val view = param.thisObject as View
+            .firstMethod { name = "onDraw" }.hookBefore {
+                val view = thisObject as View
 
                 if (!::noMeasuredTvTextProp.isInitialized) {
                     noMeasuredTvTextProp = view.asResolver().firstField { name = "mText" }.self.apply { isAccessible = true }

@@ -9,7 +9,7 @@ import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.hooks.items.chat.ConversationGrouping
 import dev.ujhhgtg.wekit.utils.invokeOriginal
 
-@HookItem(path = "界面美化/隐藏主页下滑「最近」页", desc = "禁用主页下滑功能")
+@HookItem(path = "界面美化/隐藏主页下滑「最近」页", description = "禁用主页下滑功能")
 object HideHomeScreenSwipeDownPage : SwitchHookItem() {
 
     override fun onEnable() {
@@ -18,9 +18,9 @@ object HideHomeScreenSwipeDownPage : SwitchHookItem() {
                 name = "addHeaderView"
                 parameterCount = 3
             }
-            .hookBefore { param ->
-                if (param.thisObject.javaClass.simpleName != "ConversationListView") return@hookBefore
-                val view = param.args[0] as View
+            .hookBefore {
+                if (thisObject.javaClass.simpleName != "ConversationListView") return@hookBefore
+                val view = args[0] as View
                 val className = view.javaClass.simpleName
                 if (className == "TaskBarContainer") {
                     val heightDp = if (!ConversationGrouping.isEnabled) 48 else 94
@@ -28,8 +28,8 @@ object HideHomeScreenSwipeDownPage : SwitchHookItem() {
                     val spacer = View(view.context).apply {
                         layoutParams = AbsListView.LayoutParams(AbsListView.LayoutParams.MATCH_PARENT, heightPx)
                     }
-                    param.invokeOriginal(args = arrayOf(spacer, null, true))
-                    param.result = null
+                    invokeOriginal(args = arrayOf(spacer, null, true))
+                    result = null
                 }
             }
     }

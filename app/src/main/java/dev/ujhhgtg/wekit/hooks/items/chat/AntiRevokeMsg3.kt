@@ -15,7 +15,7 @@ import dev.ujhhgtg.wekit.utils.WeLogger
 import org.luckypray.dexkit.DexKitBridge
 import kotlin.random.Random
 
-@HookItem(path = "聊天/阻止消息撤回 3", desc = "有撤回提示")
+@HookItem(path = "聊天/阻止消息撤回 3", description = "有撤回提示")
 object AntiRevokeMsg3 : SwitchHookItem(), IResolvesDex {
 
     private val TAG = nameOf(AntiRevokeMsg3)
@@ -34,8 +34,8 @@ object AntiRevokeMsg3 : SwitchHookItem(), IResolvesDex {
     private val nameRegex = Regex("([\"「])(.*?)([」\"])")
 
     override fun onEnable() {
-        methodXmlParser.hookAfter { param ->
-            val args = param.args
+        methodXmlParser.hookAfter {
+            val args = args
             val xmlContent = args[0] as? String ?: ""
             val rootTag = args[1] as? String ?: ""
 
@@ -44,7 +44,7 @@ object AntiRevokeMsg3 : SwitchHookItem(), IResolvesDex {
             }
 
             @Suppress("UNCHECKED_CAST")
-            val resultMap = param.result as MutableMap<String, Any?>
+            val resultMap = result as MutableMap<String, Any?>
             val typeKey = $$".sysmsg.$type"
 
             if (resultMap[typeKey] == "revokemsg") {

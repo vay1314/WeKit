@@ -12,7 +12,7 @@ import dev.ujhhgtg.wekit.utils.crash.JavaCrashHandler
 
 @HookItem(
     path = "调试/崩溃拦截",
-    desc = "拦截 Java 层崩溃并记录详细信息，支持查看和导出日志"
+    description = "拦截 Java 层崩溃并记录详细信息，支持查看和导出日志"
 )
 object CrashInterceptor : SwitchHookItem() {
 

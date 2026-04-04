@@ -7,15 +7,15 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.utils.cast
 
-@HookItem(path = "联系人与群组/显示隐藏朋友设置项", desc = "阻止微信隐藏朋友设置; 部分设置项可能显示异常, 但不影响功能")
+@HookItem(path = "联系人与群组/显示隐藏朋友设置项", description = "阻止微信隐藏朋友设置; 部分设置项可能显示异常, 但不影响功能")
 object DisplayHiddenContactSettings : SwitchHookItem() {
 
     override fun onEnable() {
         ProfileSettingUI::class.asResolver()
             .firstMethod {
                 name = "initView"
-            }.hookAfter { param ->
-                val prefScreen = param.thisObject.asResolver()
+            }.hookAfter {
+                val prefScreen = thisObject.asResolver()
                     .firstMethod {
                         name = "getPreferenceScreen"
                         superclass()

@@ -22,7 +22,7 @@ import kotlin.math.roundToInt
 
 @HookItem(
     path = "联系人与群组/显示群成员身份",
-    desc = "在群聊中显示群成员的身份: 群主, 管理员, 成员"
+    description = "在群聊中显示群成员的身份: 群主, 管理员, 成员"
 )
 object DisplayGroupMemberRoles : SwitchHookItem(), IResolvesDex,
     WeChatMessageViewApi.ICreateViewListener {

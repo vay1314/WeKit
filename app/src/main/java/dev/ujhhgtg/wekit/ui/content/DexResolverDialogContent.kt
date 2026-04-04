@@ -50,6 +50,7 @@ import kotlinx.coroutines.withContext
 import org.luckypray.dexkit.DexKitBridge
 import java.io.PrintWriter
 import java.io.StringWriter
+import kotlin.system.exitProcess
 
 private sealed class ScanProgress {
     data class Start(val path: String) : ScanProgress()
@@ -270,7 +271,7 @@ fun DexResolverDialogContent(
                 if (phase is DialogPhase.Done || phase is DialogPhase.Error) {
                     Button(onClick = {
                         dismiss()
-                        Process.killProcess(Process.myPid())
+                        exitProcess(0)
                     }) { Text("重启应用") }
                 }
             }

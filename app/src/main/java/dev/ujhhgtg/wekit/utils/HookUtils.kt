@@ -5,7 +5,7 @@ import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import java.lang.reflect.Executable
 
-typealias HookAction = (param: XC_MethodHook.MethodHookParam) -> Unit
+typealias HookAction = XC_MethodHook.MethodHookParam.() -> Unit
 
 // most extension methods are inside BaseHookItem for enabled state checking
 

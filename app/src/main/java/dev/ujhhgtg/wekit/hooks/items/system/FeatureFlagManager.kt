@@ -1,7 +1,5 @@
 package dev.ujhhgtg.wekit.hooks.items.system
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -15,7 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -54,7 +51,7 @@ import kotlinx.coroutines.withContext
 import org.luckypray.dexkit.DexKitBridge
 import java.lang.reflect.Modifier
 
-@HookItem(path = "系统与隐私/灰度测试管理器", desc = "覆盖应用灰度测试 (Feature Flag) 的值")
+@HookItem(path = "系统与隐私/灰度测试管理器", description = "覆盖应用灰度测试 (Feature Flag) 的值")
 object FeatureFlagManager : ClickableHookItem(), IResolvesDex {
 
     private val TAG = nameOf(FeatureFlagManager)
@@ -122,11 +119,11 @@ object FeatureFlagManager : ClickableHookItem(), IResolvesDex {
     // FIXME: currently, to prevent lag, overrides are loaded only once, so we have to restart host app for changes to take effect
     private val overrides by lazy { loadOverrides() }
     override fun onEnable() {
-        methodRepairerConfigApiGet.hookBefore { param ->
-            val key = param.args[0]
+        methodRepairerConfigApiGet.hookBefore {
+            val key = args[0]
             val override =
                 overrides.firstOrNull { it.internalName == key } ?: return@hookBefore
-            param.result = when (override) {
+            result = when (override) {
                 is FeatureFlagOverride.FloatValue -> override.value
                 is FeatureFlagOverride.IntValue -> override.value
                 is FeatureFlagOverride.LongValue -> override.value

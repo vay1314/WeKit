@@ -1,8 +1,5 @@
 package dev.ujhhgtg.wekit.hooks.items.chat
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,7 +20,7 @@ import dev.ujhhgtg.wekit.utils.ModuleRes
 import dev.ujhhgtg.wekit.utils.copyToClipboard
 import dev.ujhhgtg.wekit.utils.showToast
 
-@HookItem(path = "聊天/显示消息详情", desc = "向消息长按菜单添加菜单项, 可查看消息详情")
+@HookItem(path = "聊天/显示消息详情", description = "向消息长按菜单添加菜单项, 可查看消息详情")
 object DisplayMessageDetails : SwitchHookItem(),
     WeChatMessageContextMenuApi.IMenuItemsProvider {
 

@@ -1,9 +1,6 @@
 package dev.ujhhgtg.wekit.hooks.items.contacts
 
 import android.app.Activity
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import dev.ujhhgtg.wekit.hooks.api.ui.WeContactPrefsScreenApi
 import dev.ujhhgtg.wekit.hooks.api.ui.WeContactPrefsScreenApi.ContactInfoItem
 import dev.ujhhgtg.wekit.hooks.api.ui.WeContactPrefsScreenApi.IContactInfoProvider
@@ -14,7 +11,7 @@ import dev.ujhhgtg.wekit.utils.showToast
 
 @HookItem(
     path = "联系人与群组/显示微信 ID",
-    desc = "在联系人与群组详情页面显示微信 ID"
+    description = "在联系人与群组详情页面显示微信 ID"
 )
 object ShowWxIdInContactDetails : SwitchHookItem(), IContactInfoProvider {
 

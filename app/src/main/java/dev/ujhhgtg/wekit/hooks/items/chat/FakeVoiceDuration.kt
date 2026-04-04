@@ -19,15 +19,15 @@ import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.showToast
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "聊天/伪装语音时长", desc = "预设定伪装发送语音显示的时长")
+@HookItem(path = "聊天/伪装语音时长", description = "预设定伪装发送语音显示的时长")
 object FakeVoiceDuration : ClickableHookItem(), IResolvesDex {
 
     private val methodVoiceRecorderGetLength by dexMethod()
     private const val KEY_DURATION = "fake_voice_duration"
 
     override fun onEnable() {
-        methodVoiceRecorderGetLength.hookBefore { param ->
-            param.result = WePrefs.getLongOrDef(KEY_DURATION, 0L)
+        methodVoiceRecorderGetLength.hookBefore {
+            result = WePrefs.getLongOrDef(KEY_DURATION, 0L)
         }
     }
 

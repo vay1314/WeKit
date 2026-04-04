@@ -53,7 +53,7 @@ import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 
 @HookItem(
     path = "界面美化/美化首页底部导航栏",
-    desc = "将首页底部导航栏替换为 Jetpack Compose 组件"
+    description = "将首页底部导航栏替换为 Jetpack Compose 组件"
 )
 object ReplaceNavigationBar : ClickableHookItem() {
 
@@ -67,18 +67,18 @@ object ReplaceNavigationBar : ClickableHookItem() {
     private const val KEY_USE_BACKDROP = "tab_bar_use_backdrop"
 
     override fun onEnable() {
-        WeMainActivityBeautifyApi.methodDoOnCreate.hookAfter { param ->
-            val activity = param.thisObject.asResolver()
+        WeMainActivityBeautifyApi.methodDoOnCreate.hookAfter {
+            val activity = thisObject.asResolver()
                 .firstField {
                     type = "com.tencent.mm.ui.MMFragmentActivity"
                 }
                 .get()!! as Activity
-            val viewPager = param.thisObject.asResolver()
+            val viewPager = thisObject.asResolver()
                 .firstField {
                     name = "mViewPager"
                 }
                 .get()!! as ViewGroup
-            val tabsAdapter = param.thisObject.asResolver()
+            val tabsAdapter = thisObject.asResolver()
                 .firstField {
                     name = "mTabsAdapter"
                 }
@@ -99,9 +99,9 @@ object ReplaceNavigationBar : ClickableHookItem() {
 
             tabsAdapter.asResolver()
                 .firstMethod { name = "onPageScrolled" }
-                .hookBefore { param ->
-                    val position = param.args[0] as Int
-                    val positionOffset = param.args[1] as Float
+                .hookBefore {
+                    val position = args[0] as Int
+                    val positionOffset = args[1] as Float
 
                     selectedPageIndexState.intValue = position
                     scrollOffsetState.floatValue = positionOffset

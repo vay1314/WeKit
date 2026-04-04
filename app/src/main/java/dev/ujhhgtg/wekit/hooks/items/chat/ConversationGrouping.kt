@@ -40,17 +40,18 @@ import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
 import dev.ujhhgtg.wekit.hooks.api.core.WeConversationApi
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
+import dev.ujhhgtg.wekit.hooks.items.contacts.HideContacts
 import dev.ujhhgtg.wekit.ui.utils.AppTheme
 import dev.ujhhgtg.wekit.ui.utils.LifecycleOwnerProvider
 import dev.ujhhgtg.wekit.ui.utils.setLifecycleOwner
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "聊天/对话分组", desc = "向主页顶部添加 Tab 栏, 将对话分组\n建议同时启用「界面美化/隐藏主页下滑「最近」页」")
+@HookItem(path = "聊天/对话分组", description = "向主页顶部添加 Tab 栏, 将对话分组\n建议同时启用「界面美化/隐藏主页下滑「最近」页」")
 object ConversationGrouping : SwitchHookItem(), IResolvesDex {
 
     override fun onEnable() {
-        methodOnTabCreate.hookAfter { param ->
-            val convListView = param.thisObject.asResolver()
+        methodOnTabCreate.hookAfter {
+            val convListView = thisObject.asResolver()
                 .firstField {
                     type = "com.tencent.mm.ui.conversation.ConversationListView"
                 }
@@ -70,8 +71,8 @@ object ConversationGrouping : SwitchHookItem(), IResolvesDex {
                         ConversationTabs(
                             listOf("全部", "未读", "群聊", "好友", "公众号"),
                             selectedIndex,
-                            {
-                                selectedIndex = it
+                            { index ->
+                                selectedIndex = index
                                 Handler(Looper.getMainLooper()).post {
                                     when (selectedIndex) {
                                         0 -> {
@@ -103,6 +104,12 @@ object ConversationGrouping : SwitchHookItem(), IResolvesDex {
                                                 "WHERE username LIKE 'gh_%'"
                                             )
                                         }
+                                    }
+
+                                    if (HideContacts.isEnabled) {
+                                        WeConversationApi.setConversationsVisibility(false, HideContacts.hiddenContacts.also {
+                                            if (it.isEmpty()) return@post
+                                        }.toTypedArray())
                                     }
                                 }
                             }

@@ -10,7 +10,7 @@ import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import org.luckypray.dexkit.DexKitBridge
 import java.lang.reflect.Field
 
-@HookItem(path = "聊天/快捷清除引用", desc = "在输入退格时若输入框无文字自动清除引用")
+@HookItem(path = "聊天/快捷清除引用", description = "在输入退格时若输入框无文字自动清除引用")
 object QuickRemoveQuote : SwitchHookItem(), IResolvesDex {
 
     private val methodSupportAutoCompleteOnKey by dexMethod()
@@ -20,17 +20,17 @@ object QuickRemoveQuote : SwitchHookItem(), IResolvesDex {
     private lateinit var chatFooterField: Field
 
     override fun onEnable() {
-        methodSupportAutoCompleteOnKey.hookBefore { param ->
-            val keyEvent = param.args[2] as KeyEvent
+        methodSupportAutoCompleteOnKey.hookBefore {
+            val keyEvent = args[2] as KeyEvent
             if (keyEvent.keyCode != 67 || keyEvent.action != 0) return@hookBefore
 
             if (!::chatFooterHelperField.isInitialized) {
-                chatFooterHelperField = param.thisObject.asResolver()
+                chatFooterHelperField = thisObject.asResolver()
                     .firstField {
                         type { clazz -> clazz.name.startsWith("com.tencent.mm.pluginsdk.ui.chat.") }
                     }.self
             }
-            val chatFooterHelper = chatFooterHelperField.get(param.thisObject)
+            val chatFooterHelper = chatFooterHelperField.get(thisObject)
 
             if (!::chatFooterField.isInitialized) {
                 chatFooterField = chatFooterHelper.asResolver()

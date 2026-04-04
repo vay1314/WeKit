@@ -68,7 +68,7 @@ import android.widget.Button as AndroidButton
 
 @HookItem(
     path = "聊天/聊天输入栏增强",
-    desc = "为聊天输入栏添加更多功能\n1. 在聊天界面长按「发送」或「加号菜单」按钮打开菜单\n菜单功能: 「发送卡片消息」「@所有人」\n2. 长按「语音」按钮发送自定义语音文件 (SILK/AMR 或 MP3)"
+    description = "为聊天输入栏添加更多功能\n1. 在聊天界面长按「发送」或「加号菜单」按钮打开菜单\n菜单功能: 「发送卡片消息」「@所有人」\n2. 长按「语音」按钮发送自定义语音文件 (SILK/AMR 或 MP3)"
 )
 object ChatInputBarEnhancements : SwitchHookItem() {
 
@@ -78,8 +78,8 @@ object ChatInputBarEnhancements : SwitchHookItem() {
         ChatFooter::class.asResolver().apply {
             firstConstructor {
                 parameters(Context::class, AttributeSet::class, Int::class) }
-                .hookAfter { param ->
-                    val chatFooter = param.thisObject as ChatFooter
+                .hookAfter {
+                    val chatFooter = thisObject as ChatFooter
                     val searchedView = chatFooter.findViewByChildIndexes<View>(0)!!
                     val imgButtons = searchedView.findViewsWhich<ImageButton> { view ->
                         view.javaClass.simpleName == "WeImageButton"
@@ -191,8 +191,8 @@ object ChatInputBarEnhancements : SwitchHookItem() {
 
             firstMethod {
                 name = "setUserName"
-            }.hookAfter { param ->
-                val conv = param.args[0] as? String
+            }.hookAfter {
+                val conv = args[0] as? String
                 if (!conv.isNullOrEmpty()) {
                     currentConv = conv
                 }

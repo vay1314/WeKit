@@ -6,6 +6,7 @@ import dev.ujhhgtg.wekit.utils.HostInfo
 import dev.ujhhgtg.wekit.utils.crash.CrashInfoCollector.collectCrashInfo
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.polyfills.getThreadId
+import kotlin.system.exitProcess
 
 object JavaCrashHandler : Thread.UncaughtExceptionHandler {
 
@@ -73,7 +74,7 @@ object JavaCrashHandler : Thread.UncaughtExceptionHandler {
             } else {
                 // 如果没有默认处理器，手动终止进程
                 WeLogger.e(TAG, "no default handler, killing process")
-                Process.killProcess(Process.myPid())
+                exitProcess(1)
             }
         }
     }

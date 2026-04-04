@@ -12,7 +12,7 @@ import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.ui.utils.findViewWhich
 import dev.ujhhgtg.wekit.utils.WeLogger
 
-@HookItem(path = "聊天/一键撤回并重新编辑", desc = "向消息长按菜单添加菜单项, 可快捷撤回消息并将文本内容加入输入框 (没写完)")
+@HookItem(path = "聊天/一键撤回并重新编辑", description = "向消息长按菜单添加菜单项, 可快捷撤回消息并将文本内容加入输入框 (没写完)")
 object QuickRevokeAndEdit : SwitchHookItem(), WeChatMessageViewApi.ICreateViewListener {
 
     private val TAG = nameOf(QuickRevokeAndEdit)

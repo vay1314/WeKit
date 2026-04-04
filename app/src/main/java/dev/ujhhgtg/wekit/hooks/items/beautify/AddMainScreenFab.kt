@@ -3,7 +3,6 @@ package dev.ujhhgtg.wekit.hooks.items.beautify
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.os.Process
 import android.view.ViewGroup
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseIn
@@ -66,8 +65,9 @@ import dev.ujhhgtg.wekit.ui.utils.setLifecycleOwner
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.showToast
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.system.exitProcess
 
-@HookItem(path = "界面美化/主屏幕添加 FAB", desc = "向应用主屏幕添加浮动操作按钮")
+@HookItem(path = "界面美化/主屏幕添加 FAB", description = "向应用主屏幕添加浮动操作按钮")
 object AddMainScreenFab : SwitchHookItem() {
 
     interface IMenuItemsProvider {
@@ -98,8 +98,8 @@ object AddMainScreenFab : SwitchHookItem() {
     }
 
     override fun onEnable() {
-        WeMainActivityBeautifyApi.methodDoOnCreate.hookAfter { param ->
-            val activity = param.thisObject.asResolver()
+        WeMainActivityBeautifyApi.methodDoOnCreate.hookAfter {
+            val activity = thisObject.asResolver()
                 .firstField {
                     type = "com.tencent.mm.ui.MMFragmentActivity"
                 }
@@ -140,7 +140,7 @@ object AddMainScreenFab : SwitchHookItem() {
                     MainSettingsDialog(activity).show()
                 }),
                 "强制停止" to (MaterialSymbols.OutlinedFilled.Cancel to {
-                    Process.killProcess(Process.myPid())
+                    exitProcess(0)
                 }),
                 "全部已读" to (MaterialSymbols.OutlinedFilled.Update to {
                     WeConversationApi.markAllAsRead()

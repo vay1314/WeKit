@@ -10,7 +10,7 @@ import dev.ujhhgtg.wekit.utils.WeLogger
 
 @HookItem(
     path = "朋友圈/拦截朋友圈删除",
-    desc = "拦截他人朋友圈删除并添加标记"
+    description = "拦截他人朋友圈删除并添加标记"
 )
 object AntiMomentsDelete : SwitchHookItem(), WeDatabaseListenerApi.IUpdateListener {
 
@@ -71,7 +71,6 @@ object AntiMomentsDelete : SwitchHookItem(), WeDatabaseListenerApi.IUpdateListen
         try {
             val json = proto.toJsonObject()
             val key = fieldNumber.toString()
-            WeLogger.d(TAG, json.toString())
 
             if (!json.has(key)) return false
 

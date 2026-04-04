@@ -1,4 +1,6 @@
 package com.tencent.mm.ui.chatting;
 
-public class ChattingUI {
+import android.app.Activity;
+
+public class ChattingUI extends Activity {
 }

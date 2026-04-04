@@ -20,7 +20,7 @@ import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "聊天/移除消息菜单项", desc = "从消息的长按菜单中移除指定名称的菜单项")
+@HookItem(path = "聊天/移除消息菜单项", description = "从消息的长按菜单中移除指定名称的菜单项")
 object RemoveChatMessageContextMenuItems : ClickableHookItem(), IResolvesDex {
 
     // although there are multiple addMenuItem() methods, i only found the usage of those two in the context menu of chat messages
@@ -31,28 +31,28 @@ object RemoveChatMessageContextMenuItems : ClickableHookItem(), IResolvesDex {
         "收藏,提醒,翻译,搜一搜,编辑,打开,相关表情,合拍,查看专辑,静音播放,听筒播放,背景播放"
 
     override fun onEnable() {
-        methodAddMenuItem1.hookAfter { param ->
-            val name = param.args[3] as CharSequence
+        methodAddMenuItem1.hookAfter {
+            val name = args[3] as CharSequence
             val removedNames =
                 WePrefs.getStringOrDef(KEY_REMOVED_ITEM_NAMES, DEFAULT_REMOVED_ITEM_NAMES)
                     .split(',')
 
             if (removedNames.contains(name)) {
-                val list = param.thisObject.asResolver()
+                val list = thisObject.asResolver()
                     .firstField { type = List::class }
                     .get()!! as ArrayList<*>
                 list.removeAt(list.size - 1)
             }
         }
 
-        methodAddMenuItem2.hookAfter { param ->
-            val name = param.args[3] as CharSequence
+        methodAddMenuItem2.hookAfter {
+            val name = args[3] as CharSequence
             val removedNames =
                 WePrefs.getStringOrDef(KEY_REMOVED_ITEM_NAMES, DEFAULT_REMOVED_ITEM_NAMES)
                     .split(',')
 
             if (removedNames.contains(name)) {
-                val list = param.thisObject.asResolver()
+                val list = thisObject.asResolver()
                     .firstField { type = List::class }
                     .get()!! as ArrayList<*>
                 list.removeAt(list.size - 1)

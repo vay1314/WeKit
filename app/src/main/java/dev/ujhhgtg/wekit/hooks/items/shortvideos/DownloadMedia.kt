@@ -1,14 +1,10 @@
 package dev.ujhhgtg.wekit.hooks.items.shortvideos
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import dev.ujhhgtg.comptime.nameOf
 import dev.ujhhgtg.wekit.R
 import dev.ujhhgtg.wekit.hooks.api.ui.WeShortVideosShareMenuApi
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
-import dev.ujhhgtg.wekit.utils.HostInfo
 import dev.ujhhgtg.wekit.utils.KnownPaths
 import dev.ujhhgtg.wekit.utils.ModuleRes
 import dev.ujhhgtg.wekit.utils.showToast
@@ -30,7 +26,7 @@ import kotlin.io.path.outputStream
 
 @HookItem(
     path = "视频号/下载媒体",
-    desc = "向视频分享菜单中添加「复制链接」与「下载」菜单项"
+    description = "向视频分享菜单中添加「复制链接」与「下载」菜单项"
 )
 object DownloadMedia : SwitchHookItem(),
     WeShortVideosShareMenuApi.IMenuItemsProvider {

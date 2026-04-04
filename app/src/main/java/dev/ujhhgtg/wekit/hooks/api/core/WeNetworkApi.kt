@@ -12,7 +12,7 @@ import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
 @SuppressLint("DiscouragedApi")
-@HookItem(path = "API/网络请求服务", desc = "提供通用发包能力")
+@HookItem(path = "API/网络请求服务", description = "提供通用发包能力")
 object WeNetworkApi : ApiHookItem(), IResolvesDex {
 
     private val TAG = nameOf(WeNetworkApi)

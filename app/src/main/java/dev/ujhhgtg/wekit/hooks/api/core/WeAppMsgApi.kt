@@ -13,7 +13,7 @@ import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
 @SuppressLint("DiscouragedApi")
-@HookItem(path = "API/AppMsg 发送服务", desc = "提供 XML 卡片消息发送能力")
+@HookItem(path = "API/AppMsg 发送服务", description = "提供 XML 卡片消息发送能力")
 object WeAppMsgApi : ApiHookItem(), IResolvesDex {
 
     private val classAppMsgContent by dexClass() // op0.q

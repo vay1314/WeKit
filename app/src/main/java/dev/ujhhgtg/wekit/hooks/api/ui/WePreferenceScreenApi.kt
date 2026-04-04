@@ -67,8 +67,8 @@
 //            .firstMethod {
 //                name = "initView"
 //            }
-//            .hookBefore { param ->
-//                val activity = param.thisObject as Activity
+//            .hookBefore {
+//                val activity = thisObject as Activity
 //                WeLogger.i(TAG, "initView called, ${activity.javaClass.name}")
 //                if (!preferenceActivityClass.isAssignableFrom(activity.javaClass)) return@hookBefore
 //
@@ -106,15 +106,15 @@
 //                parameters(VagueType, preferenceClass)
 //                returnType(Boolean::class.java)
 //            }
-//            .hookBefore { param ->
-//                val activity = param.thisObject as Activity
+//            .hookBefore {
+//                val activity = thisObject as Activity
 //                val prefScreen = activity.asResolver()
 //                    .firstMethod {
 //                        name = "getPreferenceScreen"
 //                    }
 //                    .invoke()!! as BaseAdapter
 //
-//                val pref = param.args[1]
+//                val pref = args[1]
 //                // FIXME: probably need to modify this based on wechat version
 //                val key = pref.asResolver()
 //                    .field {

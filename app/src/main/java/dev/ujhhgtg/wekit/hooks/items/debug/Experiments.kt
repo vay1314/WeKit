@@ -4,7 +4,7 @@ import android.content.Context
 import dev.ujhhgtg.wekit.hooks.core.ClickableHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 
-@HookItem(path = "调试/测试", desc = "???")
+@HookItem(path = "调试/测试", description = "???")
 object Experiments : ClickableHookItem() {
 
     override val noSwitchWidget = true

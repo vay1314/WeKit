@@ -6,7 +6,7 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "系统与隐私/移除分享签名校验", desc = "移除第三方应用分享到微信的签名校验")
+@HookItem(path = "系统与隐私/移除分享签名校验", description = "移除第三方应用分享到微信的签名校验")
 object RemoveExternalAppSharingSignatureVerify : SwitchHookItem(), IResolvesDex {
 
     private val methodSignCheck by dexMethod()
@@ -21,8 +21,8 @@ object RemoveExternalAppSharingSignatureVerify : SwitchHookItem(), IResolvesDex 
     }
 
     override fun onEnable() {
-        methodSignCheck.hookBefore { param ->
-            param.result = true
+        methodSignCheck.hookBefore {
+            result = true
         }
     }
 }

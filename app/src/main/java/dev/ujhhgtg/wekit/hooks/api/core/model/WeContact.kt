@@ -1,33 +1,48 @@
 package dev.ujhhgtg.wekit.hooks.api.core.model
 
+interface IWeContact {
+    val wxId: String
+    val nickname: String
+    val displayName: String
+}
+
 // 基础用户信息模型
 data class WeContact(
-    val wxId: String,
-    val nickname: String,
-    val customWxid: String,
+    override val wxId: String,
+    override val nickname: String,
+    val customWxId: String,
     val remarkName: String,
     val initialNickname: String,
     val nicknamePinyin: String,
     val avatarUrl: String,
     val encryptedUsername: String,
     val type: Int
-)
+) : IWeContact {
+    override val displayName: String
+        get() = if (remarkName.isNotBlank()) "$remarkName ($nickname)" else nickname
+}
 
 // 群聊信息模型
 data class WeGroup(
-    val wxId: String,
-    val nickname: String,
+    override val wxId: String,
+    override val nickname: String,
     val nicknameShortPinyin: String,
     val nicknamePinyin: String,
     val avatarUrl: String
-)
+) : IWeContact {
+    override val displayName: String
+        get() = nickname
+}
 
 // 公众号信息模型
 data class WeOfficial(
-    val wxId: String,
-    val nickname: String,
+    override val wxId: String,
+    override val nickname: String,
     val avatarUrl: String
-)
+) : IWeContact {
+    override val displayName: String
+        get() = nickname
+}
 
 // 消息模型
 data class WeMessage(

@@ -47,7 +47,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
     private val methodGetKey by dexMethod()
     private val methodAddPref by dexMethod()
 
-    // method 3
+    // method 2
     private val classSettingItemClassesProvider by dexClass()
     private val classBaseSettingItem by dexClass()
     private val classSettingLocation by dexClass()
@@ -216,8 +216,8 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
         clsSettingsUi.asResolver().firstMethod {
             name = "initView"
             parameterCount = 0
-        }.hookAfter { param ->
-            val activity = param.thisObject as Activity
+        }.hookAfter {
+            val activity = thisObject as Activity
             val context = activity as Context
 
             try {
@@ -236,18 +236,18 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
         }
 
         clsSettingsUi.asResolver().firstMethod { name = "onPreferenceTreeClick" }
-            .hookBefore { param ->
-                if (param.args.size < 2) return@hookBefore
-                val preference = param.args[1] ?: return@hookBefore
+            .hookBefore {
+                if (args.size < 2) return@hookBefore
+                val preference = args[1] ?: return@hookBefore
 
                 val key = getKeyMethod.invoke(preference) as? String
 
                 if (PREFS_KEY == key) {
-                    val activity = param.thisObject as Activity
+                    val activity = thisObject as Activity
 
                     openSettingsDialog(activity)
 
-                    param.result = true
+                    result = true
                 }
             }
     }
@@ -257,12 +257,12 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
 //            "com.tencent.mm.plugin.setting.ui.setting_new.base.BaseSettingPrefUI"
 //                .toClassOrNull() ?: return
 //
-//        newSettingsCls.asResolver().firstMethod { name = "onCreate" }.hookAfter { param ->
-//            if (param.thisObject.javaClass.name
+//        newSettingsCls.asResolver().firstMethod { name = "onCreate" }.hookAfter {
+//            if (thisObject.javaClass.name
 //                != "com.tencent.mm.plugin.setting.ui.setting_new.MainSettingsUI"
 //            ) return@hookAfter
 //
-//            val activity = param.thisObject as Activity
+//            val activity = thisObject as Activity
 //            activity.asResolver()
 //                .firstMethod {
 //                    name = "addTextOptionMenu"
@@ -279,66 +279,68 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
 
     private const val WEKIT_SETTING_ITEM_NAME_RES_ID = -1337
 
-    private val settingItemClass by lazy {
-        val baseClass = classBaseSettingItem.clazz
+    private val customSettingItemClass by lazy {
+        val baseSettingClass = classBaseSettingItem.clazz
         val settingGroupMainClass = SettingGroupMain::class.java
         val settingGroupAccountInfoClass = SettingGroupAccountInfo::class.java
         settingGroupAccountInfoClass.declaredMethods.run {
-                val mGetClass = this.first { m -> m.returnType == Class::class.java }.name // C6
-                val mReturns1 = methodSettingGroupAccountInfoReturns1.method.name // K6
-                val mOnClick = this.first { m -> m.parameterCount == 3 }.name // Q6
-                val mGetStringId = this.last { m -> m.returnType == String::class.java }.name // w6
-                val mGetSettingLocation =
-                    this.last { m -> m.returnType == classSettingLocation.clazz }.name // x6
-                val mGetNameResId =
-                    this.last { m ->
-                        m.returnType == Int::class.javaPrimitiveType &&
-                                m.name != methodSettingGroupAccountInfoReturns1.method.name
-                    }.name // z6
-                // non-play 8069: C6, K6, Q6, w6, x6, z6
-                // play 8068: E6, M6, T6, z6, B6, D6
-                WeLogger.d(
-                    TAG,
-                    "resolved all method names: $mGetClass, $mReturns1, $mOnClick, $mGetStringId, $mGetSettingLocation, $mGetNameResId"
-                )
+            val mGetClass = this.first { m -> m.returnType == Class::class.java }.name
+            val mReturns1 = methodSettingGroupAccountInfoReturns1.method.name
+            val mOnClick = this.first { m -> m.parameterCount == 3 }.name
+            val mGetStringId = this.last { m -> m.returnType == String::class.java }.name
+            val mGetSettingLocation =
+                this.last { m -> m.returnType == classSettingLocation.clazz }.name
+            val mGetNameResId =
+                this.last { m ->
+                    m.returnType == Int::class.javaPrimitiveType &&
+                            m.name != methodSettingGroupAccountInfoReturns1.method.name
+                }.name
 
-                val handler = InvocationHandler { proxy, method, args ->
-                    when (method.name) {
-                        mGetClass -> return@InvocationHandler settingGroupMainClass
-                        mReturns1 -> return@InvocationHandler 1
-                        mOnClick -> {
-                            openSettingsDialog(args[0] as Context)
-                        }
+            // non-play 8.0.69: C6, K6, Q6, w6, x6, z6
+            // non-play 8.0.70: k7, r7, w7, g7, h7, j7
+            // play 8.0.68: E6, M6, T6, z6, B6, D6
+            WeLogger.d(
+                TAG,
+                "resolved all method names: $mGetClass, $mReturns1, $mOnClick, $mGetStringId, $mGetSettingLocation, $mGetNameResId"
+            )
 
-                        mGetStringId -> return@InvocationHandler "SettingGroup_Main_Other_WeKit"
-                        mGetSettingLocation -> return@InvocationHandler classSettingLocation.clazz.createInstance(
-                            settingGroupMainClass,
-                            SettingAdditionHeaderSearch::class.java
-                        )
+            val handler = InvocationHandler { proxy, method, args ->
+                when (method.name) {
+                    mGetClass -> return@InvocationHandler settingGroupMainClass
+                    mReturns1 -> return@InvocationHandler 1
+                    mOnClick -> {
+                        openSettingsDialog(args[0] as Context)
+                    }
 
-                        mGetNameResId -> return@InvocationHandler WEKIT_SETTING_ITEM_NAME_RES_ID
-                        else -> return@InvocationHandler ProxyBuilder.callSuper(
-                            proxy,
-                            method,
-                            *args
-                        )
+                    mGetStringId -> return@InvocationHandler "SettingGroup_Main_Other_WeKit"
+                    mGetSettingLocation -> return@InvocationHandler classSettingLocation.clazz.createInstance(
+                        settingGroupMainClass,
+                        SettingAdditionHeaderSearch::class.java
+                    )
+
+                    mGetNameResId -> return@InvocationHandler WEKIT_SETTING_ITEM_NAME_RES_ID
+                    else -> return@InvocationHandler ProxyBuilder.callSuper(
+                        proxy,
+                        method,
+                        *args
+                    )
+                }
+            }
+
+            ProxyBuilder.forClass(baseSettingClass)
+                .dexCache((KnownPaths.moduleData / "generated_proxy_classes").createDirectoriesNoThrow().toFile())
+                .parentClassLoader(ClassLoaderProvider.classLoader!!)
+                // AppCompactActivity is shipped with the host app itself, so we mustn't use AppCompatActivity::class here
+                .constructorArgTypes("androidx.appcompat.app.AppCompatActivity".toClass())
+                .handler(handler)
+                .buildProxyClass()
+                .also {
+                    // if generating a proxy class with buildProxyClass(), instances do not automatically have a handler set
+                    it.asResolver().firstConstructor().hookAfter {
+                        ProxyBuilder.setInvocationHandler(thisObject, handler)
                     }
                 }
-
-                ProxyBuilder.forClass(baseClass)
-                    .dexCache((KnownPaths.moduleData / "generated_proxy_classes").createDirectoriesNoThrow().toFile())
-                    .parentClassLoader(ClassLoaderProvider.classLoader!!)
-                    // WeChat has a custom AppCompactActivity, so we mustn't use AppCompatActivity::class here
-                    .constructorArgTypes("androidx.appcompat.app.AppCompatActivity".toClass())
-                    .handler(handler)
-                    .buildProxyClass()
-                    .also {
-                        // if generating a proxy class with buildProxyClass(), instances do not automatically have a handler set
-                        it.asResolver().firstConstructor().hookAfter { param ->
-                            ProxyBuilder.setInvocationHandler(param.thisObject, handler)
-                        }
-                    }
-            }
+        }
     }
 
     private fun tryHookNewSettingsMethod2() {
@@ -352,10 +354,10 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
                 name = "getString"
                 parameters(Int::class)
             }
-            .hookBefore { param ->
-                val resId = param.args[0] as Int
+            .hookBefore {
+                val resId = args[0] as Int
                 if (resId == WEKIT_SETTING_ITEM_NAME_RES_ID)
-                    param.result = "${BuildConfig.TAG} 设置"
+                    result = "${BuildConfig.TAG} 设置"
             }
 
         // create dependency chain
@@ -363,48 +365,48 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
             .firstMethod {
                 returnType = classSettingLocation.clazz
             }
-            .hookBefore { param ->
-                param.result = classSettingLocation.clazz.createInstance(
+            .hookBefore {
+                result = classSettingLocation.clazz.createInstance(
                     settingGroupMainClass,
-                    settingItemClass
+                    customSettingItemClass
                 )
             }
 
         // inject into all SettingItem::class map in order to be discovered
         classSettingItemClassesProvider.asResolver().firstMethod()
-            .hookAfter { param ->
-                val map = param.result as? Map<*, *>? ?: return@hookAfter
+            .hookAfter {
+                val map = result as? Map<*, *>? ?: return@hookAfter
                 val originalSet = map.values.first() as LinkedHashSet<*>
-                param.result = mapOf(map.keys.first() to originalSet + settingItemClass)
+                result = mapOf(map.keys.first() to originalSet + customSettingItemClass)
             }
 
         // inject into page
         BaseSettingPrefUI::class.asResolver()
             .firstMethod { name = "superImportUIComponents" }
-            .hookAfter { param ->
-                if (param.thisObject.javaClass.name
+            .hookAfter {
+                if (thisObject.javaClass.name
                     != "${PackageNames.WECHAT}.plugin.setting.ui.setting_new.MainSettingsUI"
                 ) return@hookAfter
 
                 @Suppress("UNCHECKED_CAST")
-                val settingItemClasses = param.args[0] as HashSet<Class<*>>
-                settingItemClasses.add(settingItemClass)
+                val settingItemClasses = args[0] as HashSet<Class<*>>
+                settingItemClasses.add(customSettingItemClass)
             }
     }
 
 //    private fun tryHookNewSettingsMethod3() {
-//        methodSettingGroupPluginOnClick.hookBefore { param ->
-//            val context = param.args[0] as Context
+//        methodSettingGroupPluginOnClick.hookBefore {
+//            val context = args[0] as Context
 //            openSettingsDialog(context)
-//            param.result = null
+//            result = null
 //        }
 //    }
 
     private fun hookLauncherUi() {
         LauncherUI::class.asResolver().apply {
             firstMethod { name = "onCreate" }
-                .hookBefore { param ->
-                    val activity = param.thisObject as Activity
+                .hookBefore {
+                    val activity = thisObject as Activity
                     val intent = activity.intent ?: return@hookBefore
                     if (intent.hasExtra(BuildConfig.TAG)) {
                         // wait for resources & theme to init
@@ -415,9 +417,9 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
                 }
 
             firstMethod { name = "onNewIntent" }
-                .hookBefore { param ->
-                    val activity = param.thisObject as Activity
-                    val intent = param.args[0] as? Intent? ?: return@hookBefore
+                .hookBefore {
+                    val activity = thisObject as Activity
+                    val intent = args[0] as? Intent? ?: return@hookBefore
                     if (intent.hasExtra(BuildConfig.TAG)) {
                         openSettingsDialog(activity)
                     }

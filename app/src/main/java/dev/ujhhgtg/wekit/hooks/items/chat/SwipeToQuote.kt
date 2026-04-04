@@ -25,7 +25,7 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.exp
 
-@HookItem(path = "聊天/左划引用消息", desc = "在消息上左划以引用")
+@HookItem(path = "聊天/左划引用消息", description = "在消息上左划以引用")
 object SwipeToQuote : SwitchHookItem(), IResolvesDex,
     WeChatMessageViewApi.ICreateViewListener {
 
@@ -50,10 +50,10 @@ object SwipeToQuote : SwitchHookItem(), IResolvesDex,
         WeChatMessageViewApi.addListener(this)
         ViewGroup::class.asResolver()
             .firstMethod { name = "onInterceptTouchEvent" }
-            .hookAfter { param ->
-                val v = param.thisObject as ViewGroup
+            .hookAfter {
+                val v = thisObject as ViewGroup
                 val s = states[v] ?: return@hookAfter
-                val event = param.args[0] as MotionEvent
+                val event = args[0] as MotionEvent
 
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
@@ -69,7 +69,7 @@ object SwipeToQuote : SwitchHookItem(), IResolvesDex,
                             s.isDragging = true
                             v.parent?.requestDisallowInterceptTouchEvent(true)
                         }
-                        if (s.isDragging) param.result = true
+                        if (s.isDragging) result = true
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         s.isDragging = false
@@ -79,10 +79,10 @@ object SwipeToQuote : SwitchHookItem(), IResolvesDex,
 
         View::class.asResolver()
             .firstMethod { name = "onTouchEvent"; superclass() }
-            .hookAfter { param ->
-                val v = param.thisObject as View
+            .hookAfter {
+                val v = thisObject as View
                 val s = states[v] ?: return@hookAfter
-                val event = param.args[0] as MotionEvent
+                val event = args[0] as MotionEvent
 
                 when (event.action) {
                     MotionEvent.ACTION_MOVE -> {
@@ -93,7 +93,7 @@ object SwipeToQuote : SwitchHookItem(), IResolvesDex,
                                 s.triggered = true
                                 v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                             }
-                            param.result = true
+                            result = true
                         }
                     }
                     MotionEvent.ACTION_UP -> {
@@ -106,7 +106,7 @@ object SwipeToQuote : SwitchHookItem(), IResolvesDex,
                             if (s.triggered) onSwipeLeft(v, s.chattingContext)
                             v.parent?.requestDisallowInterceptTouchEvent(false)
                             s.isDragging = false
-                            param.result = true
+                            result = true
                         }
                     }
                     MotionEvent.ACTION_CANCEL -> {

@@ -102,7 +102,7 @@ class HookItemsScanner(
                     "%T.apply·{ path·=·%S; description·=·%S },",
                     typeName,
                     hookItem.path,
-                    hookItem.desc,
+                    hookItem.description,
                 )
             }
             unindent()

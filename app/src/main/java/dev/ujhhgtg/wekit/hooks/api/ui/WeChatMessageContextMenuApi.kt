@@ -16,7 +16,7 @@ import dev.ujhhgtg.wekit.utils.WeLogger
 import org.luckypray.dexkit.DexKitBridge
 
 @SuppressLint("StaticFieldLeak")
-@HookItem(path = "API/聊天界面消息菜单扩展", desc = "为聊天界面消息长按菜单提供添加菜单项功能")
+@HookItem(path = "API/聊天界面消息菜单扩展", description = "为聊天界面消息长按菜单提供添加菜单项功能")
 object WeChatMessageContextMenuApi : ApiHookItem(), IResolvesDex {
 
     interface IMenuItemsProvider {
@@ -48,10 +48,10 @@ object WeChatMessageContextMenuApi : ApiHookItem(), IResolvesDex {
     private lateinit var currentView: View
 
     override fun onEnable() {
-        methodCreateMenu.hookBefore { param ->
-            val menu = param.args[0]
+        methodCreateMenu.hookBefore {
+            val menu = args[0]
 
-            currentView = param.args[1] as View
+            currentView = args[1] as View
             val tag = currentView.tag
 
             val msgInfo = WeMessageApi.getMsgInfoInstanceFromTag(tag)
@@ -76,8 +76,8 @@ object WeChatMessageContextMenuApi : ApiHookItem(), IResolvesDex {
             }
         }
 
-        methodSelectMenuItem.hookBefore { param ->
-            val thisObj = param.thisObject
+        methodSelectMenuItem.hookBefore {
+            val thisObj = thisObject
             val viewOnLongClickListener = thisObj.asResolver()
                 .firstField {
                     type {
@@ -95,7 +95,7 @@ object WeChatMessageContextMenuApi : ApiHookItem(), IResolvesDex {
             val tag = currentView.tag
             val msgInfo = WeMessageApi.getMsgInfoInstanceFromTag(tag)
 
-            val menuItem = param.args[0] as android.view.MenuItem
+            val menuItem = args[0] as android.view.MenuItem
             val msgInfoWrapper = MessageInfo(msgInfo)
             try {
                 for (item in menuItems.values.flatten()) {
@@ -105,7 +105,7 @@ object WeChatMessageContextMenuApi : ApiHookItem(), IResolvesDex {
                             chattingContext,
                             msgInfoWrapper
                         )
-                        param.result = null
+                        result = null
                         return@hookBefore
                     }
                 }

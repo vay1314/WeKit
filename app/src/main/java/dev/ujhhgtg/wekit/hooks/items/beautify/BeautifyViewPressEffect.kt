@@ -8,7 +8,7 @@ import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 
-@HookItem(path = "界面美化/美化组件按下效果", desc = "将 View 的背景替换为 RippleDrawable (没写完)")
+@HookItem(path = "界面美化/美化组件按下效果", description = "将 View 的背景替换为 RippleDrawable (没写完)")
 object BeautifyViewPressEffect : SwitchHookItem() {
     override fun onEnable() {
         View::class.asResolver()
@@ -16,9 +16,9 @@ object BeautifyViewPressEffect : SwitchHookItem() {
                 name = "setBackgroundDrawable"
                 parameters(Drawable::class)
             }
-            .hookBefore { param ->
-                val view = param.thisObject as View
-                val original = param.args[0] as Drawable
+            .hookBefore {
+                val view = thisObject as View
+                val original = args[0] as Drawable
 
                 // 只针对微信的组件，避开系统组件
 //                if (!view.javaClass.name.startsWith(PackageNames.WECHAT)) return@hookBefore
@@ -29,8 +29,8 @@ object BeautifyViewPressEffect : SwitchHookItem() {
                 if (view.isClickable) {
                     val rippleColor = ColorStateList.valueOf(0x1F000000)
                     val newRipple = RippleDrawable(rippleColor, original, null)
-                    param.args[0] = newRipple
-                    param.result = null
+                    args[0] = newRipple
+                    result = null
                 }
             }
     }

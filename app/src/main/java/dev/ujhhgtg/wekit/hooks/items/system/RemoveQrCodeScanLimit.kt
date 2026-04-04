@@ -6,7 +6,7 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "系统与隐私/移除二维码扫描限制", desc = "移除长按图片与相册选择的二维码扫描限制")
+@HookItem(path = "系统与隐私/移除二维码扫描限制", description = "移除长按图片与相册选择的二维码扫描限制")
 object RemoveQrCodeScanLimit : SwitchHookItem(), IResolvesDex {
 
     enum class ScanScene(val source: Int, val a8KeyScene: Int) {
@@ -26,14 +26,14 @@ object RemoveQrCodeScanLimit : SwitchHookItem(), IResolvesDex {
     }
 
     override fun onEnable() {
-        methodQBarString.hookBefore { param ->
-            val source = param.args[2] as Int
-            val a8KeyScene = param.args[3] as Int
+        methodQBarString.hookBefore {
+            val source = args[2] as Int
+            val a8KeyScene = args[3] as Int
             val matchedScene =
                 ScanScene.entries.find { it.source == source && it.a8KeyScene == a8KeyScene }
             if (matchedScene == ScanScene.ALBUM || matchedScene == ScanScene.PICTURE_LONG_PRESS) {
-                param.args[2] = ScanScene.CAMERA.source
-                param.args[3] = ScanScene.CAMERA.a8KeyScene
+                args[2] = ScanScene.CAMERA.source
+                args[3] = ScanScene.CAMERA.a8KeyScene
             }
         }
     }

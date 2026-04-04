@@ -23,7 +23,7 @@ import dev.ujhhgtg.wekit.ui.content.DefaultColumn
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.WeLogger
 
-@HookItem(path = "调试/重定向微信日志", desc = "将微信内部日志打印至模块日志")
+@HookItem(path = "调试/重定向微信日志", description = "将微信内部日志打印至模块日志")
 object RedirectHostLogs : ClickableHookItem() {
 
     private val TAG = nameOf(RedirectHostLogs)
@@ -36,11 +36,11 @@ object RedirectHostLogs : ClickableHookItem() {
                     name = "v"
                     parameterCount = 3
                     modifiers(Modifiers.STATIC)
-                }.hookBefore { param ->
+                }.hookBefore {
                     runCatching {
-                        val tag = param.args[0] as String
-                        var formatString = param.args[1] as String
-                        formatString = formatString.format(*(param.args[2] as Array<*>))
+                        val tag = args[0] as String
+                        var formatString = args[1] as String
+                        formatString = formatString.format(*(args[2] as Array<*>))
                         WeLogger.v(TAG, "[V] [$tag] $formatString")
                     }
                 }
@@ -50,11 +50,11 @@ object RedirectHostLogs : ClickableHookItem() {
                     name = "d"
                     parameterCount = 3
                     modifiers(Modifiers.STATIC)
-                }.hookBefore { param ->
+                }.hookBefore {
                     runCatching {
-                        val tag = param.args[0] as String
-                        var formatString = param.args[1] as String
-                        formatString = formatString.format(*(param.args[2] as Array<*>))
+                        val tag = args[0] as String
+                        var formatString = args[1] as String
+                        formatString = formatString.format(*(args[2] as Array<*>))
                         WeLogger.d(TAG, "[D] [$tag] $formatString")
                     }
                 }
@@ -64,11 +64,11 @@ object RedirectHostLogs : ClickableHookItem() {
                     name = "i"
                     parameterCount = 3
                     modifiers(Modifiers.STATIC)
-                }.hookBefore { param ->
+                }.hookBefore {
                     runCatching {
-                        val tag = param.args[0] as String
-                        var formatString = param.args[1] as String
-                        formatString = formatString.format(*(param.args[2] as Array<*>))
+                        val tag = args[0] as String
+                        var formatString = args[1] as String
+                        formatString = formatString.format(*(args[2] as Array<*>))
                         WeLogger.i(TAG, "[I] [$tag] $formatString")
                     }
                 }
@@ -78,11 +78,11 @@ object RedirectHostLogs : ClickableHookItem() {
                     name = "w"
                     parameterCount = 3
                     modifiers(Modifiers.STATIC)
-                }.hookBefore { param ->
+                }.hookBefore {
                     runCatching {
-                        val tag = param.args[0] as String
-                        var formatString = param.args[1] as String
-                        formatString = formatString.format(*(param.args[2] as Array<*>))
+                        val tag = args[0] as String
+                        var formatString = args[1] as String
+                        formatString = formatString.format(*(args[2] as Array<*>))
                         WeLogger.w(TAG, "[W] [$tag] $formatString")
                     }
                 }
@@ -92,11 +92,11 @@ object RedirectHostLogs : ClickableHookItem() {
                     name = "e"
                     parameterCount = 3
                     modifiers(Modifiers.STATIC)
-                }.hookBefore { param ->
+                }.hookBefore {
                     runCatching {
-                        val tag = param.args[0] as String
-                        var formatString = param.args[1] as String
-                        formatString = formatString.format(*(param.args[2] as Array<*>))
+                        val tag = args[0] as String
+                        var formatString = args[1] as String
+                        formatString = formatString.format(*(args[2] as Array<*>))
                         WeLogger.e(TAG, "[E] [$tag] $formatString")
                     }
                 }

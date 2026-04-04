@@ -22,7 +22,7 @@ import dev.ujhhgtg.wekit.utils.WeLogger
 
 @HookItem(
     path = "调试/测试崩溃",
-    desc = "没事别点"
+    description = "没事别点"
 )
 object TriggerCrash : ClickableHookItem() {
 

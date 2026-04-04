@@ -20,7 +20,7 @@ import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.showToast
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "系统与隐私/修改运动步数", desc = "修改微信获取到的或手动上传运动步数")
+@HookItem(path = "系统与隐私/修改运动步数", description = "修改微信获取到的或手动上传运动步数")
 object ModifySportsStepCount : ClickableHookItem(), IResolvesDex {
 
     private val methodGetSteps by dexMethod()
@@ -43,10 +43,10 @@ object ModifySportsStepCount : ClickableHookItem(), IResolvesDex {
     }
 
     override fun onEnable() {
-        methodGetSteps.hookBefore { param ->
+        methodGetSteps.hookBefore {
             val count = WePrefs.getLongOrDef(KEY_STEP_COUNT, -1L)
             if (count == -1L) return@hookBefore
-            param.result = count
+            result = count
         }
     }
 

@@ -6,7 +6,7 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "系统与隐私/禁止应用检测 Xposed", desc = "防止应用检测 Xposed 框架是否存在")
+@HookItem(path = "系统与隐私/禁止应用检测 Xposed", description = "防止应用检测 Xposed 框架是否存在")
 object DisableXposedDetection : SwitchHookItem(), IResolvesDex {
 
     private val methodCheckStackTraceElements by dexMethod()
@@ -14,8 +14,8 @@ object DisableXposedDetection : SwitchHookItem(), IResolvesDex {
     override fun onEnable() {
         if (methodCheckStackTraceElements.isPlaceholder) return
 
-        methodCheckStackTraceElements.hookBefore { param ->
-            param.result = false
+        methodCheckStackTraceElements.hookBefore {
+            result = false
         }
     }
 

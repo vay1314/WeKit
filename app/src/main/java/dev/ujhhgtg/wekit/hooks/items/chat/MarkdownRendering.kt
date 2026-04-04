@@ -61,7 +61,7 @@ import org.commonmark.node.OrderedList
 import org.commonmark.node.Paragraph
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "聊天/Markdown 渲染", desc = "渲染 Markdown 消息")
+@HookItem(path = "聊天/Markdown 渲染", description = "渲染 Markdown 消息")
 object MarkdownRendering : ClickableHookItem(), IResolvesDex {
 
     private val TAG = nameOf(MarkdownRendering)
@@ -80,8 +80,8 @@ object MarkdownRendering : ClickableHookItem(), IResolvesDex {
     override fun onEnable() {
         MMNeat7extView::class.asResolver()
             .firstMethod { name = "onDraw" }
-            .hookBefore { param ->
-                val neatTextView = param.thisObject as View
+            .hookBefore {
+                val neatTextView = thisObject as View
                 if (!::markwon.isInitialized) {
                     markwon = buildMarkwon(neatTextView.context)
                 }
@@ -127,7 +127,7 @@ object MarkdownRendering : ClickableHookItem(), IResolvesDex {
                 if (!msgInfo.isText) return@hookBefore
                 val isSelfSender = msgInfo.isSelfSender()
 
-                val canvas = param.args[0] as Canvas
+                val canvas = args[0] as Canvas
                 val context = neatTextView.context
 
                 val isDarkMode = (context.resources.configuration.uiMode and
@@ -163,7 +163,7 @@ object MarkdownRendering : ClickableHookItem(), IResolvesDex {
                         maxWidth,
                         textPaint
                     )
-                    param.result = null
+                    result = null
                 } else {
                     val html = convertMarkdownToHtmlNative(origText)
 
@@ -176,7 +176,7 @@ object MarkdownRendering : ClickableHookItem(), IResolvesDex {
                             maxWidth,
                             textPaint
                         )
-                        param.result = null
+                        result = null
                     } else {
                         WeLogger.e(TAG, "convertMarkdownToHtmlNative returned nullptr, falling back to original rendering")
                     }

@@ -19,7 +19,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.concurrent.CopyOnWriteArrayList
 
-@HookItem(path = "API/用户联系页面扩展")
+@HookItem(path = "API/联系人页面扩展")
 object WeContactPrefsScreenApi : ApiHookItem() {
 
     interface IContactInfoProvider {
@@ -63,12 +63,12 @@ object WeContactPrefsScreenApi : ApiHookItem() {
         ).forEach {
             it.asResolver().apply {
                 firstMethod { name = "initView" }
-                    .hookAfter { param ->
-                        val adapterInstance = adapterField.get(param.thisObject as Activity)
+                    .hookAfter {
+                        val adapterInstance = adapterField.get(thisObject as Activity)
                         for (provider in providers) {
                             try {
-                                val item = provider.getContactInfoItem(param.thisObject as Activity)
-                                val pref = prefConstructor.newInstance(param.thisObject as Context)
+                                val item = provider.getContactInfoItem(thisObject as Activity)
+                                val pref = prefConstructor.newInstance(thisObject as Context)
                                 setKeyMethod.invoke(pref, item.key)
                                 setTitleMethod.invoke(pref, item.title)
                                 item.summary?.let { summary -> setSummaryMethod.invoke(pref, summary) }
@@ -85,13 +85,13 @@ object WeContactPrefsScreenApi : ApiHookItem() {
 
                 firstMethod {
                     name = "onPreferenceTreeClick"
-                }.hookBefore { param ->
-                    val preference = param.args[1] ?: return@hookBefore
+                }.hookBefore {
+                    val preference = args[1] ?: return@hookBefore
                     val key = prefKeyField.get(preference) as? String ?: return@hookBefore
                     for (provider in providers) {
                         try {
-                            if (provider.onItemClick(param.thisObject as Activity, key)) {
-                                param.result = true
+                            if (provider.onItemClick(thisObject as Activity, key)) {
+                                result = true
                                 return@hookBefore
                             }
                         } catch (ex: Exception) {

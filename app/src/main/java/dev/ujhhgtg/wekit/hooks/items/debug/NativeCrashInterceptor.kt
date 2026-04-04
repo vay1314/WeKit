@@ -12,7 +12,7 @@ import dev.ujhhgtg.wekit.utils.showToast
 
 @HookItem(
     path = "调试/崩溃拦截 (Native)",
-    desc = "拦截 Native 层崩溃并记录详细信息，支持查看和导出日志"
+    description = "拦截 Native 层崩溃并记录详细信息，支持查看和导出日志"
 )
 object NativeCrashInterceptor : SwitchHookItem() {
 

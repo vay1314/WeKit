@@ -42,16 +42,16 @@ object WeLauncher {
 
     private fun initMainProcessHooks() {
         LauncherUI::class.asResolver().apply {
-            firstMethod { name = "onResume" }.hookAfterDirectly { param ->
-                val activity = param.thisObject as Activity
+            firstMethod { name = "onResume" }.hookAfterDirectly {
+                val activity = thisObject as Activity
                 ModuleRes.init(activity)
             }
 
             firstMethod {
                 name = "onCreate"
                 parameters(Bundle::class)
-            }.hookAfterDirectly { param ->
-                val activity = param.thisObject as Activity
+            }.hookAfterDirectly {
+                val activity = thisObject as Activity
                 val sharedPreferences =
                     activity.getSharedPreferences("${PackageNames.WECHAT}_preferences", 0)
                 RuntimeConfig.setMmPrefs(sharedPreferences)

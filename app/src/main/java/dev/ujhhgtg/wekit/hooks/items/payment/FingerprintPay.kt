@@ -30,7 +30,7 @@ import com.composables.icons.materialsymbols.outlinedfilled.Visibility_off
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.toClass
 import com.tencent.mm.plugin.fingerprint.ui.FingerPrintAuthTransparentUI
-import dev.ujhhgtg.comptime.nameOf
+import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.wekit.activity.StubFragmentActivity
 import dev.ujhhgtg.wekit.hooks.core.ClickableHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItem
@@ -46,20 +46,27 @@ import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.CryptoManager
 import dev.ujhhgtg.wekit.utils.EncryptedData
 import dev.ujhhgtg.wekit.utils.HostInfo
+import dev.ujhhgtg.wekit.utils.TargetProcesses
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.showToast
 
 
-@HookItem(path = "红包与支付/指纹支付", desc = "使用指纹快捷确认支付")
+@HookItem(path = "红包与支付/指纹支付", description = "使用指纹快捷确认支付")
 object FingerprintPay : ClickableHookItem() {
 
-    private val TAG = nameOf(FingerprintPay)
+    private val TAG = This.Class.simpleName
     private const val KEY_ENCRYPTED_DATA = "payment_pswd_encdata"
 
     private const val SPLIT_CHAR = ':'
 
     @Volatile
     private var isVerificationOngoing = false
+
+    override fun startup() {
+        if (TargetProcesses.currentType != TargetProcesses.PROC_MAIN && TargetProcesses.currentType != TargetProcesses.PROC_APPBRAND) return
+        _isEnabled = WePrefs.getBoolOrFalse(path)
+        if (_isEnabled) enable()
+    }
 
     override fun onEnable() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
@@ -73,11 +80,11 @@ object FingerprintPay : ClickableHookItem() {
             className.toClass().asResolver()
                 .apply {
                     firstMethod { name = "onResume" }
-                        .hookBefore { param ->
+                        .hookBefore {
                             if (isVerificationOngoing) return@hookBefore
                             isVerificationOngoing = true
 
-                            val activity = param.thisObject as Activity
+                            val activity = thisObject as Activity
 
                             val root = activity.findViewById<ViewGroup>(android.R.id.content)
                             val searchedView = root.findViewByChildIndexes<ViewGroup>(0, 0, 2, 0, 2) ?: return@hookBefore
@@ -105,17 +112,17 @@ object FingerprintPay : ClickableHookItem() {
 
                     // WxaLiteAppTransparentLiteUI inherits WxaLiteAppTransparentUI::finish()
                     firstMethod { name = "finish"; superclass() }
-                        .hookBefore { _ ->
+                        .hookBefore {
                             isVerificationOngoing = false
                         }
                 }
         }
 
-        FingerPrintAuthTransparentUI::class.java.hookBeforeOnCreate { param ->
-                // hide 'enable fingerprint pay' guide dialog
-                val bundle = param.args[0] as Bundle
-                bundle.putBoolean("key_show_guide", false)
-            }
+        FingerPrintAuthTransparentUI::class.java.hookBeforeOnCreate {
+            // hide 'enable fingerprint pay' guide dialog
+            val bundle = args[0] as Bundle
+            bundle.putBoolean("key_show_guide", false)
+        }
     }
 
     override fun onClick(context: Context) {

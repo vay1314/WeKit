@@ -15,7 +15,7 @@ import dev.ujhhgtg.wekit.utils.WeLogger
 
 @HookItem(
     path = "界面美化/美化活动过渡动画",
-    desc = "将部分活动过渡动画替换为默认过渡或元素级共享动画 (没做完)"
+    description = "将部分活动过渡动画替换为默认过渡或元素级共享动画 (没做完)"
 )
 object BeautifyActivityTransitionAnimation : SwitchHookItem() {
 
@@ -32,8 +32,8 @@ object BeautifyActivityTransitionAnimation : SwitchHookItem() {
             .firstMethod {
                 name = "performClick"
             }
-            .hookBefore { param ->
-                val view = param.thisObject as View
+            .hookBefore {
+                val view = thisObject as View
                 WeLogger.d(TAG, "called View.performClick on ${view.javaClass.name}")
                 width = view.width
                 height = view.height
@@ -49,8 +49,8 @@ object BeautifyActivityTransitionAnimation : SwitchHookItem() {
             .firstMethod {
                 name = "onPostCreate"
             }
-            .hookBefore { param ->
-                val activity = param.thisObject as Activity
+            .hookBefore {
+                val activity = thisObject as Activity
                 val decorView = activity.window.decorView as ViewGroup
 
                 // 使用 post 确保在 Activity 布局流程队列的末尾执行
@@ -93,12 +93,12 @@ object BeautifyActivityTransitionAnimation : SwitchHookItem() {
                 name = "overridePendingTransition"
                 parameterCount = 3
             }
-            .hookBefore { param ->
+            .hookBefore {
                 WeLogger.d(
                     TAG,
-                    "called Activity.overridePendingTransition on ${param.thisObject.javaClass.name}"
+                    "called Activity.overridePendingTransition on ${thisObject.javaClass.name}"
                 )
-                param.result = null
+                result = null
             }
     }
 }

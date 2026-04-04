@@ -17,7 +17,7 @@ import dev.ujhhgtg.wekit.utils.WeLogger
 import org.luckypray.dexkit.DexKitBridge
 import java.util.concurrent.CopyOnWriteArrayList
 
-@HookItem(path = "API/首页菜单服务", desc = "提供向首页右上角菜单添加菜单项的能力")
+@HookItem(path = "API/首页菜单服务", description = "提供向首页右上角菜单添加菜单项的能力")
 object WeHomeScreenPopupMenuApi : ApiHookItem(), IResolvesDex {
 
     interface IMenuItemsProvider {
@@ -49,8 +49,8 @@ object WeHomeScreenPopupMenuApi : ApiHookItem(), IResolvesDex {
 
     override fun onEnable() {
         // WeChat 8.0.70 moved this to com.tencent.mm.ui.HomeUI
-        methodAddItem.hookAfter { param ->
-            var thisObj = param.thisObject
+        methodAddItem.hookAfter {
+            var thisObj = thisObject
 
             if (thisObj.javaClass.simpleName == "HomeUI") {
                 thisObj = thisObj.asResolver()
@@ -74,7 +74,7 @@ object WeHomeScreenPopupMenuApi : ApiHookItem(), IResolvesDex {
 
             for (provider in providers) {
                 try {
-                    for (item in provider.getMenuItems(param)) {
+                    for (item in provider.getMenuItems(this)) {
                         val itemData = classMenuItemData.clazz.createInstance(
                             item.id,
                             item.text,
@@ -97,8 +97,8 @@ object WeHomeScreenPopupMenuApi : ApiHookItem(), IResolvesDex {
             baseAdapter.notifyDataSetChanged()
         }
 
-        methodHandleItemClick.hookBefore { param ->
-            val thisObj = param.thisObject
+        methodHandleItemClick.hookBefore {
+            val thisObj = thisObject
 
             @Suppress("UNCHECKED_CAST")
             val items = thisObj.asResolver()
@@ -106,7 +106,7 @@ object WeHomeScreenPopupMenuApi : ApiHookItem(), IResolvesDex {
                     type = SparseArray::class
                 }
                 .get()!! as SparseArray<Any>
-            val position = param.args[2] as Int
+            val position = args[2] as Int
             val itemWrapper = items.get(position)
             val itemData = itemWrapper.asResolver()
                 .firstField { type = classMenuItemData.clazz }.get()!!
@@ -114,11 +114,11 @@ object WeHomeScreenPopupMenuApi : ApiHookItem(), IResolvesDex {
                 .field { type = Int::class }[1].get()!! as Int
 
             for (provider in providers) {
-                for (item in provider.getMenuItems(param)) {
+                for (item in provider.getMenuItems(this)) {
                     if (item.id == id) {
                         try {
                             item.onClick()
-                            param.result = null
+                            result = null
                             return@hookBefore
                         } catch (ex: Exception) {
                             WeLogger.e(

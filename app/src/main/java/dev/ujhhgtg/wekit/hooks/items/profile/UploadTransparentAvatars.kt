@@ -9,7 +9,7 @@ import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.utils.WeLogger
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "个人资料/上传透明头像", desc = "头像上传时使用 PNG 格式保持透明")
+@HookItem(path = "个人资料/上传透明头像", description = "头像上传时使用 PNG 格式保持透明")
 object UploadTransparentAvatars : SwitchHookItem(), IResolvesDex {
 
     private val TAG = nameOf(UploadTransparentAvatars)
@@ -26,8 +26,8 @@ object UploadTransparentAvatars : SwitchHookItem(), IResolvesDex {
     }
 
     override fun onEnable() {
-        methodSaveBitmap.hookBefore { param ->
-            val args = param.args
+        methodSaveBitmap.hookBefore {
+            val args = args
 
             val pathName = args[3] as? String
             if (pathName != null &&

@@ -44,7 +44,7 @@ import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.showToast
 
-@HookItem(path = "联系人与群组/分裂群组", desc = "让群聊一分为二")
+@HookItem(path = "联系人与群组/分裂群组", description = "让群聊一分为二")
 object SplitChatroom : ClickableHookItem() {
 
     private val TAG = nameOf(SplitChatroom)

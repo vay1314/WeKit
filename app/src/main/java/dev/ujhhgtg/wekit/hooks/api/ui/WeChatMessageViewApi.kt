@@ -14,7 +14,7 @@ import dev.ujhhgtg.wekit.utils.WeLogger
 import org.luckypray.dexkit.DexKitBridge
 import java.util.concurrent.CopyOnWriteArrayList
 
-@HookItem(path = "API/消息 View 创建监听服务", desc = "为其他功能提供消息 View 创建监听能力")
+@HookItem(path = "API/消息 View 创建监听服务", description = "为其他功能提供消息 View 创建监听能力")
 object WeChatMessageViewApi : ApiHookItem(), IResolvesDex {
 
     interface ICreateViewListener {
@@ -44,8 +44,8 @@ object WeChatMessageViewApi : ApiHookItem(), IResolvesDex {
     private val methodChatItemOnBindView by dexMethod()
 
     override fun onEnable() {
-        methodChatItemOnBindView.hookAfter { param ->
-            val holder = param.args[0]
+        methodChatItemOnBindView.hookAfter {
+            val holder = args[0]
             val view = holder.asResolver()
                 .firstField {
                     type = View::class
@@ -55,7 +55,7 @@ object WeChatMessageViewApi : ApiHookItem(), IResolvesDex {
 
             for (listener in listeners) {
                 try {
-                    listener.onCreateView(param, view)
+                    listener.onCreateView(this, view)
                 } catch (ex: Exception) {
                     WeLogger.e(TAG, "listener ${listener.javaClass.name} threw", ex)
                 }

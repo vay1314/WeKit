@@ -39,7 +39,7 @@ object UnifiedEntryPoint {
                     .firstMethod {
                         name = "callApplicationOnCreate"
                     }
-                    .hookAfterDirectly { _ ->
+                    .hookAfterDirectly {
                         runCatching {
                             StartupAgent.startup(
                                 loaderService,

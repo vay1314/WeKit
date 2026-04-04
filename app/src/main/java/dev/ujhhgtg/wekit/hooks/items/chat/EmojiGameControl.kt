@@ -3,7 +3,6 @@ package dev.ujhhgtg.wekit.hooks.items.chat
 import android.app.Activity
 import android.view.ContextThemeWrapper
 import android.view.View
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -46,7 +45,7 @@ import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.enums.MatchType
 import kotlin.random.Random
 
-@HookItem(path = "聊天/表情游戏控制", desc = "自定义猜拳和骰子的结果")
+@HookItem(path = "聊天/表情游戏控制", description = "自定义猜拳和骰子的结果")
 object EmojiGameControl : SwitchHookItem(), IResolvesDex {
 
     private const val MD5_MORRA = "9bd1281af3a31710a45b84d736363691"
@@ -90,18 +89,18 @@ object EmojiGameControl : SwitchHookItem(), IResolvesDex {
     }
 
     override fun onEnable() {
-        methodRandom.hookAfter { param ->
-            val type = param.args[0] as Int
+        methodRandom.hookAfter {
+            val type = args[0] as Int
             // Arg 0 determines type: 2 is Morra, 5 is Dice
-            param.result = when (type) {
+            result = when (type) {
                 2 -> valMorra
                 5 -> valDice
-                else -> param.result
+                else -> result
             }
         }
 
-        methodPanelClick.hookBefore { param ->
-            val obj = param.args[3] ?: return@hookBefore
+        methodPanelClick.hookBefore {
+            val obj = args[3] ?: return@hookBefore
 
             val fields = obj.javaClass.declaredFields
             var infoType = -1
@@ -132,11 +131,11 @@ object EmojiGameControl : SwitchHookItem(), IResolvesDex {
                         )
                         val emojiMd5 = getMd5Method.invoke(emojiInfo) as? String
 
-                        val activity = param.args[0].cast<View>().context.cast<ContextThemeWrapper>().baseContext as Activity
+                        val activity = args[0].cast<View>().context.cast<ContextThemeWrapper>().baseContext as Activity
 
                         when (emojiMd5) {
-                            MD5_MORRA -> showSelectDialog(param, false, activity)
-                            MD5_DICE -> showSelectDialog(param, true, activity)
+                            MD5_MORRA -> showSelectDialog(this, false, activity)
+                            MD5_DICE -> showSelectDialog(this, true, activity)
                         }
                     }
                 }

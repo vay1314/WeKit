@@ -2,8 +2,6 @@ package dev.ujhhgtg.wekit.hooks.items.system
 
 import android.annotation.SuppressLint
 import android.app.ActivityOptions
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -47,14 +45,14 @@ import dev.ujhhgtg.wekit.ui.content.AlertDialogContent
 import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.HostInfo
-import dev.ujhhgtg.wekit.utils.showToast
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.copyToClipboard
 import dev.ujhhgtg.wekit.utils.openInSystem
+import dev.ujhhgtg.wekit.utils.showToast
 
 @HookItem(
     path = "系统与隐私/链接跳转系统打开方式",
-    desc = "打开链接或卡片链接时显示对话框, 可直接使用系统打开方式打开\n若要跳转到第三方应用, 需先在对应应用设置中启用 '在此应用中打开支持的网页链接'"
+    description = "打开链接或卡片链接时显示对话框, 可直接使用系统打开方式打开\n若要跳转到第三方应用, 需先在对应应用设置中启用 '在此应用中打开支持的网页链接'"
 )
 object LinkExternalAppJump : SwitchHookItem(),
     WeStartActivityApi.IStartActivityListener {

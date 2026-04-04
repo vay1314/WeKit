@@ -8,7 +8,7 @@ import dev.ujhhgtg.wekit.utils.enumValueOfClass
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.enums.StringMatchType
 
-@HookItem(path = "小程序/去除菜单限制", desc = "移除小程序右上角菜单的限制")
+@HookItem(path = "小程序/去除菜单限制", description = "移除小程序右上角菜单的限制")
 object RemoveMiniAppMenuLimits : SwitchHookItem(), IResolvesDex {
 
     private lateinit var showAndClickableEnumValue: Any
@@ -18,12 +18,12 @@ object RemoveMiniAppMenuLimits : SwitchHookItem(), IResolvesDex {
             methodGetMenuItemVisibility1,
             methodGetMenuItemVisibility2
         ).forEach {
-            it.hookBefore { param ->
+            it.hookBefore {
                 if (!::showAndClickableEnumValue.isInitialized) {
                     val returnType = methodGetMenuItemVisibility1.method.returnType
                     showAndClickableEnumValue = enumValueOfClass(returnType, "SHOW_CLICKABLE")
                 }
-                param.result = showAndClickableEnumValue
+                result = showAndClickableEnumValue
             }
         }
     }

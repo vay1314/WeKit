@@ -18,7 +18,7 @@ import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.showToast
 import dev.ujhhgtg.wekit.utils.WeLogger
 
-@HookItem(path = "调试/发包调试", desc = "发送自定义数据包到微信服务器")
+@HookItem(path = "调试/发包调试", description = "发送自定义数据包到微信服务器")
 object SendPacket : ClickableHookItem() {
     private val TAG = nameOf(SendPacket)
 

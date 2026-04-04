@@ -20,7 +20,7 @@ import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "红包与支付/修改显示余额", desc = "伪装钱包余额文字")
+@HookItem(path = "红包与支付/修改显示余额", description = "伪装钱包余额文字")
 object ModifyWalletBalanceDisplay : ClickableHookItem(), IResolvesDex {
 
     private const val KEY_BALANCE = "fake_wallet_balance"
@@ -29,16 +29,16 @@ object ModifyWalletBalanceDisplay : ClickableHookItem(), IResolvesDex {
     private val methodTickerViewSetText by dexMethod()
 
     override fun onEnable() {
-        methodUpdateBalanceDisplay.hookAfter { param ->
+        methodUpdateBalanceDisplay.hookAfter {
             val text = WePrefs.getStringOrDef(KEY_BALANCE, null) ?: return@hookAfter
-            val balanceView = param.thisObject.asResolver()
+            val balanceView = thisObject.asResolver()
                 .firstField { type = TextView::class }
                 .get()!! as TextView
             balanceView.text = text
         }
 
-        methodTickerViewSetText.hookBefore { param ->
-            param.args[0] = WePrefs.getStringOrDef(KEY_BALANCE, null) ?: return@hookBefore
+        methodTickerViewSetText.hookBefore {
+            args[0] = WePrefs.getStringOrDef(KEY_BALANCE, null) ?: return@hookBefore
         }
     }
 

@@ -16,7 +16,7 @@ import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.utils.formatEpoch
 
 
-@HookItem(path = "聊天/显示消息时间", desc = "显示精确消息发送时间")
+@HookItem(path = "聊天/显示消息时间", description = "显示精确消息发送时间")
 object DisplayMessageSendTime : SwitchHookItem(),
     WeChatMessageViewApi.ICreateViewListener {
 

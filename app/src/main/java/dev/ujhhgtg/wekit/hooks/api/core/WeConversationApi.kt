@@ -11,7 +11,7 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.utils.WeLogger
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "API/对话服务", desc = "为其他功能提供对话管理能力")
+@HookItem(path = "API/对话服务", description = "为其他功能提供对话管理能力")
 object WeConversationApi : ApiHookItem(), IResolvesDex {
 
     private val TAG = nameOf(WeConversationApi)
@@ -76,12 +76,12 @@ object WeConversationApi : ApiHookItem(), IResolvesDex {
         }
     }
 
-    fun setConversationsVisibility(visible: Boolean, talkers: List<String>) {
+    fun setConversationsVisibility(visible: Boolean, talkers: Array<String>) {
         val operation = if (visible) "" else "hidden_conv_parent"
         if (methodHiddenConvParent.method.parameterCount == 4) {
             methodHiddenConvParent.method.invoke(
                 conversationStorage,
-                talkers.toTypedArray(),
+                talkers,
                 operation,
                 true,
                 false
@@ -89,7 +89,7 @@ object WeConversationApi : ApiHookItem(), IResolvesDex {
         } else {
             methodHiddenConvParent.method.invoke(
                 conversationStorage,
-                talkers.toTypedArray(),
+                talkers,
                 operation
             )
         }
@@ -106,7 +106,7 @@ object WeConversationApi : ApiHookItem(), IResolvesDex {
             talkers += cursor.getString(0)
         }
         cursor.close()
-        setConversationsVisibility(visible, talkers)
+        setConversationsVisibility(visible, talkers.toTypedArray())
     }
 
 //    private fun debugCursor(cursor: Cursor?) {
@@ -144,17 +144,21 @@ object WeConversationApi : ApiHookItem(), IResolvesDex {
 
     fun onlyShowFilteredConversations(queryFilter: String, selectedColumns: String = "username") {
         setAllConversationVisibility(false)
+        setFilteredConversationsVisibility(true, queryFilter, selectedColumns)
+    }
+
+    fun setFilteredConversationsVisibility(visible: Boolean, queryFilter: String, selectedColumns: String = "username") {
         val cursor = WeDatabaseApi.rawQueryMethod.invoke(
             WeDatabaseApi.dbInstance,
             "SELECT $selectedColumns FROM rconversation $queryFilter",
             arrayOf<String>()
         ) as Cursor
-        val visibleTalkers = mutableListOf<String>()
+        val talkers = mutableListOf<String>()
         while (cursor.moveToNext()) {
-            visibleTalkers += cursor.getString(0)
+            talkers += cursor.getString(0)
         }
         cursor.close()
-        setConversationsVisibility(true, visibleTalkers)
+        setConversationsVisibility(visible, talkers.toTypedArray())
     }
 
     override fun resolveDex(dexKit: DexKitBridge) {

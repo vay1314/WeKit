@@ -38,7 +38,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlin.time.Duration.Companion.seconds
 
-@HookItem(path = "联系人与群组/检测单向删除好友", desc = "批量扫描全部好友, 检测是否被对方单向删除")
+@HookItem(path = "联系人与群组/检测单向删除好友", description = "批量扫描全部好友, 检测是否被对方单向删除")
 object DetectDeletedFriends : ClickableHookItem() {
 
     override val noSwitchWidget: Boolean
@@ -95,7 +95,7 @@ object DetectDeletedFriends : ClickableHookItem() {
                                             nickname = friend.nickname,
                                             remarkName = friend.remarkName.ifBlank { "<无备注>" },
                                             wxId = friend.wxId,
-                                            customWxId = friend.customWxid,
+                                            customWxId = friend.customWxId,
                                             // TODO: figure out status, might have to perform another request
                                             status = AbnormalFriendStatus.Deleted,
                                         )

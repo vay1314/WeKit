@@ -19,7 +19,7 @@ import org.luckypray.dexkit.DexKitBridge
 import java.lang.reflect.Proxy
 import java.util.concurrent.ConcurrentHashMap
 
-@HookItem(path = "API/数据包拦截与篡改服务", desc = "响应数据包拦截与篡改")
+@HookItem(path = "API/数据包拦截与篡改服务", description = "响应数据包拦截与篡改")
 object WePacketDispatcher : ApiHookItem(), IResolvesDex {
 
     private val TAG = nameOf(WePacketDispatcher)
@@ -34,9 +34,9 @@ object WePacketDispatcher : ApiHookItem(), IResolvesDex {
                 val netSceneBaseClass = WePacketHelper.classNetSceneBase.clazz
                 val callbackInterface = classOnGYNetEnd.clazz
 
-                netSceneBaseClass.asResolver().firstMethod { name = "dispatch" }.hookBefore { param ->
-                    val v0Var = param.args[1] ?: return@hookBefore
-                    val originalCallback = param.args[2] ?: return@hookBefore
+                netSceneBaseClass.asResolver().firstMethod { name = "dispatch" }.hookBefore {
+                    val v0Var = args[1] ?: return@hookBefore
+                    val originalCallback = args[2] ?: return@hookBefore
 
                     // 有时 getUri 返回 null
                     val uri = (XposedHelpers.callMethod(v0Var, "getUri") ?: "null") as String
@@ -78,7 +78,7 @@ object WePacketDispatcher : ApiHookItem(), IResolvesDex {
 
                     if (Proxy.isProxyClass(originalCallback.javaClass)) return@hookBefore
 
-                    param.args[2] = Proxy.newProxyInstance(
+                    args[2] = Proxy.newProxyInstance(
                         ClassLoaderProvider.classLoader!!,
                         arrayOf(callbackInterface)
                     ) { _, method, args ->

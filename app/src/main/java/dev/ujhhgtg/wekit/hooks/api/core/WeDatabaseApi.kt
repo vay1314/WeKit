@@ -23,7 +23,7 @@ import java.lang.reflect.Modifier
  * 微信数据库 API
  */
 @SuppressLint("DiscouragedApi")
-@HookItem(path = "API/数据库服务", desc = "提供数据库直接查询能力")
+@HookItem(path = "API/数据库服务", description = "提供数据库直接查询能力")
 object WeDatabaseApi : ApiHookItem(), IResolvesDex {
 
     val classMmKernel by dexClass()
@@ -202,10 +202,10 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
     }
 
     override fun onEnable() {
-        methodGetStorage.method.hookAfter { param ->
+        methodGetStorage.method.hookAfter {
             if (::dbInstance.isInitialized) return@hookAfter
 
-            val storageObj = param.result ?: return@hookAfter
+            val storageObj = result ?: return@hookAfter
             initializeDatabase(storageObj)
         }
     }
@@ -414,7 +414,7 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
             WeContact(
                 wxId = row.str("username"),
                 nickname = row.str("nickname"),
-                customWxid = row.str("alias"),
+                customWxId = row.str("alias"),
                 remarkName = row.str("conRemark"),
                 initialNickname = row.str("pyInitial"),
                 nicknamePinyin = row.str("quanPin"),

@@ -43,7 +43,7 @@ import kotlin.io.path.writeBytes
 
 @HookItem(
     path = "通知/通知进化",
-    desc = "让应用的新消息通知更易用\n1. 「快速回复」按钮\n2. 「标记为已读」按钮\n3. 使用原生对话样式 (MessagingStyle)"
+    description = "让应用的新消息通知更易用\n1. 「快速回复」按钮\n2. 「标记为已读」按钮\n3. 使用原生对话样式 (MessagingStyle)"
 )
 object NotificationsEvolved : SwitchHookItem() {
 
@@ -140,10 +140,10 @@ object NotificationsEvolved : SwitchHookItem() {
 
         Notification.Builder::class.asResolver()
             .firstMethod { name = "build" }
-            .hookBefore { param ->
+            .hookBefore {
                 val context = HostInfo.application
 
-                val builder = param.thisObject as Notification.Builder
+                val builder = thisObject as Notification.Builder
                 val notif = builder.asResolver().firstField { type = Notification::class }
                     .get() as Notification
                 val channelId = notif.channelId

@@ -73,7 +73,7 @@ object WeChatService {
             .filter { c ->
                 c.type != 2051 && c.type != 2049 && c.wxId.startsWith("wxid_") && c.wxId != WeApi.selfWxId
             }.map {
-                ContactInfo(it.wxId, it.nickname, it.customWxid, it.remarkName)
+                ContactInfo(it.wxId, it.nickname, it.customWxId, it.remarkName)
             })
 
         "groups" -> Result.Success(WeDatabaseApi.getGroups().map {
@@ -110,7 +110,7 @@ object WeChatService {
 
     fun listGroupMembers(groupId: String): Result<List<ContactInfo>> =
         Result.Success(WeDatabaseApi.getGroupMembers(groupId).map {
-            ContactInfo(it.wxId, it.nickname, it.customWxid, it.remarkName)
+            ContactInfo(it.wxId, it.nickname, it.customWxId, it.remarkName)
         })
 
     fun getConvIdByDisplayName(displayName: String, groupId: String? = null): Result<String> {

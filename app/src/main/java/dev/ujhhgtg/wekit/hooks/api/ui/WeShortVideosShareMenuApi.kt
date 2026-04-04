@@ -12,7 +12,7 @@ import org.json.JSONObject
 import org.luckypray.dexkit.DexKitBridge
 import java.util.LinkedList
 
-@HookItem(path = "API/视频号分享菜单扩展", desc = "为视频号分享菜单提供添加菜单项功能")
+@HookItem(path = "API/视频号分享菜单扩展", description = "为视频号分享菜单提供添加菜单项功能")
 object WeShortVideosShareMenuApi : ApiHookItem(), IResolvesDex {
 
     interface IMenuItemsProvider {
@@ -41,30 +41,30 @@ object WeShortVideosShareMenuApi : ApiHookItem(), IResolvesDex {
     private val methodOnSelectMenuItem2 by dexMethod()
 
     override fun onEnable() {
-        methodCreateMenu1.hookBefore { param ->
-            val menu = param.args[0] as ContextMenu
+        methodCreateMenu1.hookBefore {
+            val menu = args[0] as ContextMenu
             handleCreateMenu(menu)
         }
 
-        methodOnSelectMenuItem1.hookBefore { param ->
-            val menuItem = param.args[0] as android.view.MenuItem
-            val baseFinderFeed = param.thisObject.asResolver()
+        methodOnSelectMenuItem1.hookBefore {
+            val menuItem = args[0] as android.view.MenuItem
+            val baseFinderFeed = thisObject.asResolver()
                 .firstField {
                     type = "com.tencent.mm.plugin.finder.model.BaseFinderFeed"
                 }
                 .get()!!
-            handleOnSelectMenuItem(param, menuItem, baseFinderFeed)
+            handleOnSelectMenuItem(this, menuItem, baseFinderFeed)
         }
 
-        methodCreateMenu2.hookBefore { param ->
-            val menu = param.args[1] as ContextMenu
+        methodCreateMenu2.hookBefore {
+            val menu = args[1] as ContextMenu
             handleCreateMenu(menu)
         }
 
-        methodOnSelectMenuItem2.hookBefore { param ->
-            val menuItem = param.args[1] as android.view.MenuItem
-            val baseFinderFeed = param.args[0]
-            handleOnSelectMenuItem(param, menuItem, baseFinderFeed)
+        methodOnSelectMenuItem2.hookBefore {
+            val menuItem = args[1] as android.view.MenuItem
+            val baseFinderFeed = args[0]
+            handleOnSelectMenuItem(this, menuItem, baseFinderFeed)
         }
     }
 
