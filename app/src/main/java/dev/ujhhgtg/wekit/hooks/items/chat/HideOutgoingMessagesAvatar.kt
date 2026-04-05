@@ -2,7 +2,6 @@ package dev.ujhhgtg.wekit.hooks.items.chat
 
 import android.view.View
 import android.view.ViewGroup
-import android.widget.RelativeLayout
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import de.robv.android.xposed.XC_MethodHook
 import dev.ujhhgtg.wekit.hooks.api.ui.WeChatMessageViewApi
@@ -39,7 +38,7 @@ object HideOutgoingMessagesAvatar : SwitchHookItem(), WeChatMessageViewApi.ICrea
         val avatar = avatarViewField.get(tag) as? View? ?: return
         (avatar.parent as View).apply {
             val view = parent as ViewGroup
-            (view.layoutParams as RelativeLayout.LayoutParams).rightMargin = 20
+            (view.layoutParams as ViewGroup.MarginLayoutParams).rightMargin = 20
             view.requestLayout()
             visibility = View.GONE
         }

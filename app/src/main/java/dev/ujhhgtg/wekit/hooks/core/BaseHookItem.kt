@@ -11,6 +11,7 @@ import dev.ujhhgtg.wekit.dexkit.dsl.DexMethodDelegate
 import dev.ujhhgtg.wekit.utils.HookAction
 import dev.ujhhgtg.wekit.utils.WeLogger
 import java.lang.reflect.Executable
+import kotlin.reflect.KClass
 
 abstract class BaseHookItem {
 
@@ -89,6 +90,14 @@ abstract class BaseHookItem {
     ) = this.asResolver().firstMethod { name = "onCreate" }.hookBefore(50, action)
 
     inline fun Class<*>.hookAfterOnCreate(
+        crossinline action: HookAction
+    ) = this.asResolver().firstMethod { name = "onCreate" }.hookAfter(50, action)
+
+    inline fun KClass<*>.hookBeforeOnCreate(
+        crossinline action: HookAction
+    ) = this.asResolver().firstMethod { name = "onCreate" }.hookBefore(50, action)
+
+    inline fun KClass<*>.hookAfterOnCreate(
         crossinline action: HookAction
     ) = this.asResolver().firstMethod { name = "onCreate" }.hookAfter(50, action)
 

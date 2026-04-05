@@ -10,6 +10,7 @@ import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 
 @HookItem(path = "界面美化/美化组件按下效果", description = "将 View 的背景替换为 RippleDrawable (没写完)")
 object BeautifyViewPressEffect : SwitchHookItem() {
+
     override fun onEnable() {
         View::class.asResolver()
             .firstMethod {
@@ -18,19 +19,14 @@ object BeautifyViewPressEffect : SwitchHookItem() {
             }
             .hookBefore {
                 val view = thisObject as View
-                val original = args[0] as Drawable
-
-                // 只针对微信的组件，避开系统组件
-//                if (!view.javaClass.name.startsWith(PackageNames.WECHAT)) return@hookBefore
-
-                // 如果已经是 RippleDrawable 或者正在设置 Ripple，跳过
-                if (original is RippleDrawable) return@hookBefore
+                val original = args[0] as? Drawable?
+                if (view.javaClass.name.startsWith("android.")) return@hookBefore
+                if (original != null && original is RippleDrawable) return@hookBefore
 
                 if (view.isClickable) {
                     val rippleColor = ColorStateList.valueOf(0x1F000000)
                     val newRipple = RippleDrawable(rippleColor, original, null)
                     args[0] = newRipple
-                    result = null
                 }
             }
     }

@@ -16,9 +16,9 @@ import org.luckypray.dexkit.DexKitBridge
 import kotlin.random.Random
 
 @HookItem(path = "聊天/阻止消息撤回 3", description = "有撤回提示")
-object AntiRevokeMsg3 : SwitchHookItem(), IResolvesDex {
+object AntiMessageRecall3 : SwitchHookItem(), IResolvesDex {
 
-    private val TAG = nameOf(AntiRevokeMsg3)
+    private val TAG = nameOf(AntiMessageRecall3)
 
     private val methodXmlParser by dexMethod()
 
@@ -79,17 +79,18 @@ object AntiRevokeMsg3 : SwitchHookItem(), IResolvesDex {
 
                     val interceptNotice = "'$senderName' 尝试撤回上一条消息 (已阻止)"
 
-                    val contentValues = ContentValues()
-                    contentValues.put("msgid", 0)
-                    contentValues.put(
-                        "msgSvrId",
-                        originalCreateTime + Random.nextInt()
-                    )
-                    contentValues.put("type", 10000)
-                    contentValues.put("status", 3)
-                    contentValues.put("createTime", originalCreateTime + 1)
-                    contentValues.put("talker", session)
-                    contentValues.put("content", interceptNotice)
+                    val contentValues = ContentValues().apply {
+                        put("msgid", 0)
+                        put(
+                            "msgSvrId",
+                            originalCreateTime + Random.nextInt()
+                        )
+                        put("type", 10000)
+                        put("status", 3)
+                        put("createTime", originalCreateTime + 1)
+                        put("talker", session)
+                        put("content", interceptNotice)
+                    }
 
                     val msgInfo =
                         WeMessageApi.createMsgInfoFromContentValues(contentValues, true)
