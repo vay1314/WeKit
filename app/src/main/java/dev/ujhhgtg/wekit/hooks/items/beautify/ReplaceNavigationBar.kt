@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.NavigationBar
@@ -38,6 +40,8 @@ import com.composables.icons.materialsymbols.outlinedfilled.Home
 import com.composables.icons.materialsymbols.outlinedfilled.Person
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
+import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
 import dev.ujhhgtg.wekit.hooks.api.ui.WeMainActivityBeautifyApi
 import dev.ujhhgtg.wekit.hooks.core.ClickableHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItem
@@ -50,12 +54,13 @@ import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.LifecycleOwnerProvider
 import dev.ujhhgtg.wekit.ui.utils.setLifecycleOwner
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
+import org.luckypray.dexkit.DexKitBridge
 
 @HookItem(
     path = "界面美化/美化首页底部导航栏",
-    description = "将首页底部导航栏替换为 Jetpack Compose 组件"
+    description = "将首页底部导航栏替换为 Material Design 风格"
 )
-object ReplaceNavigationBar : ClickableHookItem() {
+object ReplaceNavigationBar : ClickableHookItem(), IResolvesDex {
 
     private val ICONS = listOf(
         MaterialSymbols.OutlinedFilled.Home to "主页",
@@ -116,6 +121,7 @@ object ReplaceNavigationBar : ClickableHookItem() {
 
                     setContent {
                         var currentIndex by selectedPageIndexState
+                        val unreadCount by unreadCountState
 
                         // WeChat doesn't follow MaterialTheme so we don't use that too
                         // or else different color palettes clash and it's hideous
@@ -158,11 +164,24 @@ object ReplaceNavigationBar : ClickableHookItem() {
                                         selected = isSelected && offset < 0.5f,
                                         onClick = { methodOnTabClick.invoke(index) },
                                         icon = {
-                                            Icon(
-                                                imageVector = icon,
-                                                contentDescription = label,
-                                                tint = tint
-                                            )
+                                            BadgedBox(
+                                                badge = {
+                                                    if (index == 0 && unreadCount > 0) {
+                                                        Badge(containerColor = Color(0xFFFF3B30)) {
+                                                            Text(
+                                                                if (unreadCount <= 99) unreadCount.toString() else "99+",
+                                                                color = Color.White, fontSize = 10.sp
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            ) {
+                                                Icon(
+                                                    imageVector = icon,
+                                                    contentDescription = label,
+                                                    tint = tint
+                                                )
+                                            }
                                         },
                                         label = null,
                                         alwaysShowLabel = false,
@@ -188,14 +207,22 @@ object ReplaceNavigationBar : ClickableHookItem() {
                                     val color =
                                         if (currentIndex == index) activeColor else inactiveColor
                                     LiquidBottomTab({ currentIndex = index }) {
-                                        Box(
-                                            Modifier
-                                                .size(28f.dp)
-                                                .paint(
-                                                    rememberVectorPainter(icon),
-                                                    colorFilter = ColorFilter.tint(color)
-                                                )
-                                        )
+                                        BadgedBox(
+                                            badge = {
+                                                if (index == 0 && unreadCount > 0) {
+                                                    Badge(containerColor = Color(0xFFFF3B30)) {
+                                                        Text(if (unreadCount <= 99) unreadCount.toString() else "99+",
+                                                            color = Color.White, fontSize = 10.sp)
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            Box(
+                                                Modifier
+                                                    .size(28f.dp)
+                                                    .paint(rememberVectorPainter(icon), colorFilter = ColorFilter.tint(color))
+                                            )
+                                        }
                                         BasicText(
                                             label,
                                             style = TextStyle(color, 12f.sp)
@@ -207,7 +234,15 @@ object ReplaceNavigationBar : ClickableHookItem() {
                     }
                 })
         }
+
+        methodUpdateTabUnread.hookBefore {
+            val count = args[0] as Int
+            unreadCountState.intValue = count
+            result = null
+        }
     }
+
+    private val unreadCountState = mutableIntStateOf(0)
 
     private fun lerpColor(start: Color, stop: Color, fraction: Float): Color {
         val f = fraction.coerceIn(0f, 1f)
@@ -247,6 +282,17 @@ object ReplaceNavigationBar : ClickableHookItem() {
                     }) { Text("确定") }
                 }
             )
+        }
+    }
+
+    private val methodUpdateTabUnread by dexMethod()
+
+    override fun resolveDex(dexKit: DexKitBridge) {
+        methodUpdateTabUnread.find(dexKit) {
+            matcher {
+                declaredClass = "com.tencent.mm.ui.LauncherUIBottomTabView"
+                usingEqStrings("MicroMsg.LauncherUITabView", "updateMainTabUnread %d")
+            }
         }
     }
 }

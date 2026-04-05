@@ -99,7 +99,17 @@ object WeDatabaseApi : ApiHookItem(), IResolvesDex {
             SELECT $CONTACT_FIELDS, r.type
             FROM rcontact r
             $LEFT_JOIN_IMG_FLAG
-            WHERE r.verifyFlag = 0 AND r.username LIKE 'wxid_%'
+            WHERE
+                (
+                    r.encryptUsername != '' -- 是真好友
+                    OR
+                    r.username = (SELECT value FROM userinfo WHERE id = 2) -- 是我自己
+                )
+                AND r.verifyFlag = 0
+                AND (r.type & 1) != 0
+                AND (r.type & 8) = 0
+                AND (r.type & 32) = 0
+                AND r.username NOT LIKE '%chatroom'
         """.trimIndent()
 
         // =========================================

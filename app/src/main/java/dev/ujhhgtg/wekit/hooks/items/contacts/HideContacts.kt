@@ -5,10 +5,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.database.Cursor
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import androidx.collection.mutableIntSetOf
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.extension.isSubclassOf
 import com.tencent.mm.ui.LauncherUI
@@ -28,6 +30,7 @@ import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.showToast
 import org.luckypray.dexkit.DexKitBridge
+import java.lang.reflect.Field
 import kotlin.math.sqrt
 
 
@@ -35,7 +38,7 @@ import kotlin.math.sqrt
 """隐藏指定的联系人
 隐藏位置:
 1. 首页对话列表
-2. 通讯录内联系人&群聊列表 (没写完)
+2. 通讯录内联系人&群聊列表
 3. 搜索界面 (没写完)
 4. 锁屏自动关闭聊天界面
 5. 摇一摇设备关闭聊天界面"""
@@ -120,6 +123,9 @@ object HideContacts : ClickableHookItem(), IResolvesDex {
         activity.startActivity(intent)
     }
 
+    private lateinit var contactInfoField: Field
+    private lateinit var usernameField: Field
+
     override fun onEnable() {
         WeMainActivityBeautifyApi.methodDoOnCreate.hookAfter {
             WeConversationApi.setConversationsVisibility(false, hiddenContacts.also {
@@ -151,6 +157,72 @@ object HideContacts : ClickableHookItem(), IResolvesDex {
             }
         }
 
+        methodAddressMvvmListPreprocessList.hookBefore {
+            val contacts = args[0] as MutableList<*>
+
+            if (!::contactInfoField.isInitialized) {
+                contactInfoField = contacts[0]!!.asResolver()
+                    .firstField { type { it.name.startsWith("com.tencent.mm.storage") } }
+                    .self
+                usernameField = contactInfoField.type.asResolver()
+                    .firstField {
+                        name = "field_username"
+                        superclass()
+                    }.self.also { it.isAccessible = true }
+            }
+
+            val hiddenContacts = hiddenContacts
+
+            contacts.removeAll { contact ->
+                val contactInfo = contactInfoField.get(contact!!)
+                val username = usernameField.get(contactInfo) as String
+                username in hiddenContacts
+            }
+        }
+
+        methodChatroomContactAdapterInitCursor.hookAfter {
+            val cursor = thisObject.asResolver()
+                .firstMethod {
+                    parameterCount = 0
+                    returnType = Cursor::class
+                    superclass()
+                }.invoke()!! as Cursor
+
+            hiddenPositions.clear()
+
+            val hiddenContacts = hiddenContacts
+
+            if (cursor.moveToFirst()) {
+                var index = 0
+                val usernameCol: Int = cursor.getColumnIndex("username")
+                do {
+                    val wxId: String? = cursor.getString(usernameCol)
+                    WeLogger.d(TAG, wxId ?: "null")
+                    if (wxId in hiddenContacts) {
+                        hiddenPositions.add(index)
+                    }
+                    index++
+                } while (cursor.moveToNext())
+            }
+        }
+
+        methodChatroomContactAdapterInitCursor.method.declaringClass.asResolver()
+            .firstMethod { name = "getCount" }.hookAfter {
+                result = (result as Int) - hiddenPositions.size
+            }
+
+        methodChatroomContactAdapterInitCursor.method.declaringClass.asResolver()
+            .firstMethod { name = "getView" }.hookBefore {
+                val requestedPos = args[0] as Int
+                var actualPos = requestedPos
+                hiddenPositions.forEach {
+                    if (actualPos >= it) {
+                        actualPos++
+                    }
+                }
+                args[0] = actualPos
+            }
+
 //        methodMainAdapterPreformSearch.hookAfter {
 //            val queryString = args[1] as String
 //            val searchUnit = args[0]
@@ -172,6 +244,8 @@ object HideContacts : ClickableHookItem(), IResolvesDex {
 //        }
     }
 
+    private val hiddenPositions = mutableIntSetOf()
+
     override fun onClick(context: Context) {
         val regularContacts = WeDatabaseApi.getFriends() + WeDatabaseApi.getGroups()
         showComposeDialog(context) {
@@ -189,12 +263,37 @@ object HideContacts : ClickableHookItem(), IResolvesDex {
     }
 
     private val methodMainAdapterPreformSearch by dexMethod()
+    private val methodAddressMvvmListPreprocessList by dexMethod()
+    private val methodChatroomContactAdapterInitCursor by dexMethod()
 
     override fun resolveDex(dexKit: DexKitBridge) {
         methodMainAdapterPreformSearch.find(dexKit) {
             searchPackages("com.tencent.mm.plugin.fts.ui")
             matcher {
                 usingEqStrings("MicroMsg.FTS.FTSMainAdapter", "tryReSortUIUnit, relevantSearchUIUnitIdx: (%d)<->chatRoomUIUnitIdx: (%d)")
+            }
+        }
+
+        methodAddressMvvmListPreprocessList.find(dexKit) {
+            matcher {
+                declaredClass = "com.tencent.mm.ui.contact.address.AddressLiveList"
+                usingEqStrings("snapshotList")
+            }
+        }
+
+        methodChatroomContactAdapterInitCursor.find(dexKit) {
+            searchPackages("com.tencent.mm.ui.contact")
+            matcher {
+                declaredClass {
+                    usingEqStrings("MicroMsg.ChatroomContactAdapter", "get display show head return null, user[%s] pos[%d]")
+                }
+
+                invokeMethods {
+                    add {
+                        declaredClass = "android.widget.BaseAdapter"
+                        name = "notifyDataSetChanged"
+                    }
+                }
             }
         }
     }

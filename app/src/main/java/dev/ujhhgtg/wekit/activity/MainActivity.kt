@@ -403,7 +403,7 @@ class MainActivity : ComponentActivity() {
                             Text("WeKit 是一款基于 Xposed 框架的开源免费微信模块")
                             Spacer(modifier = Modifier.height(8.dp))
                             Text("版本: ${BuildConfig.VERSION_NAME}")
-                            Text("构建版本: ${BuildConfig.VERSION_CODE}")
+                            Text("版本号: ${BuildConfig.VERSION_CODE}")
                             Text("作者：Ujhhgtg@github, cwuom@github")
                         }
                     },
