@@ -5,8 +5,8 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
@@ -16,7 +16,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import com.tencent.mm.ui.LauncherUI
-import dev.ujhhgtg.comptime.nameOf
 import dev.ujhhgtg.wekit.ui.content.AlertDialogContent
 import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
@@ -26,9 +25,7 @@ import dev.ujhhgtg.wekit.utils.crash.CrashLogsManager
 import java.io.File
 import java.nio.file.Path
 
-internal object CrashInterceptorUtils {
-
-    private val TAG = nameOf(CrashInterceptorUtils)
+object CrashInterceptorUtils {
 
     fun isMainProcess(appContext: Context): Boolean {
         return runCatching {
@@ -114,13 +111,11 @@ internal object CrashInterceptorUtils {
                 AlertDialogContent(
                     title = { Text(titleDetail) },
                     text = {
-                        SelectionContainer {
-                            Text(
-                                displayInfo,
-                                fontFamily = FontFamily.Monospace,
-                                modifier = Modifier.verticalScroll(rememberScrollState())
-                            )
-                        }
+                        Text(
+                            displayInfo,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                        )
                     },
                     confirmButton = {
                         TextButton(onClick = {
@@ -141,13 +136,11 @@ internal object CrashInterceptorUtils {
                 AlertDialogContent(
                     title = { Text(titleSummary) },
                     text = {
-                        SelectionContainer {
-                            Text(
-                                extractSummary(crashInfo),
-                                fontFamily = FontFamily.Monospace,
-                                modifier = Modifier.verticalScroll(rememberScrollState())
-                            )
-                        }
+                        Text(
+                            extractSummary(crashInfo),
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                        )
                     },
                     confirmButton = {
                         TextButton(onClick = { showDetail = true }) { Text("查看详情") }
