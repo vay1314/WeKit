@@ -88,6 +88,10 @@ abstract class BaseHookItem {
         crossinline action: HookAction
     ) = this.asResolver().firstMethod { name = "onCreate" }.hookBefore(50, action)
 
+    inline fun Class<*>.hookAfterOnCreate(
+        crossinline action: HookAction
+    ) = this.asResolver().firstMethod { name = "onCreate" }.hookAfter(50, action)
+
     // --- end hookBefore ---
 
     // --- hookAfter ---
