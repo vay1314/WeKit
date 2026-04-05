@@ -16,19 +16,19 @@ object ModuleRes {
 
     private val TAG = nameOf(ModuleRes)
 
-    var moduleContext: Context? = null
+    lateinit var moduleContext: Context
     var resources: Resources? = null
 
     @SuppressLint("DiscouragedApi")
     fun init(hostContext: Context) {
-        if (moduleContext != null) return
+        if (::moduleContext.isInitialized) return
 
         runCatching {
             moduleContext = hostContext.createPackageContext(
                 PackageNames.THIS,
                 Context.CONTEXT_IGNORE_SECURITY or Context.CONTEXT_INCLUDE_CODE
             )
-            resources = moduleContext!!.resources
+            resources = moduleContext.resources
         }.onFailure { WeLogger.e(TAG, "failed to initialize module resources", it) }
     }
 

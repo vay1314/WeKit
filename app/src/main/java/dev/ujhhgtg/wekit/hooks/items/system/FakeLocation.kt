@@ -7,7 +7,7 @@ import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
 import dev.ujhhgtg.wekit.hooks.core.ClickableHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.preferences.WePrefs
-import dev.ujhhgtg.wekit.ui.content.OsmLocationPickerDialogContent
+import dev.ujhhgtg.wekit.ui.content.MapLibreLocationPickerDialogContent
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.showToast
 import org.luckypray.dexkit.DexKitBridge
@@ -71,7 +71,7 @@ object FakeLocation : ClickableHookItem(), IResolvesDex {
 
     override fun onClick(context: Context) {
         showComposeDialog(context) {
-            OsmLocationPickerDialogContent(
+            MapLibreLocationPickerDialogContent(
                 onLocationSelected = {
                     onDismiss()
                     WePrefs.putFloat(KEY_LAT, it.latitude.toFloat())

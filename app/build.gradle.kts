@@ -277,7 +277,7 @@ dependencies {
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
 
-    implementation(libs.osmdroid.android)
+    implementation(libs.maplibre.android)
 
     implementation(project(":libs:external:comptime-kt:api"))
     compileOnly(project(":libs:common:stubs"))

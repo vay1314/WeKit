@@ -16,14 +16,14 @@ import dev.ujhhgtg.wekit.utils.ModuleRes
 class CommonContextWrapper private constructor(base: Context?): ContextWrapper(base) {
 
     private val mTheme: Resources.Theme
-    private val mResources: Resources = ModuleRes.moduleContext!!.resources
+    private val mResources: Resources = ModuleRes.moduleContext.resources
 
     init {
         this.mTheme = this.mResources.newTheme()
     }
 
-    override fun getClassLoader(): ClassLoader? {
-        return javaClass.classLoader
+    override fun getClassLoader(): ClassLoader {
+        return javaClass.classLoader!!
     }
 
     override fun getResources(): Resources {
@@ -44,9 +44,6 @@ class CommonContextWrapper private constructor(base: Context?): ContextWrapper(b
 
     companion object {
         fun create(base: Context): Context {
-            if (ModuleRes.moduleContext == null) {
-                return base
-            }
             return CommonContextWrapper(base)
         }
     }

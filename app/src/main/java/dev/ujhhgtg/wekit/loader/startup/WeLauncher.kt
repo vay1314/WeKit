@@ -42,9 +42,10 @@ object WeLauncher {
 
     private fun initMainProcessHooks() {
         LauncherUI::class.asResolver().apply {
-            firstMethod { name = "onResume" }.hookAfterDirectly {
+            firstMethod { name = "onResume" }.hookAfterDirectly(100) {
                 val activity = thisObject as Activity
                 ModuleRes.init(activity)
+                MapLibreInitializer.init(activity)
             }
 
             firstMethod {
