@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.drawable.Drawable
-import dev.ujhhgtg.comptime.nameOf
+import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.wekit.constants.PackageNames
 
 /**
@@ -14,26 +14,26 @@ import dev.ujhhgtg.wekit.constants.PackageNames
 @SuppressLint("StaticFieldLeak")
 object ModuleRes {
 
-    private val TAG = nameOf(ModuleRes)
+    private val TAG = This.Class.simpleName
 
-    var moduleContext: Context? = null
-    var resources: Resources? = null
+    lateinit var context: Context
+    lateinit var resources: Resources
 
     @SuppressLint("DiscouragedApi")
     fun init(hostContext: Context) {
-        if (moduleContext != null) return
+        if (::context.isInitialized) return
 
         runCatching {
-            moduleContext = hostContext.createPackageContext(
+            context = hostContext.createPackageContext(
                 PackageNames.THIS,
                 Context.CONTEXT_IGNORE_SECURITY or Context.CONTEXT_INCLUDE_CODE
             )
-            resources = moduleContext!!.resources
+            resources = context.resources
         }.onFailure { WeLogger.e(TAG, "failed to initialize module resources", it) }
     }
 
     @SuppressLint("UseCompatLoadingForDrawables")
     fun getDrawable(resId: Int): Drawable? {
-        return resources!!.getDrawable(resId, null)
+        return resources.getDrawable(resId, null)
     }
 }

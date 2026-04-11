@@ -1,5 +1,6 @@
 [versions]
 agp = "9.1.0"
+coil = "3.4.0"
 compose-bom = "2026.03.01"
 dexkit = "2.1.0"
 appcompat = "1.7.1"
@@ -66,6 +67,7 @@ composablehorizons-material-symbols-outlined = { module = "com.composables:icons
 composablehorizons-material-symbols-filled = { module = "com.composables:icons-material-symbols-outlined-filled-cmp", version.ref = "composablehorizons-symbols" }
 kyant0-backdrop = { module = "io.github.kyant0:backdrop", version.ref = "kyant0-backdrop" }
 kyant0-shapes = { module = "io.github.kyant0:shapes", version.ref = "kyant0-shapes" }
+coil = { module = "io.coil-kt.coil3:coil", version.ref = "coil" }
 
 markwon-core = { module = "io.noties.markwon:core", version.ref = "markwon" }
 markwon-ext-strikethrough = { module = "io.noties.markwon:ext-strikethrough", version.ref = "markwon" }

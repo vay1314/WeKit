@@ -230,6 +230,7 @@ dependencies {
     implementation(libs.aboutlibraries.compose.m3)
     implementation(libs.kyant0.backdrop)
     implementation(libs.kyant0.shapes)
+    implementation(libs.coil)
 
     implementation(libs.composablehorizons.material.symbols.filled)
     implementation(libs.composablehorizons.material.symbols.outlined)

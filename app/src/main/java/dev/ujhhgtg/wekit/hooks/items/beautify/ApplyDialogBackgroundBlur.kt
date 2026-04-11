@@ -146,24 +146,24 @@ object ApplyDialogBackgroundBlur : ClickableHookItem(), IResolvesDex {
                         }
                     )
                 },
-                dismissButton = { Button(onDismiss) { Text("关闭") } })
+                confirmButton = { Button(onDismiss) { Text("关闭") } })
         }
     }
+}
 
-    @Composable
-    fun IntSlider(
-        value: Int,
-        onValueChange: (Int) -> Unit,
-        valueRange: IntRange = 0..100
-    ) {
-        Column {
-            Text(text = "Value: $value")
-            Slider(
-                value = value.toFloat(),
-                onValueChange = { onValueChange(it.roundToInt()) },
-                valueRange = valueRange.first.toFloat()..valueRange.last.toFloat(),
-                steps = valueRange.last - valueRange.first - 1
-            )
-        }
+@Composable
+private fun IntSlider(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    valueRange: IntRange = 0..100
+) {
+    Column {
+        Text(text = "当前值: $value")
+        Slider(
+            value = value.toFloat(),
+            onValueChange = { onValueChange(it.roundToInt()) },
+            valueRange = valueRange.first.toFloat()..valueRange.last.toFloat(),
+            steps = valueRange.last - valueRange.first - 1
+        )
     }
 }

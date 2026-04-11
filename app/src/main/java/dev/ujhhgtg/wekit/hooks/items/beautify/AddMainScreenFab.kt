@@ -3,7 +3,6 @@ package dev.ujhhgtg.wekit.hooks.items.beautify
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.view.ViewGroup
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.EaseInCubic
@@ -23,10 +22,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -60,7 +59,9 @@ import dev.ujhhgtg.wekit.hooks.api.ui.WeMainActivityBeautifyApi
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.ui.content.MainSettingsDialog
+import dev.ujhhgtg.wekit.ui.utils.AppTheme
 import dev.ujhhgtg.wekit.ui.utils.LifecycleOwnerProvider
+import dev.ujhhgtg.wekit.ui.utils.rootView
 import dev.ujhhgtg.wekit.ui.utils.setLifecycleOwner
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.WeLogger.exitProcess
@@ -162,138 +163,138 @@ object AddMainScreenFab : SwitchHookItem() {
             }
 
             val lifecycleOwner = LifecycleOwnerProvider.lifecycleOwner
-            val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
+            val root = activity.rootView
+            val monetEngineActive = MonetEngine.isActive
 
-            rootView.addView(
+            root.addView(
                 ComposeView(activity).apply {
                     setLifecycleOwner(lifecycleOwner)
 
                     setContent {
-                        // WeChat doesn't follow MaterialTheme so we don't use that too
-                        // or else different color palettes clash and it's hideous
-                        val isDark = isSystemInDarkTheme()
-                        val backgroundColor =
-                            if (isDark) Color(0xFF191919) else Color(0xFFF7F7F7)
-                        val activeColor =
-                            if (isDark) Color(0xFF06A854) else Color(0xFF09A854)
+                        AppTheme {
+                            // TODO: we currently use a custom background color without accent to match with wechat's overall style
+                            //       might change this when MonetEngine covers more UI
+                            val backgroundColor = if (isSystemInDarkTheme()) Color(0xFF191919) else Color(0xFFF7F7F7)
+                            val activeColor = MaterialTheme.colorScheme.primary
 
-                        var expanded by remember { mutableStateOf(false) }
+                            var expanded by remember { mutableStateOf(false) }
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(bottom = 60.dp)
-                        ) {
-                            Column(
+                            Box(
                                 modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.End,
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                    .fillMaxSize()
+                                    .padding(bottom = 60.dp)
                             ) {
-                                // 1. Expandable Menu Items
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                                    horizontalAlignment = Alignment.End
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(16.dp),
+                                    horizontalAlignment = Alignment.End,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
-                                    // 1. Expandable Menu Items (staggered per-item animation)
-                                    menuItems.entries.forEachIndexed { index, (name, pair) ->
-                                        // Stagger: items animate in bottom-to-top, out top-to-bottom
-                                        val itemDelay = index * 35
-                                        val reverseDelay = (menuItems.size - 1 - index) * 35
+                                    // 1. Expandable Menu Items
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                                        horizontalAlignment = Alignment.End
+                                    ) {
+                                        // 1. Expandable Menu Items (staggered per-item animation)
+                                        menuItems.entries.forEachIndexed { index, (name, pair) ->
+                                            // Stagger: items animate in bottom-to-top, out top-to-bottom
+                                            val itemDelay = index * 35
+                                            val reverseDelay = (menuItems.size - 1 - index) * 35
 
-                                        AnimatedVisibility(
-                                            visible = expanded,
-                                            enter = fadeIn(
-                                                animationSpec = tween(
-                                                    durationMillis = 160,
-                                                    delayMillis = reverseDelay,
-                                                    easing = EaseOut
-                                                )
-                                            ) + slideInVertically(
-                                                animationSpec = tween(
-                                                    durationMillis = 180,
-                                                    delayMillis = reverseDelay,
-                                                    easing = EaseOutCubic
+                                            AnimatedVisibility(
+                                                visible = expanded,
+                                                enter = fadeIn(
+                                                    animationSpec = tween(
+                                                        durationMillis = 160,
+                                                        delayMillis = reverseDelay,
+                                                        easing = EaseOut
+                                                    )
+                                                ) + slideInVertically(
+                                                    animationSpec = tween(
+                                                        durationMillis = 180,
+                                                        delayMillis = reverseDelay,
+                                                        easing = EaseOutCubic
+                                                    ),
+                                                    initialOffsetY = { it / 2 }
                                                 ),
-                                                initialOffsetY = { it / 2 }
-                                            ),
-                                            exit = fadeOut(
-                                                animationSpec = tween(
-                                                    durationMillis = 100,
-                                                    delayMillis = itemDelay,
-                                                    easing = EaseIn
-                                                )
-                                            ) + slideOutVertically(
-                                                animationSpec = tween(
-                                                    durationMillis = 100,
-                                                    delayMillis = itemDelay,
-                                                    easing = EaseInCubic
-                                                ),
-                                                targetOffsetY = { it / 2 }
-                                            )
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(
-                                                    12.dp
+                                                exit = fadeOut(
+                                                    animationSpec = tween(
+                                                        durationMillis = 100,
+                                                        delayMillis = itemDelay,
+                                                        easing = EaseIn
+                                                    )
+                                                ) + slideOutVertically(
+                                                    animationSpec = tween(
+                                                        durationMillis = 100,
+                                                        delayMillis = itemDelay,
+                                                        easing = EaseInCubic
+                                                    ),
+                                                    targetOffsetY = { it / 2 }
                                                 )
                                             ) {
-                                                // The Floating Label
-                                                Surface(
-                                                    shape = RoundedCornerShape(8.dp),
-                                                    color = backgroundColor,
-                                                    tonalElevation = 2.dp,
-                                                    shadowElevation = 2.dp
-                                                ) {
-                                                    Text(
-                                                        text = name,
-                                                        modifier = Modifier.padding(
-                                                            horizontal = 12.dp,
-                                                            vertical = 6.dp
-                                                        ),
-                                                        color = activeColor,
-                                                        fontSize = 14.sp,
-                                                        fontWeight = FontWeight.Medium
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(
+                                                        12.dp
                                                     )
-                                                }
+                                                ) {
+                                                    // The Floating Label
+                                                    Surface(
+                                                        shape = MaterialTheme.shapes.large,
+                                                        color = backgroundColor,
+                                                        tonalElevation = 2.dp,
+                                                        shadowElevation = 2.dp
+                                                    ) {
+                                                        Text(
+                                                            text = name,
+                                                            modifier = Modifier.padding(
+                                                                horizontal = 12.dp,
+                                                                vertical = 6.dp
+                                                            ),
+                                                            color = activeColor,
+                                                            fontSize = 14.sp,
+                                                            fontWeight = FontWeight.Medium
+                                                        )
+                                                    }
 
-                                                // The Small FAB
-                                                SmallFloatingActionButton(
-                                                    onClick = {
-                                                        pair.second()
-                                                        expanded = false
-                                                    },
-                                                    containerColor = backgroundColor,
-                                                    shape = CircleShape,
-                                                    elevation = FloatingActionButtonDefaults.elevation(
-                                                        2.dp
-                                                    )
-                                                ) {
-                                                    Icon(
-                                                        pair.first,
-                                                        contentDescription = null,
-                                                        tint = activeColor
-                                                    )
+                                                    // The Small FAB
+                                                    SmallFloatingActionButton(
+                                                        onClick = {
+                                                            pair.second()
+                                                            expanded = false
+                                                        },
+                                                        containerColor = backgroundColor,
+                                                        shape = CircleShape,
+                                                        elevation = FloatingActionButtonDefaults.elevation(
+                                                            2.dp
+                                                        )
+                                                    ) {
+                                                        Icon(
+                                                            pair.first,
+                                                            contentDescription = null,
+                                                            tint = activeColor
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
                                     }
-                                }
 
-                                // 2. Main Toggle FAB
-                                FloatingActionButton(
-                                    onClick = { expanded = !expanded },
-                                    containerColor = backgroundColor,
-                                    shape = CircleShape
-                                ) {
-                                    val rotation by animateFloatAsState(if (expanded) 45f else 0f)
-                                    Icon(
-                                        MaterialSymbols.OutlinedFilled.Add,
-                                        contentDescription = null,
-                                        tint = activeColor,
-                                        modifier = Modifier.rotate(rotation)
-                                    )
+                                    // 2. Main Toggle FAB
+                                    FloatingActionButton(
+                                        onClick = { expanded = !expanded },
+                                        containerColor = backgroundColor,
+                                        shape = CircleShape
+                                    ) {
+                                        val rotation by animateFloatAsState(if (expanded) 45f else 0f)
+                                        Icon(
+                                            MaterialSymbols.OutlinedFilled.Add,
+                                            contentDescription = null,
+                                            tint = activeColor,
+                                            modifier = Modifier.rotate(rotation)
+                                        )
+                                    }
                                 }
                             }
                         }

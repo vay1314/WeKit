@@ -120,5 +120,5 @@ fun ListAdapter.iterator(parent: ViewGroup): Iterator<View> =
 fun ListAdapter.iterable(parent: ViewGroup): Iterable<View> =
     Iterable { iterator(parent) }
 
-val Activity.rootView: View
+inline val Activity.rootView: ViewGroup
     get() = this.findViewById(android.R.id.content)

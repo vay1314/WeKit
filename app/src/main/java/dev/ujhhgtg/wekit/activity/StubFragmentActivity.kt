@@ -11,6 +11,7 @@ import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.FragmentActivity
+import dev.ujhhgtg.wekit.utils.isDarkMode
 
 class StubFragmentActivity : FragmentActivity() {
 
@@ -22,8 +23,7 @@ class StubFragmentActivity : FragmentActivity() {
             requestFeature(Window.FEATURE_NO_TITLE)
             addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
             WindowCompat.setDecorFitsSystemWindows(this, false)
-            WindowInsetsControllerCompat(this, this.decorView).isAppearanceLightStatusBars =
-                resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK != Configuration.UI_MODE_NIGHT_YES
+            WindowInsetsControllerCompat(this, this.decorView).isAppearanceLightStatusBars = !isDarkMode
         }
         setTheme(android.R.style.Theme_Translucent_NoTitleBar_Fullscreen)
 

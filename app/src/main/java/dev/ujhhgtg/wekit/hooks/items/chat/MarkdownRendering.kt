@@ -1,7 +1,6 @@
 package dev.ujhhgtg.wekit.hooks.items.chat
 
 import android.content.Context
-import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Typeface
 import android.graphics.text.LineBreaker
@@ -46,6 +45,7 @@ import dev.ujhhgtg.wekit.ui.content.AlertDialogContent
 import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.WeLogger
+import dev.ujhhgtg.wekit.utils.isDarkMode
 import dev.ujhhgtg.wekit.utils.replaceEmojis
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
@@ -130,8 +130,7 @@ object MarkdownRendering : ClickableHookItem(), IResolvesDex {
                 val canvas = args[0] as Canvas
                 val context = neatTextView.context
 
-                val isDarkMode = (context.resources.configuration.uiMode and
-                        Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+                val isDarkMode = context.isDarkMode
 
                 val textPaint = TextPaint().apply {
                     color =

@@ -14,6 +14,7 @@ import dev.ujhhgtg.wekit.hooks.api.ui.WeChatMessageViewApi
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.utils.formatEpoch
+import dev.ujhhgtg.wekit.utils.isDarkMode
 
 
 @HookItem(path = "聊天/显示消息时间", description = "显示精确消息发送时间")
@@ -50,9 +51,7 @@ object DisplayMessageSendTime : SwitchHookItem(),
         if (parent.findViewWithTag<TextView>(VIEW_TAG) != null) return
 
         val context = parent.context
-        val color = if (context.resources.configuration.uiMode and
-            Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-        ) {
+        val color = if (context.isDarkMode) {
             "#9E9E9E".toColorInt()
         } else {
             "#616161".toColorInt()

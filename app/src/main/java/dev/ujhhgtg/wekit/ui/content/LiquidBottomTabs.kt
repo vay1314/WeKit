@@ -474,7 +474,7 @@ private class InteractiveHighlight(
     private val shader =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             RuntimeShader(
-                """
+"""
 uniform float2 size;
 layout(color) uniform half4 color;
 uniform float radius;

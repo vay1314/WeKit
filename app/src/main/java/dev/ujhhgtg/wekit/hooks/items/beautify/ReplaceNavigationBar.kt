@@ -13,6 +13,7 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -51,6 +52,7 @@ import dev.ujhhgtg.wekit.ui.content.Button
 import dev.ujhhgtg.wekit.ui.content.LiquidBottomTab
 import dev.ujhhgtg.wekit.ui.content.LiquidBottomTabs
 import dev.ujhhgtg.wekit.ui.content.TextButton
+import dev.ujhhgtg.wekit.ui.utils.AppTheme
 import dev.ujhhgtg.wekit.ui.utils.LifecycleOwnerProvider
 import dev.ujhhgtg.wekit.ui.utils.setLifecycleOwner
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
@@ -69,7 +71,7 @@ object ReplaceNavigationBar : ClickableHookItem(), IResolvesDex {
         MaterialSymbols.OutlinedFilled.Person to "我"
     )
 
-    private const val KEY_USE_BACKDROP = "tab_bar_use_backdrop"
+    private const val KEY_USE_BACKDROP = "nav_bar_use_backdrop"
 
     override fun onEnable() {
         WeMainActivityBeautifyApi.methodDoOnCreate.hookAfter {
@@ -113,6 +115,7 @@ object ReplaceNavigationBar : ClickableHookItem(), IResolvesDex {
                 }
 
             val useBackdrop = WePrefs.getBoolOrFalse(KEY_USE_BACKDROP)
+            val monetEngineActive = MonetEngine.isActive
 
             bottomTabViewGroup.removeAllViews()
             bottomTabViewGroup.addView(
@@ -120,113 +123,112 @@ object ReplaceNavigationBar : ClickableHookItem(), IResolvesDex {
                     setLifecycleOwner(lifecycleOwner)
 
                     setContent {
-                        var currentIndex by selectedPageIndexState
-                        val unreadCount by unreadCountState
+                        AppTheme {
+                            var currentIndex by selectedPageIndexState
+                            val unreadCount by unreadCountState
 
-                        // WeChat doesn't follow MaterialTheme so we don't use that too
-                        // or else different color palettes clash and it's hideous
-                        val isDark = isSystemInDarkTheme()
-                        val backgroundColor =
-                            if (isDark) Color(0xFF191919) else Color(0xFFF7F7F7)
-                        val activeColor = Color(0xFF07C160)
-                        val inactiveColor =
-                            if (isDark) Color(0xFF999999) else Color(0xFF181818)
+                            // TODO: we currently use a custom background color without accent to match with wechat's overall style
+                            //       might change this when MonetEngine covers more UI
+                            val backgroundColor = if (isSystemInDarkTheme()) Color(0xFF191919) else Color(0xFFF7F7F7)
+                            val activeColor = MaterialTheme.colorScheme.primary
+                            val inactiveColor = MaterialTheme.colorScheme.outline
 
-                        if (!useBackdrop) {
-                            val offset by scrollOffsetState
-                            NavigationBar(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp),
-                                containerColor = backgroundColor
-                            ) {
-                                ICONS.forEachIndexed { index, (icon, label) ->
-                                    val isSelected = index == currentIndex
-                                    val isNext = index == currentIndex + 1
+                            if (!useBackdrop) {
+                                val offset by scrollOffsetState
+                                NavigationBar(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp),
+                                    containerColor = backgroundColor
+                                ) {
+                                    ICONS.forEachIndexed { index, (icon, label) ->
+                                        val isSelected = index == currentIndex
+                                        val isNext = index == currentIndex + 1
 
-                                    val tint = when {
-                                        isSelected -> lerpColor(
-                                            activeColor,
-                                            inactiveColor,
-                                            offset
+                                        val tint = when {
+                                            isSelected -> lerpColor(
+                                                activeColor,
+                                                inactiveColor,
+                                                offset
+                                            )
+
+                                            isNext -> lerpColor(
+                                                inactiveColor,
+                                                activeColor,
+                                                offset
+                                            )
+
+                                            else -> inactiveColor
+                                        }
+
+                                        NavigationBarItem(
+                                            selected = isSelected && offset < 0.5f,
+                                            onClick = { methodOnTabClick.invoke(index) },
+                                            icon = {
+                                                BadgedBox(
+                                                    badge = {
+                                                        if (index == 0 && unreadCount > 0) {
+                                                            Badge(containerColor = Color(0xFFFF3B30)) {
+                                                                Text(
+                                                                    if (unreadCount <= 99) unreadCount.toString() else "99+",
+                                                                    color = Color.White, fontSize = 10.sp
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = icon,
+                                                        contentDescription = label,
+                                                        tint = tint
+                                                    )
+                                                }
+                                            },
+                                            label = null,
+                                            alwaysShowLabel = false,
+                                            colors = NavigationBarItemDefaults.colors(
+                                                indicatorColor = activeColor.copy(alpha = 0.15f),
+                                                selectedIconColor = activeColor,
+                                                unselectedIconColor = inactiveColor,
+                                                selectedTextColor = activeColor,
+                                                unselectedTextColor = inactiveColor
+                                            )
                                         )
-
-                                        isNext -> lerpColor(
-                                            inactiveColor,
-                                            activeColor,
-                                            offset
-                                        )
-
-                                        else -> inactiveColor
                                     }
-
-                                    NavigationBarItem(
-                                        selected = isSelected && offset < 0.5f,
-                                        onClick = { methodOnTabClick.invoke(index) },
-                                        icon = {
+                                }
+                            } else {
+                                LiquidBottomTabs(
+                                    { currentIndex },
+                                    { methodOnTabClick.invoke(it) },
+                                    rememberLayerBackdrop(),
+                                    4,
+                                    activeColor
+                                ) {
+                                    ICONS.forEachIndexed { index, (icon, label) ->
+                                        val color =
+                                            if (currentIndex == index) activeColor else inactiveColor
+                                        LiquidBottomTab({ currentIndex = index }) {
                                             BadgedBox(
                                                 badge = {
                                                     if (index == 0 && unreadCount > 0) {
                                                         Badge(containerColor = Color(0xFFFF3B30)) {
-                                                            Text(
-                                                                if (unreadCount <= 99) unreadCount.toString() else "99+",
-                                                                color = Color.White, fontSize = 10.sp
-                                                            )
+                                                            Text(if (unreadCount <= 99) unreadCount.toString() else "99+",
+                                                                color = Color.White, fontSize = 10.sp)
                                                         }
                                                     }
                                                 }
                                             ) {
-                                                Icon(
-                                                    imageVector = icon,
-                                                    contentDescription = label,
-                                                    tint = tint
+                                                Box(
+                                                    Modifier
+                                                        .size(28f.dp)
+                                                        .paint(rememberVectorPainter(icon), colorFilter = ColorFilter.tint(color))
                                                 )
                                             }
-                                        },
-                                        label = null,
-                                        alwaysShowLabel = false,
-                                        colors = NavigationBarItemDefaults.colors(
-                                            indicatorColor = activeColor.copy(alpha = 0.15f),
-                                            selectedIconColor = activeColor,
-                                            unselectedIconColor = inactiveColor,
-                                            selectedTextColor = activeColor,
-                                            unselectedTextColor = inactiveColor
-                                        )
-                                    )
-                                }
-                            }
-                        } else {
-                            LiquidBottomTabs(
-                                { currentIndex },
-                                { methodOnTabClick.invoke(it) },
-                                rememberLayerBackdrop(),
-                                4,
-                                activeColor
-                            ) {
-                                ICONS.forEachIndexed { index, (icon, label) ->
-                                    val color =
-                                        if (currentIndex == index) activeColor else inactiveColor
-                                    LiquidBottomTab({ currentIndex = index }) {
-                                        BadgedBox(
-                                            badge = {
-                                                if (index == 0 && unreadCount > 0) {
-                                                    Badge(containerColor = Color(0xFFFF3B30)) {
-                                                        Text(if (unreadCount <= 99) unreadCount.toString() else "99+",
-                                                            color = Color.White, fontSize = 10.sp)
-                                                    }
-                                                }
-                                            }
-                                        ) {
-                                            Box(
-                                                Modifier
-                                                    .size(28f.dp)
-                                                    .paint(rememberVectorPainter(icon), colorFilter = ColorFilter.tint(color))
+                                            BasicText(
+                                                label,
+                                                style = TextStyle(color, 12f.sp)
                                             )
                                         }
-                                        BasicText(
-                                            label,
-                                            style = TextStyle(color, 12f.sp)
-                                        )
                                     }
                                 }
                             }

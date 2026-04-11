@@ -42,6 +42,7 @@ import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.findViewByChildIndexes
 import dev.ujhhgtg.wekit.ui.utils.findViewWhich
 import dev.ujhhgtg.wekit.ui.utils.findViewsWhich
+import dev.ujhhgtg.wekit.ui.utils.rootView
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.CryptoManager
 import dev.ujhhgtg.wekit.utils.EncryptedData
@@ -86,7 +87,7 @@ object FingerprintPay : ClickableHookItem() {
 
                             val activity = thisObject as Activity
 
-                            val root = activity.findViewById<ViewGroup>(android.R.id.content)
+                            val root = activity.rootView
                             val searchedView = root.findViewByChildIndexes<ViewGroup>(0, 0, 2, 0, 2) ?: return@hookBefore
                             val myKeyboardWindow = searchedView.findViewWhich<LinearLayout> { view ->
                                 view.javaClass.name == "com.tenpay.android.wechat.MyKeyboardWindow"
