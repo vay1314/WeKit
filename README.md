@@ -35,12 +35,14 @@
 - 基于 JavaScript 的脚本引擎, [API ~~文档~~参考](app/src/main/java/dev/ujhhgtg/wekit/hooks/items/scripting_js/globals.d.ts)
 - ~~实验性的基于 Kotlin Scripting 的脚本引擎 (直接与宿主与模块互通)~~ (暂未开发完成)
 - 贴纸包同步 (Telegram Stickers Sync)
-- 通知进化
+- 通知进化 (MessagingStyle)
 - Markdown 消息渲染
 - 指纹支付 (基于 TEE 的安全加密)
 - 自动抢红包
 - 单向删除好友检测
 - 发送 SILK/MP3 语音
+- 聊天工具栏
+- 发送卡片消息
 - 原生 Hook
 - 支持免 Root 框架 (未经完全测试, 但大部分功能应正常工作; 修补后的包名需要以 `com.tencent.mm` 开头才能被模块识别到并加载)
 
@@ -49,8 +51,6 @@
 本项目不会发布稳定版本，请从 [GitHub Actions](https://github.com/Ujhhgtg/WeKit/actions/workflows/ci.yml) 或 [Telegram CI 频道](https://t.me/ujhhgtg_wekit_ci) 下载最新 CI 构建产物
 
 Releases 中会发布“稳定的 CI”，但不保证真的稳定，且可能无法享受最新功能与修复，所以我还是建议你使用每夜版
-
-如果你是免 Root 用户, 也可以从 [GitHub Actions](https://github.com/Ujhhgtg/WeKit/actions/workflows/ci.yml) 中下载已嵌入模块的微信安装包 (包名为 `com.tencent.mm2`)
 
 ## 开发
 
