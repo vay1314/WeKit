@@ -16,12 +16,20 @@ object AutoViewOriginalMedia : SwitchHookItem(), IResolvesDex {
     private val methodCheckNeedShowOriginVideoBtn by dexMethod()
 
     override fun resolveDex(dexKit: DexKitBridge) {
-        methodSetImageHdImgBtnVisibility.find(dexKit, allowFailure = true) {
+        val results = dexKit.findMethod {
             matcher {
                 declaredClass = "com.tencent.mm.ui.chatting.gallery.ImageGalleryUI"
                 usingEqStrings("setHdImageActionDownloadable")
             }
+        }.ifEmpty {
+            dexKit.findMethod {
+                matcher {
+                    declaredClass = "com.tencent.mm.ui.chatting.gallery.ImageGalleryUI"
+                    usingEqStrings("setImageHdImgBtnVisibility")
+                }
+            }
         }
+        methodSetImageHdImgBtnVisibility.setDescriptor(results.single())
 
         methodCheckNeedShowOriginVideoBtn.find(dexKit) {
             matcher {

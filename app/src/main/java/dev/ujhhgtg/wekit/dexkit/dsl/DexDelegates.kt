@@ -11,6 +11,7 @@ import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.FindClass
 import org.luckypray.dexkit.query.FindMethod
 import org.luckypray.dexkit.result.ClassData
+import org.luckypray.dexkit.result.MethodData
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import kotlin.properties.PropertyDelegateProvider
@@ -79,7 +80,7 @@ class DexClassDelegate internal constructor(
         allowFailure: Boolean = false,
         block: FindClass.() -> Unit
     ): Boolean {
-        val results = dexKit.findClass(block).toList()
+        val results = dexKit.findClass(block)
 
         if (results.isEmpty()) {
             if (!allowFailure) error("DexKit: No class found for key: $key")
@@ -130,6 +131,9 @@ class DexMethodDelegate internal constructor(
         cachedMethod = null
     }
 
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun setDescriptor(m: MethodData) = setDescriptor(DexMethodDescriptor(m.className, m.methodName, m.methodSign))
+
     val isPlaceholder
         get() = descriptor != null &&
                 descriptor!!.name == "Lcom/tencent/mm/ui/LauncherUI;->getInstance()Lcom/tencent/mm/ui/LauncherUI;"
@@ -159,7 +163,7 @@ class DexMethodDelegate internal constructor(
         resultIndex: Int = 0,
         block: FindMethod.() -> Unit
     ): Boolean {
-        val results = dexKit.findMethod(block).toList()
+        val results = dexKit.findMethod(block)
 
         if (results.isEmpty()) {
             if (!allowFailure) error("DexKit: No method found for key: $key")
@@ -232,7 +236,7 @@ class DexConstructorDelegate internal constructor(
             block()
             if (matcher == null) matcher { name = "<init>" }
             else matcher!!.name = "<init>"
-        }.toList()
+        }
 
         if (results.isEmpty()) {
             if (throwOnFailure) error("DexKit: No constructor found for key: $key")
