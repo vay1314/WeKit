@@ -16,8 +16,8 @@ import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
 import dev.ujhhgtg.wekit.hooks.core.ApiHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.utils.WeLogger
-import dev.ujhhgtg.wekit.utils.XmlUtils.extractXmlAttr
-import dev.ujhhgtg.wekit.utils.XmlUtils.extractXmlTag
+import dev.ujhhgtg.wekit.utils.serialization.XmlUtils.extractXmlAttr
+import dev.ujhhgtg.wekit.utils.serialization.XmlUtils.extractXmlTag
 import org.luckypray.dexkit.DexKitBridge
 import java.io.InputStream
 import java.io.OutputStream
@@ -622,7 +622,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
                 try {
                     finalServiceObj = getServiceMethod!!.invoke(null, classVoiceServiceInterface.clazz)
                 } catch (e: Exception) {
-                    WeLogger.e(TAG, "ServiceManager 获取失败，尝试单例 fallback", e)
+                    WeLogger.e(TAG, "failed to retrieve ServiceManager, trying singleton fallback", e)
                 }
             }
 

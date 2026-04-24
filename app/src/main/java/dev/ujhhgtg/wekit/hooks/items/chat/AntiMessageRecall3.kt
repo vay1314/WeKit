@@ -74,7 +74,7 @@ object AntiMessageRecall3 : SwitchHookItem(), IResolvesDex {
 
                         val senderName = match?.groupValues?.get(2) ?: "未知"
 
-                        val interceptNotice = "「$senderName」 尝试撤回上一条消息 (已阻止)"
+                        val interceptNotice = "「$senderName」尝试撤回上一条消息 (已阻止)"
 
                         val contentValues = ContentValues().apply {
                             put("msgid", 0)

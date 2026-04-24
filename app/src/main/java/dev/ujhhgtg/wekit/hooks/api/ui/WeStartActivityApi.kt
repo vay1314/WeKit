@@ -11,7 +11,7 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.utils.WeLogger
 import java.util.concurrent.CopyOnWriteArrayList
 
-@HookItem(path = "API/活动启动监听服务", description = "为其他功能提供 startActivity 监听能力")
+@HookItem(path = "API/活动启动监听服务", description = "提供 startActivity 监听能力")
 object WeStartActivityApi : ApiHookItem() {
 
     interface IStartActivityListener {

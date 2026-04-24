@@ -3,7 +3,6 @@ package dev.ujhhgtg.wekit.utils
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import androidx.core.content.pm.PackageInfoCompat
 import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.wekit.constants.PackageNames
 
@@ -50,7 +49,7 @@ object HostInfo {
             application = application,
             packageName = packageName,
             hostName = application.applicationInfo.loadLabel(pm).toString(),
-            versionCode = PackageInfoCompat.getLongVersionCode(packageInfo),
+            versionCode = packageInfo.longVersionCode,
             versionName = packageInfo.versionName.orEmpty(),
             hostSpecies = run {
                 if (PackageNames.isWeChat(packageName)) return@run HostSpecies.WeChat

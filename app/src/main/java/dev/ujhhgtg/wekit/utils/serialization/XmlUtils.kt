@@ -1,4 +1,4 @@
-package dev.ujhhgtg.wekit.utils
+package dev.ujhhgtg.wekit.utils.serialization
 
 object XmlUtils {
 

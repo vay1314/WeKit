@@ -5,10 +5,11 @@ import android.os.Looper
 import dev.ujhhgtg.comptime.nameOf
 import dev.ujhhgtg.wekit.hooks.api.core.WeApi
 import dev.ujhhgtg.wekit.hooks.api.core.WeMessageApi
-import dev.ujhhgtg.wekit.utils.DefaultJson
+import dev.ujhhgtg.wekit.utils.serialization.DefaultJson
 import dev.ujhhgtg.wekit.utils.paths.KnownPaths
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.paths.createDirectoriesNoThrow
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -514,7 +515,7 @@ object JsApiExposer {
     private fun loadStorageFromDisk() {
         runCatching {
             if (!storageFile.exists()) return
-            val map = DefaultJson.decodeFromString<Map<String, kotlinx.serialization.json.JsonElement>>(storageFile.readText())
+            val map = DefaultJson.decodeFromString<Map<String, JsonElement>>(storageFile.readText())
             map.forEach { (k, v) ->
                 storage[k] = when (v) {
                     is JsonPrimitive if v.isString -> v.content

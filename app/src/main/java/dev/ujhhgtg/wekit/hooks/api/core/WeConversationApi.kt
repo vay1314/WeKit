@@ -11,7 +11,7 @@ import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.utils.WeLogger
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "API/对话服务", description = "为其他功能提供对话管理能力")
+@HookItem(path = "API/对话服务", description = "提供对话管理能力")
 object WeConversationApi : ApiHookItem(), IResolvesDex {
 
     private val TAG = nameOf(WeConversationApi)

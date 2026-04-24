@@ -66,7 +66,7 @@ import dev.ujhhgtg.wekit.preferences.WePrefs
 import dev.ujhhgtg.wekit.ui.utils.GitHubIcon
 import dev.ujhhgtg.wekit.ui.utils.TelegramIcon
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
-import dev.ujhhgtg.wekit.utils.DefaultJson
+import dev.ujhhgtg.wekit.utils.serialization.DefaultJson
 import dev.ujhhgtg.wekit.utils.HostInfo
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.formatEpoch

@@ -20,7 +20,7 @@ object RemoveEmbeddedAds : SwitchHookItem(), IResolvesDex {
 
     override fun onEnable() {
         classNetSceneJSOperateWxData.asResolver().firstConstructor().hookBefore {
-            val json = JSONObject(args[1] as String)
+            val json = runCatching { JSONObject(args[1] as String) }.getOrElse { return@hookBefore }
             if (json.getString("api_name") == "webapi_getadvert") {
                 json.put("data", json.getJSONObject("data").put("ad_unit_id", ""))
                 args[1] = json.toString()

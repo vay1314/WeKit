@@ -87,7 +87,6 @@ object AutoOpenRedPackets : ClickableHookItem(), WeDatabaseListenerApi.IInsertLi
             val content = values.getAsString("content") ?: return
             val talker = values.getAsString("talker") ?: ""
 
-            // 解析 XML 内容
             var xmlContent = content
             if (!content.startsWith("<") && content.contains(":")) {
                 xmlContent = content.substring(content.indexOf(":") + 1).trim()

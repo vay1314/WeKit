@@ -30,3 +30,4 @@
 -dontwarn io.netty.pkitesting.**
 -dontwarn com.sun.nio.file.SensitivityWatchEventModifier
 -dontwarn org.osgi.annotation.**
+-dontwarn javax.naming.**

@@ -64,7 +64,7 @@ object MergeMessagesIntoGroups : SwitchHookItem(), WeChatMessageViewApi.ICreateV
 
         val msgInfo = WeChatMessageViewApi.getMsgInfoFromParam(param)
         if (msgInfo.isSend != 0) return
-        if (msgInfo.isType(MessageType.SYSTEM) || msgInfo.isType(MessageType.PAT)) return
+        if (MessageType.isSystem(msgInfo.type) || msgInfo.isType(MessageType.PAT)) return
 
         val isGroupChat = msgInfo.isInGroupChat
         val currentSender = msgInfo.sender

@@ -15,7 +15,7 @@ import dev.ujhhgtg.wekit.utils.WeLogger
 import java.util.concurrent.CopyOnWriteArrayList
 
 @SuppressLint("DiscouragedApi")
-@HookItem(path = "API/数据库监听服务", description = "为其他功能提供数据库插入、更新监听与查询能力")
+@HookItem(path = "API/数据库监听服务", description = "提供数据库插入、更新与查询监听能力")
 object WeDatabaseListenerApi : ApiHookItem() {
 
     interface IInsertListener {
@@ -37,37 +37,26 @@ object WeDatabaseListenerApi : ApiHookItem() {
     private val queryListeners = CopyOnWriteArrayList<IQueryListener>()
 
     fun addListener(listener: Any) {
-        val addedTypes = mutableListOf<String>()
-
         if (listener is IInsertListener) {
             insertListeners.add(listener)
-            addedTypes.add("INSERT")
         }
         if (listener is IUpdateListener) {
             updateListeners.add(listener)
-            addedTypes.add("UPDATE")
         }
         if (listener is IQueryListener) {
             queryListeners.add(listener)
-            addedTypes.add("QUERY")
         }
     }
 
     fun removeListener(listener: Any) {
-        var removed = false
-
         if (listener is IInsertListener) {
-            removed = insertListeners.remove(listener) || removed
+            insertListeners.remove(listener)
         }
         if (listener is IUpdateListener) {
-            removed = updateListeners.remove(listener) || removed
+            updateListeners.remove(listener)
         }
         if (listener is IQueryListener) {
-            removed = queryListeners.remove(listener) || removed
-        }
-
-        if (removed) {
-            WeLogger.i(TAG, "监听器已移除: ${listener.javaClass.simpleName}")
+            queryListeners.remove(listener)
         }
     }
 

@@ -1,4 +1,4 @@
-package dev.ujhhgtg.wekit.utils
+package dev.ujhhgtg.wekit.utils.serialization
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -20,6 +20,9 @@ fun JsonElement.getByPath(path: String): JsonElement? {
         current?.jsonObject?.get(key)
     }
 }
+
+@Suppress("NOTHING_TO_INLINE")
+inline operator fun JsonElement.get(key: String): JsonElement? = this.jsonObject[key]
 
 inline val JsonElement.asInt: Int get() = jsonPrimitive.int
 inline val JsonElement.asLong: Long get() = jsonPrimitive.long
