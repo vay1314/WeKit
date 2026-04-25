@@ -41,13 +41,13 @@ body:
   - type: input
     attributes:
       label: 你使用的 Xposed 框架 / Xposed Framework you used
-      placeholder: LSPosed 1.9.2-it
+      placeholder: LSPosed 1.9.2-it / Vector 2.0 (3042)
     validations:
       required: true
   - type: input
     attributes:
       label: 你使用的安卓系统版本 / Your Android version
-      placeholder: Android 13
+      placeholder: Android 16
     validations:
       required: true
   - type: input
@@ -59,7 +59,7 @@ body:
   - type: input
     attributes:
       label: 模块版本 / Module Version
-      description: 不要使用“最新版”。给出详细版本号，否则 issue 将被关闭。在 https://t.me/wekit_ci 获取最新 CI 版本。 / Do not use "latest". Specify the exact version number, otherwise your issue will be closed. Get the latest CI version from https://t.me/wekit_ci.
+      description: 不要使用“最新版”一类描述。给出详细版本号，否则 Issue 将被关闭。在 https://t.me/ujhhgtg_wekit_ci 获取最新 CI 版本。 / Do not use "latest". Specify the exact version number, otherwise your issue will be closed. Get the latest CI version from https://t.me/wekit_ci.
     validations:
       required: true
   - type: checkboxes
@@ -78,10 +78,9 @@ body:
   - type: textarea
     attributes:
       label: 日志 / Logs
-      description: 因错误追踪系统不完善，此项非必填。如果条件允许，可使用 LogFox 抓取运行日志，或是上传 `/storage/emulated/0/Android/data/com.tencent.mm/WeKit/log/ErrorLog/` 内的日志。 / This field is optional due to the incomplete error tracking system. If possible, capture runtime logs with LogFox, or upload log files from `/storage/emulated/0/Android/data/com.tencent.mm/WeKit/log/ErrorLog/`.
       placeholder: 将日志粘贴到此处或者点击文本框底栏上传日志文件。 / Paste logs here or upload log files by clicking the attachment bar at the bottom of the text box.
     validations:
-      required: false
+      required: true
   - type: textarea
     id: extra-desc
     attributes:

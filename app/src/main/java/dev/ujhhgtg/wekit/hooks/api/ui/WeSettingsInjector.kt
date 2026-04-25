@@ -10,6 +10,7 @@ import com.android.dx.stock.ProxyBuilder
 import com.highcapable.kavaref.extension.createInstance
 import com.highcapable.kavaref.extension.toClass
 import com.highcapable.kavaref.extension.toClassOrNull
+import com.tencent.mm.plugin.setting.ui.setting_new.MainSettingsUI
 import com.tencent.mm.plugin.setting.ui.setting_new.base.BaseSettingPrefUI
 import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupAccountInfo
 import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupMain
@@ -293,6 +294,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
 
             // non-play 8.0.69: C6, K6, Q6, w6, x6, z6
             // non-play 8.0.70: k7, r7, w7, g7, h7, j7
+            // non-play 8.0.71: p7, w7, B7, l7, m7, o7
             // play 8.0.68: E6, M6, T6, z6, B6, D6
             WeLogger.d(
                 TAG,
@@ -378,9 +380,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
         BaseSettingPrefUI::class.resolve()
             .firstMethod { name = "superImportUIComponents" }
             .hookAfter {
-                if (thisObject.javaClass.name
-                    != "${PackageNames.WECHAT}.plugin.setting.ui.setting_new.MainSettingsUI"
-                ) return@hookAfter
+                if (thisObject !is MainSettingsUI) return@hookAfter
 
                 @Suppress("UNCHECKED_CAST")
                 val settingItemClasses = args[0] as HashSet<Class<*>>

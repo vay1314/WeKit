@@ -58,33 +58,27 @@ abstract class BaseHookItem {
     inline fun Executable.hookBefore(
         priority: Int = 50,
         crossinline action: HookAction
-    ) {
-        XposedBridge.hookMethod(
-            this,
-            object :
-                XC_MethodHook(priority) {
-                override fun beforeHookedMethod(param: MethodHookParam) {
-                    executeHookAction(param, action)
-                }
+    ): XC_MethodHook.Unhook = XposedBridge.hookMethod(
+        this,
+        object :
+            XC_MethodHook(priority) {
+            override fun beforeHookedMethod(param: MethodHookParam) {
+                executeHookAction(param, action)
             }
-        )
-    }
+        }
+    )
 
     @JvmName("hookBefore2")
     inline fun MethodResolver<*>.hookBefore(
         priority: Int = 50,
         crossinline action: HookAction
-    ) {
-        return this.self.hookBefore(priority, action)
-    }
+    ) = this.self.hookBefore(priority, action)
 
     @JvmName("hookBefore3")
     inline fun ConstructorResolver<*>.hookBefore(
         priority: Int = 50,
         crossinline action: HookAction
-    ) {
-        return this.self.hookBefore(priority, action)
-    }
+    ) = this.self.hookBefore(priority, action)
 
     inline fun Class<*>.hookBeforeOnCreate(
         crossinline action: HookAction
@@ -109,33 +103,27 @@ abstract class BaseHookItem {
     inline fun Executable.hookAfter(
         priority: Int = 50,
         crossinline action: HookAction
-    ) {
-        XposedBridge.hookMethod(
-            this,
-            object :
-                XC_MethodHook(priority) {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    executeHookAction(param, action)
-                }
+    ): XC_MethodHook.Unhook = XposedBridge.hookMethod(
+        this,
+        object :
+            XC_MethodHook(priority) {
+            override fun afterHookedMethod(param: MethodHookParam) {
+                executeHookAction(param, action)
             }
-        )
-    }
+        }
+    )
 
     @JvmName("hookAfter2")
     inline fun MethodResolver<*>.hookAfter(
         priority: Int = 50,
         crossinline action: HookAction
-    ) {
-        return this.self.hookAfter(priority, action)
-    }
+    ) = this.self.hookAfter(priority, action)
 
     @JvmName("hookAfter3")
     inline fun ConstructorResolver<*>.hookAfter(
         priority: Int = 50,
         crossinline action: HookAction
-    ) {
-        return this.self.hookAfter(priority, action)
-    }
+    ) = this.self.hookAfter(priority, action)
 
     // --- end hookAfter ---
 
@@ -144,30 +132,22 @@ abstract class BaseHookItem {
     inline fun DexMethodDelegate.hookBefore(
         priority: Int = 50,
         crossinline action: HookAction
-    ) {
-        return this.method.hookBefore(priority, action)
-    }
+    ) = this.method.hookBefore(priority, action)
 
     inline fun DexMethodDelegate.hookAfter(
         priority: Int = 50,
         crossinline action: HookAction
-    ) {
-        return this.method.hookAfter(priority, action)
-    }
+    ) = this.method.hookAfter(priority, action)
 
     inline fun DexConstructorDelegate.hookBefore(
         priority: Int = 50,
         crossinline action: HookAction
-    ) {
-        return this.constructor.hookBefore(priority, action)
-    }
+    ) = this.constructor.hookBefore(priority, action)
 
     inline fun DexConstructorDelegate.hookAfter(
         priority: Int = 50,
         crossinline action: HookAction
-    ) {
-        return this.constructor.hookAfter(priority, action)
-    }
+    ) = this.constructor.hookAfter(priority, action)
 
     // --- end dex delegate ---
 

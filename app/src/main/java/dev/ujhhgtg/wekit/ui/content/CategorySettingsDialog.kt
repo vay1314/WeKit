@@ -1,10 +1,13 @@
 package dev.ujhhgtg.wekit.ui.content
 
 import android.content.Context
+import dev.ujhhgtg.comptime.nameOf
+import dev.ujhhgtg.wekit.hooks.core.BaseHookItem
 import dev.ujhhgtg.wekit.hooks.core.ClickableHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItemsProvider
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
 import dev.ujhhgtg.wekit.preferences.WePrefs
+import dev.ujhhgtg.wekit.utils.WeLogger
 
 class CategorySettingsDialog(
     context: Context,
@@ -89,7 +92,11 @@ class CategorySettingsDialog(
                     callback(item.isEnabled)
                 }
             },
-            onClick = { item.onClick(context) },
+            onClick = {
+                runCatching {
+                    item.onClick(context)
+                }.onFailure { WeLogger.e(nameOf(BaseHookItem::class), "failed to execute onClick of ${item.path}") }
+            },
         )
     }
 }

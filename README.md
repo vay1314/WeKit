@@ -113,11 +113,13 @@ chmod +x ./gradlew
 7. - Q: 怎么让我的界面恢复正常???? (愚人节彩蛋)
    - A: 「模块设置 -> 投降」
 8. - Q: 模块出现问题 (例如找不到入口, 功能失效) 怎么办?
-   - A: 前往 Issues 提交 LSPosed 详细日志; 如果模块可以正常加载, 请同时上传模块的日志
+   - A: 前往 Issues 提交 LSPosed 详细日志; 如果模块可以正常加载, 请同时上传模块的日志与「调试/复制调试信息」的结果
 
      LSPosed 日志: LSPosed -> 设置 -> 禁用详细日志 (关) -> 日志 -> 右上角保存 -> 上传至 Issue
 
      模块日志: 模块设置 -> 刷新日志文件缓冲区; /sdcard/Android/data/<宿主包名>/WeKit/logs/*
+     
+     调试信息: 模块设置 -> 「调试/复制调试信息」 -> 粘贴至 Issue 日志区
 9. - Q: XXX
    - A: [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Ujhhgtg/WeKit)
 
