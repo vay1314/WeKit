@@ -98,7 +98,6 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     private lateinit var voiceNameGenMethod: Method    // g1.E
     private var storageAccPathMethod: Method? = null  // b0.e (动态解析)
     private lateinit var pathGenMethod: Method         // h1.c
-    private lateinit var voiceTaskClass: Class<*>
     private lateinit var voiceTaskConstructor: Constructor<*>
     private lateinit var voiceDurationField: Field     // 语音时长字段
     private lateinit var voiceOffsetField: Field       // 偏移量字段
@@ -431,20 +430,20 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
         // -----------------------------------------------------------------------------
 
         // VFS
-        classVfs.asResolver().let { vfs ->
-            vfsReadMethod = vfs.firstMethod {
+        classVfs.asResolver().apply {
+            vfsReadMethod = firstMethod {
                 modifiers(Modifiers.STATIC)
                 parameters(String::class)
                 returnType = InputStream::class
             }.self
 
-            vfsCopyMethod = vfs.firstMethod {
+            vfsCopyMethod = firstMethod {
                 modifiers(Modifiers.STATIC)
                 parameters(String::class, Boolean::class)
                 returnType = OutputStream::class
             }.self
 
-            vfsExistsMethod = vfs.firstMethod {
+            vfsExistsMethod = firstMethod {
                 modifiers(Modifiers.STATIC)
                 parameters(String::class)
                 returnType = Boolean::class
@@ -464,13 +463,12 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             returnType = String::class
         }.self
 
-        classVoiceParams.asResolver().let { voiceParams ->
-            val intFields = voiceParams.field { type = Int::class }
+        classVoiceParams.asResolver().apply {
+            val intFields = field { type = Int::class }
             voiceDurationField = intFields[0].self
             voiceOffsetField = intFields[1].self
         }
 
-        voiceTaskClass = classVoiceTask.clazz
         voiceTaskConstructor = classVoiceTask.asResolver()
             .firstConstructor {
                 parameters(classVoiceParams.clazz)
@@ -515,7 +513,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             return storageAccPathMethod!!.invoke(storageObj) as String
         }
 
-        WeLogger.i(TAG, "开始动态解析 AccPath 方法... StorageClass=${storageObj.javaClass.name}")
+        WeLogger.i(TAG, "resolving AccPath method... StorageClass=${storageObj.javaClass.name}")
 
         var currentClass: Class<*>? = storageObj.javaClass
         var scanCount = 0
@@ -538,7 +536,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
                     // 特征校验：包含 "MicroMsg" 且以 "/" 结尾
                     if (result != null && result.contains("MicroMsg") && result.endsWith("/")) {
                         storageAccPathMethod = m
-                        WeLogger.i(TAG, "AccPath 方法解析成功: ${m.name}, 路径: $result")
+                        WeLogger.i(TAG, "resolved AccPath method: ${m.name}, path: $result")
                         return result
                     }
                 } catch (_: Throwable) {
@@ -549,7 +547,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             currentClass = currentClass.superclass
         }
 
-        error("无法解析 AccPath 方法 (扫描了 $scanCount 个候选项, StorageClass=${storageObj.javaClass.name})")
+        error("failed to resolve AccPath method (scanned $scanCount candidates, StorageClass=${storageObj.javaClass.name})")
     }
 
     /** 发送图片消息 */
@@ -575,10 +573,10 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
 
             sendImageMethod.invoke(serviceObj, taskObj)
 
-            WeLogger.i(TAG, "[sendImage] 任务已提交: $toUser")
+            WeLogger.i(TAG, "sent image message to $toUser")
             true
         } catch (e: Exception) {
-            WeLogger.e(TAG, "[sendImage] 图片发送流程失败", e)
+            WeLogger.e(TAG, "failed to send image message", e)
             false
         }
     }
@@ -586,12 +584,12 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     /** 发送文本消息 */
     fun sendText(toUser: String, text: String): Boolean {
         return try {
-            WeLogger.i(TAG, "[sendText] 准备发送文本消息: $text")
+            WeLogger.i(TAG, "sending text message: $text")
             val sendMsgObject = methodGetSendMsgObject.method.invoke(null) ?: return false
             val msgObj = classNetSceneSendMsg.clazz.createInstance(toUser, text, 1, 0, null)
             methodPostToQueue.method.invoke(sendMsgObject, msgObj) as? Boolean ?: false
         } catch (e: Exception) {
-            WeLogger.e(TAG, "[sendText] Text 发送失败", e)
+            WeLogger.e(TAG, "failed to send text message", e)
             false
         }
     }
@@ -599,7 +597,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
     /** 发送文件消息 */
     fun sendFile(talker: String, filePath: String, title: String, appId: String? = null): Boolean {
         return try {
-            WeLogger.i(TAG, "[sendFile] 准备发送文件消息: $filePath")
+            WeLogger.i(TAG, "sending file message: $filePath")
             val fileObject = WXFileObject()
             fileObject.filePath = filePath
             val mediaMessage = WXMediaMessage()
@@ -608,7 +606,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             methodShareFile.method.invoke(null, mediaMessage, appId ?: "", "", talker, 2, null)
             true
         } catch (e: Exception) {
-            WeLogger.e(TAG, "[sendFile] File 发送失败", e)
+            WeLogger.e(TAG, "failed to send file message", e)
             false
         }
     }
@@ -638,7 +636,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
                 }
             }
 
-            if (finalServiceObj == null) error("无法获取 VoiceService 实例")
+            if (finalServiceObj == null) error("failed to retrive VoiceService instance")
 
             // 准备文件
             val fileName = voiceNameGenMethod.invoke(null, selfCustomWxId, "amr_") as? String
@@ -657,13 +655,13 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             voiceOffsetField.set(paramsObj, 0)
 
             val taskObj = voiceTaskConstructor.newInstance(paramsObj)
-                ?: error("Task 构造失败")
+                ?: error("failed to construct voice task")
 
             methodSendVoice.method.invoke(finalServiceObj, taskObj)
-            WeLogger.i(TAG, "语音发送指令已下发: $fileName")
+            WeLogger.i(TAG, "sent voice message: $fileName")
             true
         } catch (e: Exception) {
-            WeLogger.e(TAG, "语音发送流程崩溃", e)
+            WeLogger.e(TAG, "failed to send voice message", e)
             false
         }
     }
@@ -672,7 +670,7 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
         val appId = extractXmlAttr(xmlContent, "appid")
         val title = extractXmlTag(xmlContent, "title")
 
-        WeLogger.d(TAG, "解析信息: AppId=$appId, Title=$title")
+        WeLogger.d(TAG, "appmsg info: appid=$appId, title=$title")
         return WeAppMsgApi.sendXmlAppMsg(toUser, title, appId, null, null, xmlContent)
     }
 
@@ -697,13 +695,13 @@ object WeMessageApi : ApiHookItem(), IResolvesDex {
             // 校验
             val exists = vfsExistsMethod.invoke(null, destPath) as? Boolean ?: false
             if (exists) {
-                WeLogger.i(TAG, "VFS 拷贝成功")
+                WeLogger.i(TAG, "VFS copy succeeded")
             } else {
-                WeLogger.e(TAG, "VFS 拷贝看似成功但文件不存在")
+                WeLogger.e(TAG, "VFS copy seems successful but actually failed")
             }
             exists
         } catch (e: Exception) {
-            WeLogger.e(TAG, "VFS 拷贝异常: ${e.javaClass.simpleName} - ${e.message}", e)
+            WeLogger.e(TAG, "VFS copy failed", e)
             false
         }
     }

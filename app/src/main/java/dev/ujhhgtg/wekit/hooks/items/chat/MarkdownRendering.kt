@@ -126,7 +126,7 @@ object MarkdownRendering : ClickableHookItem(), IResolvesDex {
                 }
 
                 if (!(msgInfo.type?.isText ?: false)) return@hookBefore
-                val isSelfSender = msgInfo.isSelfSender()
+                val isSelfSender = msgInfo.isSelfSender
 
                 val canvas = args[0] as Canvas
                 val context = neatTextView.context

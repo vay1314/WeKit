@@ -70,10 +70,10 @@ private sealed class DialogPhase {
     data class Error(val message: String) : DialogPhase()
 }
 
-private val TAG = nameOf(::DexResolverDialogContent)
+private val TAG = nameOf(::DexResolver)
 
 @Composable
-fun DexResolverDialogContent(
+fun DexResolver(
     context: Context,
     outdatedItems: List<IResolvesDex>,
     appInfo: ApplicationInfo,

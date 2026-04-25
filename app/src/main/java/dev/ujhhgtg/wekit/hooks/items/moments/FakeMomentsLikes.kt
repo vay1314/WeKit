@@ -11,7 +11,7 @@ import dev.ujhhgtg.wekit.hooks.api.core.WeDatabaseListenerApi
 import dev.ujhhgtg.wekit.hooks.api.ui.WeMomentsContextMenuApi
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
-import dev.ujhhgtg.wekit.ui.content.ContactSelectionDialog
+import dev.ujhhgtg.wekit.ui.content.ContactsSelectionDialog
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.ModuleRes
 import dev.ujhhgtg.wekit.utils.WeLogger
@@ -67,7 +67,7 @@ object FakeMomentsLikes : SwitchHookItem(), WeMomentsContextMenuApi.IMenuItemsPr
                 val currentSelected = fakeLikeWxIds[snsId] ?: emptySet()
 
                 showComposeDialog(moments.activity) {
-                    ContactSelectionDialog(
+                    ContactsSelectionDialog(
                         title = "选择伪点赞用户",
                         contacts = allFriends,
                         initialSelectedWxIds = currentSelected,

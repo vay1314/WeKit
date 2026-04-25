@@ -3,6 +3,7 @@ package dev.ujhhgtg.wekit.hooks.items.chat
 import android.view.View
 import android.view.ViewGroup
 import de.robv.android.xposed.XC_MethodHook
+import dev.ujhhgtg.wekit.hooks.api.core.models.MessageType
 import dev.ujhhgtg.wekit.hooks.api.ui.WeChatMessageViewApi
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.hooks.core.SwitchHookItem
@@ -25,7 +26,7 @@ object HideOutgoingMessagesAvatar : SwitchHookItem(), WeChatMessageViewApi.ICrea
     override fun onCreateView(param: XC_MethodHook.MethodHookParam, view: View) {
         val tag = view.tag
         val msgInfo = WeChatMessageViewApi.getMsgInfoFromParam(param)
-        if (msgInfo.isSend == 0) return
+        if (!msgInfo.isSelfSender) return
 
         if (!::avatarViewField.isInitialized) {
             avatarViewField = tag.asResolver()
@@ -36,11 +37,15 @@ object HideOutgoingMessagesAvatar : SwitchHookItem(), WeChatMessageViewApi.ICrea
         }
 
         val avatar = avatarViewField.get(tag) as? View? ?: return
-        (avatar.parent as View).apply {
-            val view = parent as ViewGroup
-            (view.layoutParams as? ViewGroup.MarginLayoutParams? ?: return).rightMargin = 20
-            view.requestLayout()
-            visibility = View.GONE
+        if (msgInfo.type != MessageType.VIDEO) {
+            (avatar.parent as ViewGroup).apply {
+                visibility = View.GONE
+                (layoutParams as? ViewGroup.MarginLayoutParams? ?: return).rightMargin = 20
+                requestLayout()
+            }
+        }
+        else {
+            avatar.visibility = View.GONE
         }
     }
 }

@@ -8,7 +8,7 @@ import dev.ujhhgtg.wekit.constants.PreferenceKeys.NO_DEX_RESOLVE
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.cache.DexCacheManager
 import dev.ujhhgtg.wekit.preferences.WePrefs
-import dev.ujhhgtg.wekit.ui.content.DexResolverDialogContent
+import dev.ujhhgtg.wekit.ui.content.DexResolver
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.TargetProcesses
 import dev.ujhhgtg.wekit.utils.WeLogger
@@ -137,7 +137,7 @@ object HookItemsLoader {
 
             withContext(Dispatchers.Main) {
                 showComposeDialog(activity) {
-                    DexResolverDialogContent(
+                    DexResolver(
                         activity,
                         brokenItems,
                         appInfo,

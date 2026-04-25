@@ -68,7 +68,7 @@ import kotlin.math.roundToInt
  * @param onDismiss          Called when the user cancels.
  */
 @Composable
-fun OsmLocationPickerDialogContent(
+fun OsmLocationPicker(
     initialLocation: GeoPoint = GeoPoint(31.224361, 121.469170), // Shanghai
     initialZoom: Double = 5.0,
     tileSource: ITileSource = TileSourceFactory.MAPNIK,

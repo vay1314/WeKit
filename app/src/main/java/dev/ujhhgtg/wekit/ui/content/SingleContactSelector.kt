@@ -12,10 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,27 +30,22 @@ import com.composables.icons.materialsymbols.outlined.Search
 import dev.ujhhgtg.wekit.hooks.api.core.models.IWeContact
 
 @Composable
-fun ContactSelectionDialog(
+fun SingleContactSelector(
     title: String,
     contacts: List<IWeContact>,
-    initialSelectedWxIds: Set<String>,
+    initialSelectedWxId: String?,
     onDismiss: () -> Unit,
-    onConfirm: (Set<String>) -> Unit
+    onConfirm: (String) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    var selectedWxIds by remember { mutableStateOf(initialSelectedWxIds) }
+    var selectedWxId by remember { mutableStateOf(initialSelectedWxId) }
 
-    val filteredContacts = remember(searchQuery, contacts, selectedWxIds) {
+    val filteredContacts = remember(searchQuery, contacts, selectedWxId) {
         contacts
             .filter {
                 it.displayName.contains(searchQuery, ignoreCase = true) ||
                         it.wxId.contains(searchQuery, ignoreCase = true)
             }
-            .sortedWith(
-                compareByDescending<IWeContact> { it.wxId in selectedWxIds }
-                    .thenBy { it.displayName.isBlank() }
-                    .thenBy { it.displayName }
-            )
     }
 
     AlertDialogContent(
@@ -79,25 +74,21 @@ fun ContactSelectionDialog(
                         items = filteredContacts,
                         key = { it.wxId }
                     ) { contact ->
-                        val isSelected = contact.wxId in selectedWxIds
+                        val isSelected = contact.wxId == selectedWxId
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .animateItem()
                                 .clickable {
-                                    selectedWxIds = if (isSelected) {
-                                        selectedWxIds - contact.wxId
-                                    } else {
-                                        selectedWxIds + contact.wxId
-                                    }
+                                    selectedWxId = contact.wxId
                                 }
                                 .padding(vertical = 12.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Checkbox(
-                                checked = isSelected,
-                                onCheckedChange = null
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = null
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
@@ -117,13 +108,14 @@ fun ContactSelectionDialog(
             }
         },
         dismissButton = {
-            TextButton(onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text("取消") }
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(selectedWxIds) }
+                onClick = { onConfirm(selectedWxId!!) },
+                enabled = selectedWxId != null
             ) {
-                Text("确定 (${selectedWxIds.size})")
+                Text("确定")
             }
         }
     )

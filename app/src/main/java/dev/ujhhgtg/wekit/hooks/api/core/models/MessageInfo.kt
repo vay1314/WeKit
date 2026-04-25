@@ -42,7 +42,7 @@ class MessageInfo(val instance: Any) {
             return@lazy patMsg.fromUser
         }
 
-        if (isSelfSender()) {
+        if (isSelfSender) {
             return@lazy WeApi.selfWxId
         }
 
@@ -53,9 +53,7 @@ class MessageInfo(val instance: Any) {
         return@lazy content.split(':')[0]
     }
 
-    fun isSelfSender(): Boolean {
-        return isSend == 1
-    }
+    val isSelfSender get() = isSend != 0
 
     @Suppress("NOTHING_TO_INLINE")
     inline fun toPatMessage() = PatMessage(content)

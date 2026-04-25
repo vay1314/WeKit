@@ -24,7 +24,7 @@ import dev.ujhhgtg.wekit.hooks.api.ui.WeMainActivityBeautifyApi
 import dev.ujhhgtg.wekit.hooks.core.ClickableHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItem
 import dev.ujhhgtg.wekit.preferences.WePrefs
-import dev.ujhhgtg.wekit.ui.content.ContactSelectionDialog
+import dev.ujhhgtg.wekit.ui.content.ContactsSelectionDialog
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.android.showToast
@@ -256,7 +256,7 @@ object HideContacts : ClickableHookItem(), IResolvesDex {
     override fun onClick(context: Context) {
         val regularContacts = WeDatabaseApi.getFriends() + WeDatabaseApi.getGroups()
         showComposeDialog(context) {
-            ContactSelectionDialog(
+            ContactsSelectionDialog(
                 title = "选择要隐藏的联系人",
                 contacts = regularContacts,
                 initialSelectedWxIds = hiddenContacts,
