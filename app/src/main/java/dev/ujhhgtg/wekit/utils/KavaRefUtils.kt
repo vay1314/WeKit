@@ -7,13 +7,10 @@ import com.highcapable.kavaref.KavaRef
 import com.highcapable.kavaref.condition.base.MemberCondition.Configuration.Companion.createConfiguration
 import kotlin.reflect.KClass
 
-inline fun <T : Any> KClass<T>.resolve() = KavaRef.MemberScope(java.createConfiguration())
+inline fun <T : Any> KClass<T>.resolve() = java.resolve()
+inline fun <T : Any> KClass<T>.asResolver() = java.resolve()
 
 inline fun <T : Any> Class<T>.resolve() = KavaRef.MemberScope(createConfiguration())
+inline fun <T : Any> Class<T>.asResolver() = resolve()
 
-@Suppress("UNCHECKED_CAST")
-inline fun <T : Any> T.asResolver() = when (this) {
-    is KClass<*> -> (this as KClass<T>).resolve()
-    is Class<*> -> (this as Class<T>).resolve()
-    else -> KavaRef.MemberScope(javaClass.createConfiguration(memberInstance = this))
-}
+inline fun <T : Any> T.asResolver() = KavaRef.MemberScope(javaClass.createConfiguration(memberInstance = this))

@@ -21,10 +21,13 @@ object UseLegacyWalletView : SwitchHookItem(), IResolvesDex {
         }
 
         methodMoreTabUIHandlePrefOnClick.hookBefore {
-            Preference::class.resolve()
+            val field = Preference::class.resolve()
                 .firstField { type = String::class }
                 .of(args[1] as Preference)
-                .set("settings_mm_cardpackage")
+
+            if (field.get<String>() == "settings_mm_cardpackage_new") {
+                field.set("settings_mm_cardpackage")
+            }
         }
     }
 
