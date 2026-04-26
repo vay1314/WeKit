@@ -5,7 +5,7 @@ import android.app.ActivityThread
 import android.app.Application
 import android.os.Build
 import com.tencent.tinker.loader.app.TinkerApplication
-import dev.ujhhgtg.comptime.nameOf
+import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.wekit.loader.abc.IHookBridge
 import dev.ujhhgtg.wekit.loader.abc.ILoaderService
 import dev.ujhhgtg.wekit.loader.utils.LibXposedApiByteCodeGenerator
@@ -20,9 +20,9 @@ import kotlin.io.path.deleteRecursively
 
 object StartupAgent {
 
-    private val TAG = nameOf(StartupAgent)
+    private val TAG = This.Class.simpleName
 
-    private var sInitialized = false
+    private var initialized = false
 
     @OptIn(ExperimentalPathApi::class)
     fun startup(
@@ -30,8 +30,8 @@ object StartupAgent {
         hookBridge: IHookBridge?,
         modulePath: String
     ) {
-        if (sInitialized) return
-        sInitialized = true
+        if (initialized) return
+        initialized = true
 
         StartupInfo.loaderService = loaderService
         StartupInfo.hookBridge = hookBridge
@@ -43,7 +43,7 @@ object StartupAgent {
         HostInfo.init(ctx)
         LibXposedApiByteCodeGenerator.init()
         NativeLoader.init(ctx)
-        WeLauncher.init(ctx.classLoader, ctx)
+        WeLauncher.init(ctx)
 
         runCatching {
             ctx.dataDir.toPath().resolve("app_qqprotect").deleteRecursively()

@@ -20,6 +20,7 @@ import android.os.PersistableBundle
 import android.os.TestLooperManager
 import android.view.KeyEvent
 import android.view.MotionEvent
+import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.comptime.nameOf
 import dev.ujhhgtg.wekit.constants.PackageNames
 import dev.ujhhgtg.wekit.utils.HostInfo
@@ -35,11 +36,11 @@ import java.util.concurrent.ConcurrentHashMap
 
 object ActivityProxy {
 
-    private val TAG = nameOf(ActivityProxy)
+    private val TAG = This.Class.simpleName
     private var stubHooked = false
 
     @SuppressLint("PrivateApi", "DiscouragedPrivateApi")
-    fun initForStubActivity(ctx: Context) {
+    fun init(ctx: Context) {
         if (stubHooked) return
         runCatching {
             val clazzActivityThread = Class.forName("android.app.ActivityThread")
@@ -194,7 +195,8 @@ object ActivityProxy {
                 setDataAndType(raw.data, raw.type)
                 raw.categories?.forEach { addCategory(it) }
                 putExtra(ActProxyMgr.ACTIVITY_PROXY_INTENT_TOKEN, token)
-                ParcelableFixer.getHybridClassLoader()?.let { setExtrasClassLoader(it) }
+                // FIXME: removed for now since unused
+//                ParcelableFixer.getHybridClassLoader()?.let { setExtrasClassLoader(it) }
             }.also {
                 WeLogger.i(
                     TAG,

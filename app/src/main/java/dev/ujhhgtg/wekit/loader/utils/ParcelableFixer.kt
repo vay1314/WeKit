@@ -6,6 +6,7 @@ import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.comptime.nameOf
 import dev.ujhhgtg.wekit.utils.WeLogger
+import dev.ujhhgtg.wekit.utils.reflection.ClassLoaders
 
 object ParcelableFixer {
 
@@ -14,12 +15,13 @@ object ParcelableFixer {
     private var moduleClassLoader: ClassLoader? = null
     private var isInit = false
 
-    fun init(hostClassLoader: ClassLoader, moduleClassLoader: ClassLoader) {
+    @Suppress("unused")
+    fun init() {
         if (isInit) return
         isInit = true
 
-        this.moduleClassLoader = object : ClassLoader(hostClassLoader) {
-            override fun findClass(name: String): Class<*> = moduleClassLoader.loadClass(name)
+        this.moduleClassLoader = object : ClassLoader(ClassLoaders.HOST) {
+            override fun findClass(name: String): Class<*> = ClassLoaders.MODULE.loadClass(name)
         }
 
         hookIntentMethods()

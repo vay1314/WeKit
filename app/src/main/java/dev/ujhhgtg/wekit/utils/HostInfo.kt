@@ -26,6 +26,7 @@ object HostInfo {
     val appInfo: ApplicationInfo get() = application.applicationInfo
     val packageName: String get() = _info.packageName
     val versionCode: Long get() = _info.versionCode
+    val versionName: String get() = _info.versionName
     val isModule: Boolean get() = _info.hostSpecies == HostSpecies.WeKit
     val isHost: Boolean get() = !isModule
 

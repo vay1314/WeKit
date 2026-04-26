@@ -4,12 +4,11 @@ import android.app.Activity
 import android.content.Context
 import android.os.Bundle
 import com.tencent.mm.ui.LauncherUI
-import dev.ujhhgtg.comptime.nameOf
+import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.wekit.constants.PackageNames
 import dev.ujhhgtg.wekit.dexkit.cache.DexCacheManager
 import dev.ujhhgtg.wekit.hooks.core.HookItemsLoader
 import dev.ujhhgtg.wekit.loader.utils.ActivityProxy
-import dev.ujhhgtg.wekit.loader.utils.ParcelableFixer
 import dev.ujhhgtg.wekit.utils.HostInfo
 import dev.ujhhgtg.wekit.utils.ModuleRes
 import dev.ujhhgtg.wekit.utils.RuntimeConfig
@@ -20,17 +19,17 @@ import dev.ujhhgtg.wekit.utils.reflection.resolve
 
 object WeLauncher {
 
-    fun init(cl: ClassLoader, context: Context) {
+    fun init(context: Context) {
         WeLogger.d(TAG, "loading in process name=${TargetProcesses.currentName}, type=${TargetProcesses.currentType}")
 
-        ParcelableFixer.init(cl, WeLauncher::class.java.classLoader!!)
+        // FIXME: removed for now since unused
+//        ParcelableFixer.init()
 
-        val pi = context.packageManager.getPackageInfo(context.packageName, 0)
-        DexCacheManager.init(pi.versionName!!)
+        DexCacheManager.init(HostInfo.versionName)
 
         if (TargetProcesses.isInMain) {
             val appContext = context.applicationContext ?: context
-            ActivityProxy.initForStubActivity(appContext)
+            ActivityProxy.init(appContext)
 
             initMainProcessHooks()
         }
@@ -41,13 +40,8 @@ object WeLauncher {
     }
 
     private fun initMainProcessHooks() {
-        LauncherUI::class.resolve().apply {
-            firstMethod { name = "onResume" }.hookAfterDirectly {
-                val activity = thisObject as Activity
-                ModuleRes.init(activity)
-            }
-
-            firstMethod {
+        LauncherUI::class.resolve()
+            .firstMethod {
                 name = "onCreate"
                 parameters(Bundle::class)
             }.hookAfterDirectly {
@@ -55,9 +49,9 @@ object WeLauncher {
                 val sharedPreferences =
                     activity.getSharedPreferences("${PackageNames.WECHAT}_preferences", 0)
                 RuntimeConfig.mmPrefs = sharedPreferences
+                ModuleRes.init(activity)
             }
-        }
     }
 
-    private val TAG = nameOf(WeLauncher)
+    private val TAG = This.Class.simpleName
 }

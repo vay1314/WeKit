@@ -12,17 +12,16 @@ import com.highcapable.kavaref.extension.toClass
 import com.highcapable.kavaref.extension.toClassOrNull
 import com.tencent.mm.plugin.setting.ui.setting_new.MainSettingsUI
 import com.tencent.mm.plugin.setting.ui.setting_new.base.BaseSettingPrefUI
+import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingAdditionHeaderSearch
 import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupAccountInfo
 import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupMain
-import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupNotify
-import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupPrivacyPermission
+import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupPersonalInfo
 import com.tencent.mm.ui.LauncherUI
 import com.tencent.mm.ui.base.preference.IconPreference
 import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.wekit.BuildConfig
 import dev.ujhhgtg.wekit.constants.PackageNames
-import dev.ujhhgtg.wekit.dexkit.DexMethodDescriptor
 import dev.ujhhgtg.wekit.dexkit.abc.IResolvesDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexClass
 import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
@@ -87,14 +86,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
             }
         }
         if (setTitleCandidates.isNotEmpty()) {
-            val target = setTitleCandidates.last()
-            methodSetTitle.setDescriptor(
-                DexMethodDescriptor(
-                    target.className,
-                    target.methodName,
-                    target.methodSign
-                )
-            )
+            methodSetTitle.setDescriptor(setTitleCandidates.last())
         }
 
         val getKeyCandidates = prefClass.findMethod {
@@ -107,13 +99,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
         val targetGetKey = getKeyCandidates.firstOrNull { it.name != "toString" }
 
         if (targetGetKey != null) {
-            methodGetKey.setDescriptor(
-                DexMethodDescriptor(
-                    targetGetKey.className,
-                    targetGetKey.methodName,
-                    targetGetKey.methodSign
-                )
-            )
+            methodGetKey.setDescriptor(targetGetKey)
         }
 
         val adapterClass = dexKit.findClass {
@@ -274,8 +260,9 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
     private const val WEKIT_SETTING_ITEM_NAME_RES_ID = -1337
 
     private val GROUP_SETTING_ITEM_CLASS by lazy { SettingGroupMain::class.java }
-    private val PARENT_SETTING_ITEM_CLASS by lazy { SettingGroupPrivacyPermission::class.java }
-    private val CHILD_SETTING_ITEM_CLASS by lazy { SettingGroupNotify::class.java }
+    // or SettingGroupPrivacyPermission & SettingGroupNotify
+    private val PARENT_SETTING_ITEM_CLASS by lazy { SettingAdditionHeaderSearch::class.java }
+    private val CHILD_SETTING_ITEM_CLASS by lazy { SettingGroupPersonalInfo::class.java }
 
     private val customSettingItemClass by lazy {
         // this is only used for resolving method names, so we'll hard-code SettingGroupAccountInfo
