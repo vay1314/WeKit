@@ -12,12 +12,14 @@ import com.highcapable.kavaref.extension.toClass
 import com.highcapable.kavaref.extension.toClassOrNull
 import com.tencent.mm.plugin.setting.ui.setting_new.MainSettingsUI
 import com.tencent.mm.plugin.setting.ui.setting_new.base.BaseSettingPrefUI
+import com.tencent.mm.plugin.setting.ui.setting_new.base.BaseSettingUI
 import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingAdditionHeaderSearch
 import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupAccountInfo
 import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupMain
 import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupPersonalInfo
 import com.tencent.mm.ui.LauncherUI
 import com.tencent.mm.ui.base.preference.IconPreference
+import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.wekit.BuildConfig
@@ -31,6 +33,7 @@ import dev.ujhhgtg.wekit.ui.content.MainSettingsDialog
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.fs.KnownPaths
 import dev.ujhhgtg.wekit.utils.fs.createDirectoriesNoThrow
+import dev.ujhhgtg.wekit.utils.hookBeforeDirectly
 import dev.ujhhgtg.wekit.utils.reflection.ClassLoaders
 import dev.ujhhgtg.wekit.utils.reflection.asResolver
 import dev.ujhhgtg.wekit.utils.reflection.resolve
@@ -188,11 +191,6 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
             return
         }
 
-        val setKeyMethod = methodSetKey.method
-        val setTitleMethod = methodSetTitle.method
-        val getKeyMethod = methodGetKey.method
-        val addPrefMethod = methodAddPref.method
-
         clsSettingsUi.resolve().firstMethod {
             name = "initView"
             parameterCount = 0
@@ -203,12 +201,12 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
             try {
                 val prefInstance = IconPreference(context)
 
-                setKeyMethod.invoke(prefInstance, PREFS_KEY)
-                setTitleMethod.invoke(prefInstance, PREFS_TITLE)
+                methodSetKey.method.invoke(prefInstance, PREFS_KEY)
+                methodSetTitle.method.invoke(prefInstance, PREFS_TITLE)
 
                 val prefScreen = XposedHelpers.callMethod(activity, "getPreferenceScreen")
 
-                addPrefMethod.invoke(prefScreen, prefInstance, 0)
+                methodAddPref.method.invoke(prefScreen, prefInstance, 0)
 
             } catch (e: Throwable) {
                 WeLogger.e(TAG, "插入选项失败", e)
@@ -220,7 +218,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
                 if (args.size < 2) return@hookBefore
                 val preference = args[1] ?: return@hookBefore
 
-                val key = getKeyMethod.invoke(preference) as? String
+                val key = methodGetKey.method.invoke(preference) as? String
 
                 if (PREFS_KEY == key) {
                     val activity = thisObject as Activity
@@ -268,14 +266,14 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
     private val customSettingItemClass by lazy {
         // this is only used for resolving method names, so we'll hard-code SettingGroupAccountInfo
         SettingGroupAccountInfo::class.java.declaredMethods.run {
-            val mGetGroupItemClass = this.first { m -> m.returnType == Class::class.java }.name
+            val mGetGroupItemClass = first { m -> m.returnType == Class::class.java }.name
             val mReturns1 = methodSettingGroupAccountInfoReturns1.method.name
-            val mOnClick = this.first { m -> m.parameterCount == 3 }.name
-            val mGetStringId = this.last { m -> m.returnType == String::class.java }.name
+            val mOnClick = first { m -> m.parameterCount == 3 }.name
+            val mGetStringId = last { m -> m.returnType == String::class.java }.name
             val mGetSettingLocation =
-                this.last { m -> m.returnType == classSettingLocation.clazz }.name
+                last { m -> m.returnType == classSettingLocation.clazz }.name
             val mGetNameResId =
-                this.last { m ->
+                last { m ->
                     m.returnType == Int::class.javaPrimitiveType &&
                             m.name != methodSettingGroupAccountInfoReturns1.method.name
                 }.name
@@ -284,6 +282,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
             // non-play 8.0.70: k7, r7, w7, g7, h7, j7
             // non-play 8.0.71: p7, w7, B7, l7, m7, o7
             // play 8.0.68: E6, M6, T6, z6, B6, D6
+            // play 8.0.69: C6, K6, Q6, w6, x6, z6
             WeLogger.d(
                 TAG,
                 "resolved all method names: $mGetGroupItemClass, $mReturns1, $mOnClick, $mGetStringId, $mGetSettingLocation, $mGetNameResId"
@@ -325,23 +324,13 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
         }
     }
 
+    private var contextGetStringUnhook: XC_MethodHook.Unhook? = null
+
     private fun injectModernMethod2() {
         "${PackageNames.WECHAT}.plugin.setting.ui.setting_new.settings.SettingGroupMain".toClassOrNull()
             ?: run {
                 WeLogger.w(TAG, "modern settings class not found, skipping")
                 return
-            }
-
-        // a simple way to inject string resource
-        Context::class.resolve()
-            .firstMethod {
-                name = "getString"
-                parameters(Int::class)
-            }
-            .hookBefore {
-                val resId = args[0] as Int
-                if (resId == WEKIT_SETTING_ITEM_NAME_RES_ID)
-                    result = "${BuildConfig.TAG} 设置"
             }
 
         // create dependency chain
@@ -370,9 +359,30 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
             .hookAfter {
                 if (thisObject !is MainSettingsUI) return@hookAfter
 
+                // a simple way to inject string resource
+                contextGetStringUnhook = Context::class.resolve()
+                    .firstMethod {
+                        name = "getString"
+                        parameters(Int::class)
+                    }
+                    .hookBeforeDirectly {
+                        val resId = args[0] as Int
+                        if (resId == WEKIT_SETTING_ITEM_NAME_RES_ID)
+                            result = "${BuildConfig.TAG} 设置"
+                    }
+
                 @Suppress("UNCHECKED_CAST")
                 val settingItemClasses = args[0] as HashSet<Class<*>>
                 settingItemClasses.add(customSettingItemClass)
+            }
+
+        BaseSettingUI::class.asResolver()
+            .firstMethod { name = "onDestroy" }
+            .hookAfter {
+                if (thisObject !is MainSettingsUI) return@hookAfter
+
+                contextGetStringUnhook!!.unhook()
+                contextGetStringUnhook = null
             }
     }
 
