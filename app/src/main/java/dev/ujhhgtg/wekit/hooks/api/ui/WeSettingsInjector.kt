@@ -19,7 +19,6 @@ import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupMain
 import com.tencent.mm.plugin.setting.ui.setting_new.settings.SettingGroupPersonalInfo
 import com.tencent.mm.ui.LauncherUI
 import com.tencent.mm.ui.base.preference.IconPreference
-import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedHelpers
 import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.wekit.BuildConfig
@@ -29,6 +28,7 @@ import dev.ujhhgtg.wekit.dexkit.dsl.dexClass
 import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
 import dev.ujhhgtg.wekit.hooks.core.ApiHookItem
 import dev.ujhhgtg.wekit.hooks.core.HookItem
+import dev.ujhhgtg.wekit.loader.abc.IHookBridge
 import dev.ujhhgtg.wekit.ui.content.MainSettingsDialog
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.fs.KnownPaths
@@ -359,7 +359,7 @@ object WeSettingsInjector : ApiHookItem(), IResolvesDex {
         }
     }
 
-    private var contextGetStringUnhook: XC_MethodHook.Unhook? = null
+    private var contextGetStringUnhook: IHookBridge.MemberUnhookHandle? = null
 
     private fun injectModernMethod2() {
         "${PackageNames.WECHAT}.plugin.setting.ui.setting_new.settings.SettingGroupMain".toClassOrNull()

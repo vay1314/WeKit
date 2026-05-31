@@ -33,9 +33,6 @@ object StartupAgent {
         if (initialized) return
         initialized = true
 
-        StartupInfo.loaderService = loaderService
-        StartupInfo.hookBridge = hookBridge
-
         ensureHiddenApiAccess()
         checkWriteXorExecuteForModulePath(modulePath)
 

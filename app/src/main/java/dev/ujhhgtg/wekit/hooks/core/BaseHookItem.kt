@@ -2,12 +2,12 @@ package dev.ujhhgtg.wekit.hooks.core
 
 import com.highcapable.kavaref.resolver.ConstructorResolver
 import com.highcapable.kavaref.resolver.MethodResolver
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
 import dev.ujhhgtg.comptime.nameOf
 import dev.ujhhgtg.wekit.dexkit.dsl.DexConstructorDelegate
 import dev.ujhhgtg.wekit.dexkit.dsl.DexDelegateBase
 import dev.ujhhgtg.wekit.dexkit.dsl.DexMethodDelegate
+import dev.ujhhgtg.wekit.loader.abc.IHookBridge
+import dev.ujhhgtg.wekit.loader.startup.StartupInfo
 import dev.ujhhgtg.wekit.utils.HookAction
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.reflection.asResolver
@@ -58,14 +58,16 @@ abstract class BaseHookItem {
     inline fun Executable.hookBefore(
         priority: Int = 50,
         crossinline action: HookAction
-    ): XC_MethodHook.Unhook = XposedBridge.hookMethod(
+    ) = StartupInfo.hookBridge!!.hookMethod(
         this,
-        object :
-            XC_MethodHook(priority) {
-            override fun beforeHookedMethod(param: MethodHookParam) {
+        object : IHookBridge.IMemberHookCallback {
+            override fun beforeHookedMember(param: IHookBridge.IMemberHookParam) {
                 executeHookAction(param, action)
             }
-        }
+
+            override fun afterHookedMember(param: IHookBridge.IMemberHookParam) {}
+        },
+        priority
     )
 
     @JvmName("hookBefore2")
@@ -103,14 +105,15 @@ abstract class BaseHookItem {
     inline fun Executable.hookAfter(
         priority: Int = 50,
         crossinline action: HookAction
-    ): XC_MethodHook.Unhook = XposedBridge.hookMethod(
+    ) = StartupInfo.hookBridge!!.hookMethod(
         this,
-        object :
-            XC_MethodHook(priority) {
-            override fun afterHookedMethod(param: MethodHookParam) {
+        object : IHookBridge.IMemberHookCallback {
+            override fun beforeHookedMember(param: IHookBridge.IMemberHookParam) {}
+
+            override fun afterHookedMember(param: IHookBridge.IMemberHookParam) {
                 executeHookAction(param, action)
             }
-        }
+        }, priority
     )
 
     @JvmName("hookAfter2")
@@ -151,7 +154,7 @@ abstract class BaseHookItem {
 
     // --- end dex delegate ---
 
-    inline fun executeHookAction(param: XC_MethodHook.MethodHookParam, action: HookAction) {
+    inline fun executeHookAction(param: IHookBridge.IMemberHookParam, action: HookAction) {
         if (this is SwitchHookItem && !this.isEnabled) return
         if (!hasEnabled) return
         runCatching {
