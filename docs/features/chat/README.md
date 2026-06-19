@@ -10,7 +10,7 @@
 - [聊天工具栏](chat-toolbar.md) — 在输入框上方将加号菜单中的功能以芯片形式展示, 方便快速使用
 - [自动查看原图](auto-view-original-media.md) — 打开图片和视频时自动点击查看原图
 - [自动语音转文字](auto-speech-to-text.md) — 自动将语音消息转为文字显示
-- [显示消息时间](display-message-send-time.md) — 在消息旁显示精确发送时间, 可配置格式
+- [显示消息时间](display-message-send-time.md) — 在消息旁显示精确发送时间, 可点击格式
 - [对话分组](conversation-grouping.md) — 在主页顶部添加「全部/未读/群聊/好友/公众号」Tab 栏, 快速筛选对话
 - [合并消息显示](merge-messages-into-groups.md) — 将同一发送者的连续消息合并为一组, Telegram 风格
 - [Markdown 渲染](markdown-rendering.md) — 在聊天中渲染 Markdown 格式消息, 支持表格、任务列表、删除线等

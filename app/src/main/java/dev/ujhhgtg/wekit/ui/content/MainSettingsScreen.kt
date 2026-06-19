@@ -35,13 +35,11 @@ import com.composables.icons.materialsymbols.outlined.Newspaper
 import com.composables.icons.materialsymbols.outlined.Notifications
 import com.composables.icons.materialsymbols.outlined.Package_2
 import com.composables.icons.materialsymbols.outlined.Payments
-import com.composables.icons.materialsymbols.outlined.Question_mark
 import com.composables.icons.materialsymbols.outlined.Terminal
 import com.composables.icons.materialsymbols.outlined.Update
 import com.composables.icons.materialsymbols.outlined.Upload
 import com.composables.icons.materialsymbols.outlined.Volunteer_activism
 import com.composables.icons.materialsymbols.outlined.Wand_stars
-import dev.ujhhgtg.reflekt.utils.createInstance
 import com.tencent.mm.ui.LauncherUI
 import dev.ujhhgtg.wekit.BuildConfig
 import dev.ujhhgtg.wekit.activity.StandardActivity
@@ -62,19 +60,14 @@ import dev.ujhhgtg.wekit.utils.AppUpdater
 import dev.ujhhgtg.wekit.utils.HostInfo
 import dev.ujhhgtg.wekit.utils.UpdateResult
 import dev.ujhhgtg.wekit.utils.WeLogger
-import dev.ujhhgtg.wekit.utils.android.getTopMostActivity
 import dev.ujhhgtg.wekit.utils.android.showToast
 import dev.ujhhgtg.wekit.utils.android.showToastSuspend
 import dev.ujhhgtg.wekit.utils.formatEpoch
 import dev.ujhhgtg.wekit.utils.openInSystem
-import dev.ujhhgtg.wekit.utils.reflection.BString
-import dev.ujhhgtg.wekit.utils.reflection.ClassLoaderRegistry
-import dev.ujhhgtg.reflekt.reflekt
 import dev.ujhhgtg.wekit.utils.serialization.DefaultJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -93,7 +86,6 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
-import org.luckypray.dexkit.DexKitBridge
 import java.time.LocalDate
 
 class MainSettingsScreen : BasePrefsScreen(BuildConfig.TAG) {
@@ -173,59 +165,6 @@ class MainSettingsScreen : BasePrefsScreen(BuildConfig.TAG) {
             summary = "清除全部 DEX 适配信息, 等待下次启动时重新适配",
             icon = MaterialSymbols.Outlined.Build_circle,
             onClick = { ResetDexCache.onClick(it) }
-        )
-        addPreference(
-            title = "尝试打开 WAuxiliary 设置",
-            summary = "lol",
-            icon = MaterialSymbols.Outlined.Question_mark,
-            onClick = { ctx ->
-                runCatching {
-                    ClassLoaderRegistry.collectStaticRoots()
-                    ClassLoaderRegistry.collectFromActivityThread()
-                    ClassLoaderRegistry.collectFromThreads()
-                    ClassLoaderRegistry.collectFromHeap()
-
-                    val all = ClassLoaderRegistry.snapshot()
-
-                    all.forEach { cl ->
-                        val className = cl.javaClass.name
-                        if (className.contains("feyxiexzf", ignoreCase = true) &&
-                            className.contains("能不能")) {
-                            WeLogger.i("wa", "found custom cl: $className")
-                            val cl = cl.javaClass.classLoader!!
-                            WeLogger.i("wa", "found custom cl's cl: ${cl.javaClass.name}, $cl")
-                            val baseApkDir = cl.reflekt().firstField { type = BString }.get()!! as String
-                            WeLogger.i("wa", "found module: $baseApkDir")
-                            val waDexKit = runBlocking {
-                                withContext(Dispatchers.IO) {
-                                    DexKitBridge.create(baseApkDir)
-                                }
-                            }
-
-                            waDexKit.use {
-                                val clazz = it.findClass {
-                                    matcher {
-                                        addInterface {
-                                            this.className = $$"android.view.MenuItem$OnMenuItemClickListener"
-                                        }
-                                        fieldCount(2)
-                                    }
-                                }.single().getInstance(cl)
-
-                                val instance = clazz.createInstance(1, getTopMostActivity())
-                                instance.reflekt().firstMethod { name = "onMenuItemClick" }.invoke(null)
-                            }
-
-                            return@addPreference
-                        }
-                    }
-                    showToast(ctx,
-                        if (!HostInfo.isHostGooglePlay) "失败了 :( (没找到 WA)" else "失败了 :( (Play 版就别想了)")
-                }.onFailure {
-                    WeLogger.e("wa", "failed", it)
-                    showToast(ctx, "失败了 :(")
-                }
-            }
         )
 
         addCategory("配置")

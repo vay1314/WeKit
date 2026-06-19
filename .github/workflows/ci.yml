@@ -11,6 +11,7 @@ on:
       - '.gitignore'
       - '.idea/**'
       - '**/*.js'
+      - 'docs/**'
   pull_request:
     branches:
       - master
@@ -21,6 +22,7 @@ on:
       - '.gitignore'
       - '.idea/**'
       - '**/*.js'
+      - 'docs/**'
   workflow_dispatch:
 
 permissions:

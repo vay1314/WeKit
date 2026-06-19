@@ -28,4 +28,4 @@
 - [链接跳转系统打开方式](link-external-app-jump.md) — 打开链接时弹窗选择系统应用打开
 - [二维码扫描记录](qr-code-record.md) — 记录扫描过的二维码 URL
 - [清理缓存垃圾](auto-clean-cache.md) — 自动或手动清理微信缓存, 每 30 分钟自动清理一次
-- [API 服务器](api-server.md) — MCP + REST API 服务器, 见[服务器文档](../servers/api-server.md)
+- [API 服务器](api-server.md) — 启动 MCP 与 REST API 服务器, 让人类与 AI 能够访问微信能力
