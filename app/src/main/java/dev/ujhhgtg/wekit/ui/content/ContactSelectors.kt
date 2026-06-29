@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -30,7 +29,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +49,9 @@ import com.composables.icons.materialsymbols.outlined.Label
 import com.composables.icons.materialsymbols.outlined.Person
 import com.composables.icons.materialsymbols.outlined.Search
 import com.composables.icons.materialsymbols.outlined.Tag
+import com.composables.icons.materialsymbols.outlined.Select_all
+import com.composables.icons.materialsymbols.outlined.Deselect
+import com.composables.icons.materialsymbols.outlined.Compare_arrows
 import dev.ujhhgtg.wekit.features.api.core.WeContactLabelApi
 import dev.ujhhgtg.wekit.features.api.core.WeDatabaseApi
 import dev.ujhhgtg.wekit.features.api.core.models.IWeContact
@@ -92,7 +93,10 @@ fun BaseContactSelector(
     subtitleProvider: ((IWeContact) -> String)? = { it.wxId },
     leadingControl: @Composable (LazyItemScope.(IWeContact) -> Unit)? = null,
     trailingControl: @Composable (LazyItemScope.(IWeContact) -> Unit)? = null,
-    onItemClick: (IWeContact) -> Unit
+    onItemClick: (IWeContact) -> Unit,
+    onSelectAll: ((List<IWeContact>) -> Unit)? = null,
+    onDeselectAll: ((List<IWeContact>) -> Unit)? = null,
+    onInvertSelection: ((List<IWeContact>) -> Unit)? = null
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -354,7 +358,61 @@ fun BaseContactSelector(
                     }
                 }
 
-                if (showTypeFilterRow || showLabelFilterRow) {
+                if (onSelectAll != null || onDeselectAll != null || onInvertSelection != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            .padding(bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        onSelectAll?.let {
+                            FilterChip(
+                                selected = false,
+                                onClick = { it(displayedContacts) },
+                                label = { Text("全选") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = MaterialSymbols.Outlined.Select_all,
+                                        contentDescription = "全选",
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            )
+                        }
+                        onDeselectAll?.let {
+                            FilterChip(
+                                selected = false,
+                                onClick = { it(displayedContacts) },
+                                label = { Text("全不选") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = MaterialSymbols.Outlined.Deselect,
+                                        contentDescription = "全不选",
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            )
+                        }
+                        onInvertSelection?.let {
+                            FilterChip(
+                                selected = false,
+                                onClick = { it(displayedContacts) },
+                                label = { Text("反选") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = MaterialSymbols.Outlined.Compare_arrows,
+                                        contentDescription = "反选",
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+
+                if (showTypeFilterRow || showLabelFilterRow || onSelectAll != null || onDeselectAll != null || onInvertSelection != null) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 }
 
@@ -596,6 +654,24 @@ fun ContactsSelector(
             } else {
                 selectedWxIds + contact.wxId
             }
+        },
+        onSelectAll = { displayed ->
+            selectedWxIds = selectedWxIds + displayed.map { it.wxId }
+        },
+        onDeselectAll = { displayed ->
+            selectedWxIds = selectedWxIds - displayed.map { it.wxId }.toSet()
+        },
+        onInvertSelection = { displayed ->
+            val displayedWxIds = displayed.map { it.wxId }.toSet()
+            val newSelection = selectedWxIds.toMutableSet()
+            for (wxId in displayedWxIds) {
+                if (wxId in newSelection) {
+                    newSelection.remove(wxId)
+                } else {
+                    newSelection.add(wxId)
+                }
+            }
+            selectedWxIds = newSelection
         }
     )
 }

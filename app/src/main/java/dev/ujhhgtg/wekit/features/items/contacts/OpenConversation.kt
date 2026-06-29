@@ -33,20 +33,27 @@ object OpenConversation : ClickableFeature() {
                         label = { Text("微信 ID") })
                 },
                 confirmButton = {
-                    if (wxId.isBlank()) {
-                        showToast(context, "微信 ID 为空!")
-                        return@AlertDialogContent
-                    }
-
                     TextButton(onClick = {
+                        if (wxId.isBlank()) {
+                            showToast(context, "微信 ID 为空!")
+                            return@TextButton
+                        }
                         WeApi.openContact(context, wxId, WeApi.OpenContactDestination.HOMEPAGE)
                     }) { Text("好友主页") }
 
                     TextButton(onClick = {
+                        if (wxId.isBlank()) {
+                            showToast(context, "微信 ID 为空!")
+                            return@TextButton
+                        }
                         WeApi.openContact(context, wxId, WeApi.OpenContactDestination.SETTINGS)
                     }) { Text("好友设置") }
 
                     Button(onClick = {
+                        if (wxId.isBlank()) {
+                            showToast(context, "微信 ID 为空!")
+                            return@Button
+                        }
                         WeApi.openContact(context, wxId, WeApi.OpenContactDestination.CONVERSATION)
                     }) { Text("对话") }
                 })
