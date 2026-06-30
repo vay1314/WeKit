@@ -1,5 +1,6 @@
 package dev.ujhhgtg.wekit.features.items.chat
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import com.tencent.mm.pluginsdk.ui.chat.ChatFooter
 import de.robv.android.xposed.XC_MethodHook
+import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.reflekt.reflekt
 import dev.ujhhgtg.wekit.features.api.core.WeApi
 import dev.ujhhgtg.wekit.features.api.core.WeMessageApi
@@ -32,13 +34,13 @@ import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.android.showToast
+import dev.ujhhgtg.wekit.utils.serialization.DefaultJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -52,11 +54,12 @@ import java.util.Collections
 import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
 
 @Feature(name = "已读追踪", categories = ["聊天"], description = "追踪文本消息已读人数, 并在自己发送的消息上实时显示\"已读 x 人\"")
 object ReadReceipts : ClickableFeature(), WeChatMessageViewApi.ICreateViewListener {
 
-    private val TAG = "ReadReceipts"
+    private val TAG = This.Class.simpleName
 
     // ── Preferences ─────────────────────────────────────────────────────────
     private var prefix by prefOption("read_receipts_prefix", "#")
@@ -67,7 +70,6 @@ object ReadReceipts : ClickableFeature(), WeChatMessageViewApi.ICreateViewListen
     private val serverBase: String get() = server.trimEnd('/')
 
     // ── HTTP ────────────────────────────────────────────────────────────────
-    private val json = Json { ignoreUnknownKeys = true }
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
     private val httpClient by lazy {
@@ -120,7 +122,7 @@ object ReadReceipts : ClickableFeature(), WeChatMessageViewApi.ICreateViewListen
             httpClient.newCall(request).execute().use { resp ->
                 if (!resp.isSuccessful) return null
                 val text = resp.body.string()
-                json.parseToJsonElement(text).jsonObject["count"]?.jsonPrimitive?.content?.toIntOrNull()
+                DefaultJson.parseToJsonElement(text).jsonObject["count"]?.jsonPrimitive?.content?.toIntOrNull()
             }
         }.getOrNull()
     }
@@ -135,7 +137,7 @@ object ReadReceipts : ClickableFeature(), WeChatMessageViewApi.ICreateViewListen
     private const val VIEW_TAG_ID = 0x7E000002
 
     /** Marker prefixing the injected read-count text, so we can strip a stale suffix before re-appending. */
-    private const val COUNT_MARKER = "​已读 "
+    private const val COUNT_MARKER = "​ | 已读 "
 
     /** msgId → distinct-IP read count, last known. Drives instant render on (re)bind. */
     private val counts = ConcurrentHashMap<String, Int>()
@@ -254,6 +256,7 @@ object ReadReceipts : ClickableFeature(), WeChatMessageViewApi.ICreateViewListen
     }
 
     /** Appends/refreshes the " · 已读 x 人" suffix on [timeTV], coexisting with MessageTimeEnhancements. */
+    @SuppressLint("SetTextI18n")
     private fun applyCount(timeTV: TextView, id: String, count: Int) {
         if (timeTV.getTag(VIEW_TAG_ID) != id) return
         val base = (timeTV.text ?: "").toString().substringBefore(COUNT_MARKER)
@@ -280,7 +283,7 @@ object ReadReceipts : ClickableFeature(), WeChatMessageViewApi.ICreateViewListen
                         for (tv in targets) mainHandler.post { applyCount(tv, ref.id, count) }
                     }
                 }
-                delay(pollIntervalSecs.coerceAtLeast(1) * 1000L)
+                delay((pollIntervalSecs.coerceAtLeast(1) * 1000L).milliseconds)
             }
         }
     }
