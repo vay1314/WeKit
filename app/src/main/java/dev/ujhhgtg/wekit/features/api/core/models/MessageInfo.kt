@@ -39,6 +39,18 @@ class MessageInfo(val instance: Any) {
             return text
         }
 
+    val quoteMsgActualContent: String?
+        get() {
+            val quoteMsg = toQuoteMessage() ?: return null
+
+            var text = quoteMsg.title
+            if (isInGroupChat) {
+                text = text.stripWxId()
+            }
+
+            return text
+        }
+
     val imagePath by lazy { getFieldByName<String?>(instance, "field_imgPath") }
     val lvBuffer by lazy { getFieldByName<ByteArray>(instance, "field_lvbuffer") }
     val talkerId by lazy { getFieldByName<Int>(instance, "field_talkerId") }
