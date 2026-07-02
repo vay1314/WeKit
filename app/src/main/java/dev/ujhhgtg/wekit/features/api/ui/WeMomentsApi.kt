@@ -2,6 +2,7 @@ package dev.ujhhgtg.wekit.features.api.ui
 
 import android.content.Context
 import dev.ujhhgtg.comptime.This
+import dev.ujhhgtg.reflekt.Reflect
 import dev.ujhhgtg.reflekt.reflekt
 import dev.ujhhgtg.reflekt.utils.Modifiers
 import dev.ujhhgtg.reflekt.utils.createInstance
@@ -19,6 +20,7 @@ import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.android.Intent
 import dev.ujhhgtg.wekit.utils.android.showToast
 import dev.ujhhgtg.wekit.utils.fs.asPath
+import dev.ujhhgtg.wekit.utils.reflection.BString
 import dev.ujhhgtg.wekit.utils.reflection.bool
 import dev.ujhhgtg.wekit.utils.reflection.int
 import dev.ujhhgtg.wekit.utils.reflection.long
@@ -53,6 +55,10 @@ object WeMomentsApi : ApiFeature(), IResolveDex {
 
     private const val SNS_INFO_CLASS = "com.tencent.mm.plugin.sns.storage.SnsInfo"
     private const val LIKE_COMMENT_TYPE = 1
+
+    // ca4.w0 (SnsUploadElement) 缩略图字段 f40020m 按声明顺序的索引 (a..w -> 0..22)。
+    // 子元素(f40026s)与封面时间戳(f40027t)按类型唯一定位, 无需索引。
+    private const val SNS_UPLOAD_ELEMENT_THUMB_INDEX = 12
 
     private val classSnsService by dexClass {
         searchPackages("com.tencent.mm.plugin.sns.model")
@@ -204,6 +210,27 @@ object WeMomentsApi : ApiFeature(), IResolveDex {
             paramCount(4)
             paramTypes(String::class.java, String::class.java, String::class.java, String::class.java)
             usingStrings("addSightObjectByPath", "com.tencent.mm.plugin.sns.model.UploadPackHelper")
+        }
+    }
+
+    // ca4.w0 (SnsUploadElement) — setUploadList 的列表元素, 实况图片必须经此路径构造
+    val classSnsUploadElement by dexClass {
+        matcher {
+            usingEqStrings("MicroMsg.SnsUploadElment", "path:%s model:%s")
+
+            addMethod {
+                name = "<init>"
+                paramTypes(BString, int)
+            }
+        }
+    }
+
+    // ca4.w0(String path, int type)
+    val ctorSnsUploadElement by dexConstructor {
+        matcher {
+            declaredClass(classSnsUploadElement.clazz)
+            paramCount(2)
+            paramTypes("java.lang.String", "int")
         }
     }
 
@@ -382,7 +409,7 @@ object WeMomentsApi : ApiFeature(), IResolveDex {
 
             val mediaList = ArrayList<Any>()
             images.forEach { image ->
-                val mediaObj = classSnsMediaObj.clazz.createInstance(images, 2)
+                val mediaObj = classSnsMediaObj.clazz.createInstance(image, 2)
                 mediaList.add(mediaObj)
             }
             methodSetUploadList.method.invoke(helper, mediaList)
@@ -499,15 +526,15 @@ object WeMomentsApi : ApiFeature(), IResolveDex {
         }
     }
 
-    val classMediaObj: Class<*> by lazy {
-        classUploadPackHelper.clazz.declaredMethods.first {
-            it.parameterTypes.size == 3 &&
-            it.parameterTypes[0] == String::class.java &&
-            it.parameterTypes[1] == Int::class.javaPrimitiveType &&
-            it.parameterTypes[2] == String::class.java &&
-            it.returnType != Void.TYPE
-        }.returnType
-    }
+//    val classMediaObj: Class<*> by lazy {
+//        classUploadPackHelper.clazz.declaredMethods.first {
+//            it.parameterTypes.size == 3 &&
+//            it.parameterTypes[0] == String::class.java &&
+//            it.parameterTypes[1] == Int::class.javaPrimitiveType &&
+//            it.parameterTypes[2] == String::class.java &&
+//            it.returnType != Void.TYPE
+//        }.returnType
+//    }
 
     fun isLiked(context: WeMomentsContextMenuApi.MomentsContext): Boolean =
         isLiked(context.snsInfo)
@@ -584,7 +611,11 @@ object WeMomentsApi : ApiFeature(), IResolveDex {
         val type: Int,
         val mediaList: List<TimelineObjectProto.MediaObjProto>,
         val nativeMediaList: LinkedList<*>
-    )
+    ) {
+        /** 该朋友圈是否包含至少一张实况图片 (proto 中 jj4.X 字段非空即为实况)。 */
+        val hasLivePhoto: Boolean
+            get() = mediaList.any { it.livePhotoVideo != null }
+    }
 
     /**
      * 综合 proto 与原生对象, 提取转发所需的朋友圈内容。
@@ -601,6 +632,131 @@ object WeMomentsApi : ApiFeature(), IResolveDex {
             mediaList = contentObj.mediaList,
             nativeMediaList = nativeMediaList
         )
+    }
+
+    /**
+     * 解析后的单个媒体项。[videoPath] 非空表示这是一张实况图片, 且视频已成功定位;
+     * 若为实况图片但视频缺失（未下载）, [videoPath] 为 null（退化为静态图）。
+     */
+    data class ResolvedMedia(
+        val imagePath: String,
+        val videoPath: String?
+    )
+
+    data class ResolvedMoment(
+        val items: List<ResolvedMedia>,
+        /** 存在实况图片但其视频未能定位（未下载）, 导致退化为静态图。 */
+        val degradedLivePhotos: Boolean
+    )
+
+    /**
+     * 从原生媒体对象反射取出实况视频子对象 (jj4.X)。
+     * jj4.X 是 jj4 上唯一自引用类型字段, 按「字段类型 == 自身类」定位, 抗混淆。
+     */
+    fun getNativeLivePhotoVideo(nativeMedia: Any): Any? {
+        return runCatching {
+            val cls = nativeMedia.javaClass
+            var current: Class<*>? = cls
+            while (current != null) {
+                val field = current.declaredFields.firstOrNull { it.type == cls }
+                if (field != null) {
+                    field.isAccessible = true
+                    return field.get(nativeMedia)
+                }
+                current = current.superclass
+            }
+            null
+        }.getOrElse {
+            WeLogger.e(TAG, "failed to resolve native live photo video sub-object", it)
+            null
+        }
+    }
+
+    /**
+     * 定位实况图片视频组件的本地缓存路径 (传入嵌套的视频子对象 jj4.X)。
+     * 视频未必已下载（与普通朋友圈视频一致, 需先播放一次）, 缺失返回 null。
+     */
+    fun getLivePhotoVideoPath(nativeVideoObj: Any): String? {
+        return runCatching {
+            val path = methodGetSnsVideoPath.method.invoke(null, nativeVideoObj) as? String
+            if (path.isNullOrEmpty() || !vfsFileExists(path)) null else path
+        }.getOrElse {
+            WeLogger.e(TAG, "failed to get live photo video path", it)
+            null
+        }
+    }
+
+    /**
+     * 将朋友圈媒体逐项解析为可转发的本地路径 (支持静态图与实况图片混合)。
+     * 任一封面图缺失则返回 null; 实况视频缺失时该项退化为静态图并置 [ResolvedMoment.degradedLivePhotos]。
+     */
+    fun resolveMediaItems(content: MomentContent, warnOnThumb: Boolean = false): ResolvedMoment? {
+        val mediaList = content.mediaList
+        if (mediaList.isEmpty()) return null
+
+        val items = ArrayList<ResolvedMedia>()
+        var degraded = false
+        for (index in mediaList.indices) {
+            val nativeMedia = content.nativeMediaList.getOrNull(index) ?: return null
+            val imagePath = getCachedImagePath(mediaList[index], nativeMedia, warnOnThumb) ?: return null
+
+            var videoPath: String? = null
+            if (mediaList[index].livePhotoVideo != null) {
+                val nativeVideo = getNativeLivePhotoVideo(nativeMedia)
+                videoPath = nativeVideo?.let { getLivePhotoVideoPath(it) }
+                if (videoPath == null) degraded = true
+            }
+            items.add(ResolvedMedia(imagePath, videoPath))
+        }
+        return ResolvedMoment(items, degraded)
+    }
+
+    /**
+     * 后台转发混合媒体相册 (静态图 + 实况图片), 完整保留实况视频。
+     * 经 UploadPackHelper.setUploadList 构造: 实况项父元素挂载视频子元素 (w0.f40026s),
+     * setUploadList 内部会注册文件并递归处理子元素 (fillLivePhotoData)。
+     */
+    fun postTextAndMixedMedia(text: String, items: List<ResolvedMedia>): Boolean {
+        if (items.isEmpty()) return false
+        return try {
+            val hasLive = items.any { it.videoPath != null }
+            // 有实况用相册类型 54, 否则普通多图类型 1 (与微信 commitInternal 一致)
+            val helper = ctorUploadPackHelper.constructor.newInstance(if (hasLive) 54 else 1, null)
+            methodSetContentDes.method.invoke(helper, text)
+
+            // ca4.w0 字段: 子元素(f40026s)与封面时间戳(f40027t)按类型唯一定位;
+            // 缩略图(f40020m)是多个 String 之一, 按声明顺序索引定位。
+            @Suppress("UNCHECKED_CAST")
+            val elemRef = classSnsUploadElement.reflekt() as Reflect<Any>
+            val elementClass = classSnsUploadElement.clazz
+            val childField = elemRef.firstField { type = elementClass }
+            val coverTsField = elemRef.firstField { type = long }
+            // 缩略图非关键 (封面图才是展示用的封面), 索引定位失败也不影响转发, 单独兜底
+            val thumbField = elemRef.fields {
+                type = BString
+                modifiers { !it.contains(Modifiers.FINAL) }
+            }[3]
+
+            val elements = ArrayList<Any>()
+            for (item in items) {
+                // 父元素 = 静态图/封面, type 2
+                val parent = ctorSnsUploadElement.newInstance(item.imagePath, 2)
+                if (item.videoPath != null) {
+                    // 子元素 = 实况视频, type 6 (sight); 缩略图沿用封面图
+                    val child = ctorSnsUploadElement.newInstance(item.videoPath, 6)
+                    runCatching { thumbField.set(child, item.imagePath) }
+                    coverTsField.set(child, 0L)
+                    childField.set(parent, child)
+                }
+                elements.add(parent)
+            }
+            methodSetUploadList.method.invoke(helper, elements)
+            val localId = methodCommit.method.invoke(helper) as Int
+            localId > 0
+        } catch (e: Exception) {
+            WeLogger.e(TAG, "postTextAndMixedMedia failed", e)
+            false
+        }
     }
 
     private const val MOMENTS_CLASS = "${PackageNames.WECHAT}.plugin.sns.ui.SnsUploadUI"
@@ -714,10 +870,20 @@ object WeMomentsApi : ApiFeature(), IResolveDex {
         val text = content.contentText
         return try {
             val ok = when (content.type) {
-                1, 54 -> { // 图片
-                    val paths = prepareImagePaths(content.mediaList, content.nativeMediaList)
-                        ?: return ActionResult(success = false, sent = false, message = "未找到本地缓存的图片")
-                    postTextAndImages(text, paths)
+                1, 54 -> { // 图片 / 实况相册 (可混合静态图与实况图片)
+                    if (content.hasLivePhoto) {
+                        val resolved = resolveMediaItems(content)
+                            ?: return ActionResult(success = false, sent = false, message = "未找到本地缓存的图片")
+                        val sent = postTextAndMixedMedia(text, resolved.items)
+                        if (sent && resolved.degradedLivePhotos) {
+                            return ActionResult(success = true, sent = true, message = "已加入发送队列 (部分实况视频未下载, 已按静态图转发)")
+                        }
+                        sent
+                    } else {
+                        val paths = prepareImagePaths(content.mediaList, content.nativeMediaList)
+                            ?: return ActionResult(success = false, sent = false, message = "未找到本地缓存的图片")
+                        postTextAndImages(text, paths)
+                    }
                 }
 
                 15, 5 -> { // 视频

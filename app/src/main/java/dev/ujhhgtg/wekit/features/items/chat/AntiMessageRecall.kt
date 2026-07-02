@@ -17,6 +17,7 @@ import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.wekit.features.api.core.WeDatabaseApi
 import dev.ujhhgtg.wekit.features.api.core.WeMessageApi
 import dev.ujhhgtg.wekit.features.api.core.WeXmlParserApi
+import dev.ujhhgtg.wekit.features.api.core.models.MessageInfo
 import dev.ujhhgtg.wekit.features.api.core.models.MessageType
 import dev.ujhhgtg.wekit.features.core.ClickableFeature
 import dev.ujhhgtg.wekit.features.core.Feature
@@ -91,11 +92,17 @@ object AntiMessageRecall : ClickableFeature(), WeXmlParserApi.IAfterParseListene
                         cursor.getString(cursor.getColumnIndexOrThrow("talker"))
                     val match = NAME_REGEX.find(replaceMsg)
                     val senderName = match?.groupValues?.get(2) ?: "未知"
+                    val humanReadable = try {
+                        MessageInfo(WeMessageApi.getMsgInfoInstanceBySvrId(msgSvrId.toLong())).humanReadableRepr
+                    } catch (e: Exception) {
+                        WeLogger.w(TAG, "failed to build MessageInfo, falling back to raw content", e)
+                        if (talker.isGroupChatWxId) content.stripWxId() else content
+                    }
                     val interceptNotice = pattern
                         .replace($$"$sender", senderName)
                         .replace($$"$sendTime", formatEpoch(createTime, timeFormat))
                         .replace($$"$recallTime", formatEpoch(System.currentTimeMillis(), timeFormat))
-                        .replace($$"$content", if (talker.isGroupChatWxId) content.stripWxId() else content)
+                        .replace($$"$content", humanReadable)
                     WeMessageApi.createSimpleMsgInfoAndInsert(
                         MessageType.SYSTEM.code,
                         talker,

@@ -1,12 +1,17 @@
 package dev.ujhhgtg.wekit.features.items.moments
 
+import androidx.compose.material3.Text
 import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.wekit.features.api.ui.WeMomentsApi
 import dev.ujhhgtg.wekit.features.api.ui.WeMomentsContextMenuApi
 import dev.ujhhgtg.wekit.features.core.Feature
 import dev.ujhhgtg.wekit.features.core.SwitchFeature
+import dev.ujhhgtg.wekit.ui.content.AlertDialogContent
+import dev.ujhhgtg.wekit.ui.content.Button
+import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.SendIcon
 import dev.ujhhgtg.wekit.ui.utils.ShareIcon
+import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.android.showToast
 import dev.ujhhgtg.wekit.utils.android.showToastSuspend
@@ -17,7 +22,7 @@ import kotlinx.coroutines.launch
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.div
 
-@Feature(name = "转发 & 一键转发", categories = ["朋友圈"], description = "转发他人的朋友圈\n如果图片/视频转发后是空白, 请点击查看/播放后重试")
+@Feature(name = "转发 & 一键转发", categories = ["朋友圈"], description = "转发他人的朋友圈, 支持实况图片\n如果图片/视频/实况转发后是空白, 请点击查看/播放后重试")
 object ReMoment : SwitchFeature(), WeMomentsContextMenuApi.IMenuItemsProvider {
 
     private val TAG = This.Class.simpleName
@@ -65,7 +70,13 @@ object ReMoment : SwitchFeature(), WeMomentsContextMenuApi.IMenuItemsProvider {
         val contentText = data.contentText
 
         when (data.type) {
-            1, 54 -> { // 图片
+            1, 54 -> { // 图片 / 实况相册
+                if (data.hasLivePhoto) {
+                    // 编辑界面 (SnsUploadUI) 无法接收实况图片, 让用户在「降级为静态图编辑」与「一键转发保留实况」间选择
+                    promptLivePhotoRepost(context, data)
+                    return
+                }
+
                 val tempPaths = WeMomentsApi.prepareImagePaths(data.mediaList, data.nativeMediaList, warnOnThumb = true)
                 if (tempPaths == null) {
                     showToast(activity, "未找到本地缓存的图片!")
@@ -94,6 +105,40 @@ object ReMoment : SwitchFeature(), WeMomentsContextMenuApi.IMenuItemsProvider {
                 WeLogger.i(TAG, "reposting type ${data.type}")
                 WeMomentsApi.sendTextInUi(activity, contentText)
             }
+        }
+    }
+
+    /**
+     * 含实况图片的朋友圈无法通过编辑界面转发 (SnsUploadUI 不支持实况图片输入)。
+     * 弹窗让用户选择: 一键转发 (后台发送, 完整保留实况) 或 降级为静态图打开编辑界面。
+     */
+    private fun promptLivePhotoRepost(
+        context: WeMomentsContextMenuApi.MomentsContext,
+        data: WeMomentsApi.MomentContent
+    ) {
+        val activity = context.activity
+        showComposeDialog(activity) {
+            AlertDialogContent(
+                title = { Text("实况图片") },
+                text = { Text("此朋友圈包含实况图片, 无法通过编辑界面转发。\n可一键转发以完整保留实况, 或降级为静态图后打开编辑界面。") },
+                confirmButton = {
+                    Button(onClick = {
+                        onDismiss()
+                        quickRepostMoment(context)
+                    }) { Text("一键转发, 保留实况") }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        onDismiss()
+                        val tempPaths = WeMomentsApi.prepareImagePaths(data.mediaList, data.nativeMediaList, warnOnThumb = true)
+                        if (tempPaths == null) {
+                            showToast(activity, "未找到本地缓存的图片!")
+                            return@TextButton
+                        }
+                        WeMomentsApi.sendImagesInUi(activity, tempPaths, data.contentText)
+                    }) { Text("降级为静态图编辑") }
+                }
+            )
         }
     }
 

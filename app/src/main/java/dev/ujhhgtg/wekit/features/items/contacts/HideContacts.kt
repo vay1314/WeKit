@@ -34,6 +34,7 @@ import dev.ujhhgtg.wekit.dexkit.abc.IResolveDex
 import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
 import dev.ujhhgtg.wekit.features.api.core.WeConversationApi
 import dev.ujhhgtg.wekit.features.api.core.WeDatabaseApi
+import dev.ujhhgtg.wekit.features.api.core.WeDatabaseListenerApi
 import dev.ujhhgtg.wekit.features.api.ui.WeChatInputBarApi
 import dev.ujhhgtg.wekit.features.api.ui.WeMainActivityBeautifyApi
 import dev.ujhhgtg.wekit.features.core.ClickableFeature
@@ -61,9 +62,11 @@ import kotlin.math.sqrt
 2. 通讯录内联系人&群聊列表
 3. 首页搜索界面
 4. 锁屏自动关闭聊天界面
-5. 摇一摇设备关闭聊天界面"""
+5. 摇一摇设备关闭聊天界面
+6. 朋友圈信息流"""
 )
-object HideContacts : ClickableFeature(), IResolveDex, WeChatInputBarApi.IInputBarListener {
+object HideContacts : ClickableFeature(), IResolveDex, WeChatInputBarApi.IInputBarListener,
+    WeDatabaseListenerApi.IQueryListener {
 
     private val TAG = This.Class.simpleName
 
@@ -354,6 +357,10 @@ object HideContacts : ClickableFeature(), IResolveDex, WeChatInputBarApi.IInputB
         }
 
         WeChatInputBarApi.addListener(this)
+
+        // --- moments feed ---
+
+        WeDatabaseListenerApi.addListener(this)
     }
 
     override fun onDisable() {
@@ -361,6 +368,7 @@ object HideContacts : ClickableFeature(), IResolveDex, WeChatInputBarApi.IInputB
         ShakeDetector.stop()
         chattingUi = null
         WeChatInputBarApi.removeListener(this)
+        WeDatabaseListenerApi.removeListener(this)
         temporarilyShown = false
     }
 
@@ -385,6 +393,39 @@ object HideContacts : ClickableFeature(), IResolveDex, WeChatInputBarApi.IInputB
                 showToast(chatFooter.context, "已恢复隐藏联系人")
             }
         }
+    }
+
+    // 在朋友圈信息流中隐藏被隐藏联系人发布的朋友圈; EnhanceQuery 会把信息流标记替换为 (1=1)
+    private const val FEED_MARKER_RAW = "(sourceType & 2 != 0 )"
+    private const val FEED_MARKER_ENHANCED = "(1=1)"
+
+    override fun onQuery(sql: String): String? {
+        if (temporarilyShown) return null
+
+        val hidden = hiddenContacts
+        if (hidden.isEmpty()) return null
+
+        // 只处理主信息流查询: 排除个人主页 (userName=) 与已注入的查询
+        if (!sql.contains("from SnsInfo", false)) return null
+        if (sql.contains("SnsInfo.userName=", false)) return null
+        if (sql.contains("SnsInfo.userName not in", true)) return null
+
+        val filter = " AND SnsInfo.userName NOT IN (" +
+            hidden.joinToString(",") { "\"${it.replace("\"", "\"\"")}\"" } + ") "
+
+        val rewritten = when {
+            sql.contains(FEED_MARKER_RAW) ->
+                sql.replaceFirst(FEED_MARKER_RAW, FEED_MARKER_RAW + filter)
+
+            // EnhanceQuery 先执行时, 信息流标记已变为 (1=1); 个人主页不会出现该精确形式
+            sql.contains(FEED_MARKER_ENHANCED) ->
+                sql.replaceFirst(FEED_MARKER_ENHANCED, FEED_MARKER_ENHANCED + filter)
+
+            else -> return null
+        }
+
+        WeLogger.i(TAG, "hid ${hidden.size} contacts from moments feed")
+        return rewritten
     }
 
     private var temporarilyShown = false

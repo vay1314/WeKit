@@ -51,6 +51,18 @@ class MessageInfo(val instance: Any) {
             return text
         }
 
+    val humanReadableRepr: String
+        get() {
+            val type = type ?: return "[${MessageType.UNKNOWN.displayName}]"
+
+            return when {
+                type.code == MessageType.QUOTE.code -> quoteMsgActualContent ?: actualContent
+                type.isText -> actualContent
+                type.isSystem -> actualContent
+                else -> "[${type.displayName}]"
+            }
+        }
+
     val imagePath by lazy { getFieldByName<String?>(instance, "field_imgPath") }
     val lvBuffer by lazy { getFieldByName<ByteArray>(instance, "field_lvbuffer") }
     val talkerId by lazy { getFieldByName<Int>(instance, "field_talkerId") }

@@ -1,5 +1,6 @@
 package dev.ujhhgtg.wekit.features.core
 
+import com.tencent.mm.ui.LauncherUI
 import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.wekit.constants.Preferences
 import dev.ujhhgtg.wekit.dexkit.abc.IResolveDex
@@ -9,7 +10,6 @@ import dev.ujhhgtg.wekit.ui.content.DexResolver
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.TargetProcesses
 import dev.ujhhgtg.wekit.utils.WeLogger
-import dev.ujhhgtg.wekit.utils.android.getTopMostActivity
 import dev.ujhhgtg.wekit.utils.android.showToast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -111,16 +111,16 @@ object FeaturesLoader {
         WeLogger.i(TAG, "launching background coroutine to repair ${brokenItems.size} items")
 
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
-            var activity = getTopMostActivity()
+            var activity = LauncherUI.getInstance()
             var waited = 0L
             while (activity == null && waited < 30_000L) {
                 delay(1_000.milliseconds)
                 waited += 1_000
-                activity = getTopMostActivity()
+                activity = LauncherUI.getInstance()
             }
 
             if (activity == null) {
-                WeLogger.w(TAG, "no activity available for dex-repair dialog; skipping")
+                WeLogger.w(TAG, "no LauncherUI available for dex-repair dialog; skipping")
                 return@launch
             }
 
