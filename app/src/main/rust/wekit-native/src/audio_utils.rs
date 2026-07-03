@@ -17,8 +17,12 @@ use crate::{loge, logi};
 pub fn mp3_to_pcm_mono(path: &str) -> Result<(Vec<i16>, u32)> {
     let file = Box::new(File::open(path)?);
     let mss = MediaSourceStream::new(file, Default::default());
+    // Do not force an "mp3" hint: files may be misnamed (e.g. an MP4/AAC file
+    // with a .mp3 extension). Let symphonia auto-detect the real container.
     let mut hint = Hint::new();
-    hint.with_extension("mp3");
+    if let Some(ext) = Path::new(path).extension().and_then(|e| e.to_str()) {
+        hint.with_extension(ext);
+    }
 
     let mut format = symphonia::default::get_probe().probe(
         &hint,
@@ -27,13 +31,18 @@ pub fn mp3_to_pcm_mono(path: &str) -> Result<(Vec<i16>, u32)> {
         MetadataOptions::default(),
     )?;
 
-    let track = format.default_track(TrackType::Audio).unwrap();
+    let track = format
+        .default_track(TrackType::Audio)
+        .ok_or_else(|| anyhow!("No audio track found in: {}", path))?;
+    let track_id = track.id;
     let audio_params = track
         .codec_params
         .as_ref()
         .and_then(|cp| cp.audio())
-        .unwrap();
-    let sample_rate = audio_params.sample_rate.unwrap();
+        .ok_or_else(|| anyhow!("No audio codec params in: {}", path))?;
+    let sample_rate = audio_params
+        .sample_rate
+        .ok_or_else(|| anyhow!("Unknown sample rate in: {}", path))?;
 
     let mut decoder = symphonia::default::get_codecs()
         .make_audio_decoder(audio_params, &AudioDecoderOptions::default())?;
@@ -46,7 +55,18 @@ pub fn mp3_to_pcm_mono(path: &str) -> Result<(Vec<i16>, u32)> {
             Ok(None) => break,
             Err(_) => break,
         };
-        let decoded = decoder.decode(&packet)?;
+        // A container may interleave several tracks (common in MP4); only decode
+        // packets belonging to the selected audio track.
+        if packet.track_id != track_id {
+            continue;
+        }
+        let decoded = match decoder.decode(&packet) {
+            Ok(d) => d,
+            // Recoverable decode errors (e.g. a single malformed frame) should
+            // not abort the whole conversion.
+            Err(symphonia::core::errors::Error::DecodeError(_)) => continue,
+            Err(e) => return Err(e.into()),
+        };
         let spec = decoded.spec().clone();
         let channels = spec.channels().count();
 
@@ -410,8 +430,11 @@ fn get_mp3_duration_ms(path: &str) -> Result<i64> {
     let file = File::open(path)?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
 
+    // Don't force "mp3": the file may be a misnamed MP4/AAC container.
     let mut hint = Hint::new();
-    hint.with_extension("mp3");
+    if let Some(ext) = Path::new(path).extension().and_then(|e| e.to_str()) {
+        hint.with_extension(ext);
+    }
 
     let format = symphonia::default::get_probe().probe(
         &hint,

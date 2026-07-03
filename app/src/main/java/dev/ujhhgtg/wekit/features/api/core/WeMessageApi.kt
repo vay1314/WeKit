@@ -98,6 +98,7 @@ object WeMessageApi : ApiFeature(), IResolveDex {
             }
         }
     }
+
     // hi0.j1::d() is identical to xv0.a9::e()
     val methodGetSendMsgObject by dexMethod(allowMultiple = true) {
         matcher {
@@ -501,17 +502,15 @@ object WeMessageApi : ApiFeature(), IResolveDex {
         )
     }
 
-    /**
-     * Revoke (unsend) a message by its msgSvrId.
-     * Uses WeChat's MsgInfoStorage revoke method found via DexKit.
-     */
     fun revokeMsg(msgInfo: MessageInfo): Boolean {
         return try {
             WeLogger.i(TAG, "revoking message: msgSvrId=${msgInfo.serverId}")
             val netScene = ctorNetSceneRevokeMsg.newInstance(msgInfo.instance, "你撤回了一条消息", "")
             WeNetSceneApi.sendNetScene(netScene)
             true
-        } catch (e: Exception) { WeLogger.e(TAG, "revokeMsg failed", e); false }
+        } catch (e: Exception) {
+            WeLogger.e(TAG, "revokeMsg failed", e); false
+        }
     }
 
     fun getMsgInfoInstanceBySvrId(serverId: Long): Any {
@@ -548,7 +547,9 @@ object WeMessageApi : ApiFeature(), IResolveDex {
             val appMsg = classAppMessage.clazz.createInstance(outer.toString())
             methodSendAppMsg.method.invoke(null, appMsg, "", "", talker, "", null)
             true
-        } catch (e: Exception) { WeLogger.e(TAG, "sendQuoteMsg failed", e); false }
+        } catch (e: Exception) {
+            WeLogger.e(TAG, "sendQuoteMsg failed", e); false
+        }
     }
 
     fun sendEmoji(toUser: String, path: String): Boolean {
@@ -642,7 +643,9 @@ object WeMessageApi : ApiFeature(), IResolveDex {
                 }
             }
             true
-        } catch (e: Exception) { WeLogger.e(TAG, "sendPat failed", e); false }
+        } catch (e: Exception) {
+            WeLogger.e(TAG, "sendPat failed", e); false
+        }
     }
 
     fun sendLocation(toUser: String, poiName: String, label: String, x: String, y: String, scale: String): Boolean {
@@ -652,7 +655,9 @@ object WeMessageApi : ApiFeature(), IResolveDex {
             val netScene = ctorNetSceneSendMsgLocation.newInstance(toUser, locJson, 1, 0, null)
             WeNetSceneApi.sendNetScene(netScene)
             true
-        } catch (e: Exception) { WeLogger.e(TAG, "sendLocation failed", e); false }
+        } catch (e: Exception) {
+            WeLogger.e(TAG, "sendLocation failed", e); false
+        }
     }
 
     fun sendShareCard(toUser: String, cardWxId: String): Boolean {
@@ -668,7 +673,9 @@ object WeMessageApi : ApiFeature(), IResolveDex {
             val netScene = ctorNetSceneSendMsgLocation.newInstance(toUser, json1.toString(), 1, 0, null)
             WeNetSceneApi.sendNetScene(netScene)
             true
-        } catch (e: Exception) { WeLogger.e(TAG, "sendShareCard failed", e); false }
+        } catch (e: Exception) {
+            WeLogger.e(TAG, "sendShareCard failed", e); false
+        }
     }
 
     fun sendVideo(toUser: String, videoPath: String): Boolean {
@@ -681,7 +688,9 @@ object WeMessageApi : ApiFeature(), IResolveDex {
             ) as Thread
             thread.start()
             true
-        } catch (e: Exception) { WeLogger.e(TAG, "sendVideo failed", e); false }
+        } catch (e: Exception) {
+            WeLogger.e(TAG, "sendVideo failed", e); false
+        }
     }
 
     override fun onEnable() {

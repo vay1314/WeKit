@@ -1,10 +1,11 @@
 package dev.ujhhgtg.wekit.features.items.beautify
 
 import android.content.Context
-import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import android.graphics.Rect
 import android.graphics.drawable.NinePatchDrawable
 import android.graphics.drawable.StateListDrawable
@@ -43,7 +44,6 @@ import dev.ujhhgtg.wekit.ui.content.AlertDialogContent
 import dev.ujhhgtg.wekit.ui.content.Button
 import dev.ujhhgtg.wekit.ui.content.DefaultColumn
 import dev.ujhhgtg.wekit.ui.content.TextButton
-import dev.ujhhgtg.wekit.ui.utils.findViewByChildIndexes
 import dev.ujhhgtg.wekit.ui.utils.findViewWhich
 import dev.ujhhgtg.wekit.ui.utils.findViewsWhich
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
@@ -167,10 +167,10 @@ object CustomMessageBubbles : ClickableFeature(), WeChatMessageViewApi.ICreateVi
                     it.javaClass == LinearLayout::class.java
                             && it.tag?.javaClass?.name?.startsWith("com.tencent.mm.ui.chatting.viewitems") == true
                 }!!
-                val bubbleTextView = bubbleView.findViewByChildIndexes<TextView>(0)!!
-                val bubbleIconView = bubbleView.findViewByChildIndexes<LinearLayout>(1)!!
+                val bubbleTextView = bubbleView.findViewWhich<TextView> { it is TextView }!!
+                val bubbleIconView = bubbleView.findViewWhich<LinearLayout> { it !== bubbleView && it is LinearLayout }!!
                 applyForegroundColor(bubbleTextView, msgInfo.isSelfSender)
-                applyForegroundColor(bubbleIconView, msgInfo.isSelfSender)
+                applyForegroundColorByBackgroundColorFilter(bubbleIconView, msgInfo.isSelfSender)
                 applyBubble(bubbleView, msgInfo.isSelfSender)
             }
 
@@ -348,11 +348,14 @@ object CustomMessageBubbles : ClickableFeature(), WeChatMessageViewApi.ICreateVi
         view.setTextColor(color)
     }
 
-    private fun applyForegroundColor(view: LinearLayout, isSelfSender: Boolean) {
+    private fun applyForegroundColorByBackgroundColorFilter(view: View, isSelfSender: Boolean) {
         val color = getForegroundColor(view.context, isSelfSender)
         if (color == -1) return
 
-        view.backgroundTintList = ColorStateList.valueOf(color)
+        view.background?.mutate()?.colorFilter = PorterDuffColorFilter(
+            color,
+            PorterDuff.Mode.SRC_IN
+        )
     }
 
     /**

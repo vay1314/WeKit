@@ -64,7 +64,12 @@ android {
         abi {
             isEnable = true
             reset()
-            include("arm64-v8a", "x86_64", "armeabi-v7a", "x86")
+            include(
+                "arm64-v8a",
+                "armeabi-v7a",
+//                "x86_64",
+//                "x86"
+            )
             isUniversalApk = true
         }
     }
@@ -192,6 +197,20 @@ androidComponents {
             embedEruda,
             EmbedErudaTask::outputDir
         )
+
+        val embedMonetAssets = tasks.register<EmbedMonetAssetsTask>("embedMonetAssets$variantName") {
+            group = "wekit"
+            description = "Embed Monet overlay templates/tables as byte-array constants for $variantName"
+
+            inputDir.set(layout.projectDirectory.dir("embedded/monet"))
+            outputDir.set(layout.buildDirectory.dir("generated/source/monet/${variant.name}"))
+            namespace.set(libs.versions.namespace.get())
+        }
+
+        kotlinSources.addGeneratedSourceDirectory(
+            embedMonetAssets,
+            EmbedMonetAssetsTask::outputDir
+        )
     }
 }
 
@@ -210,9 +229,9 @@ val rustLibName = "libwekit_native.so"
 
 val abiToTarget = mapOf(
     "arm64-v8a" to "aarch64-linux-android",
-    "x86_64" to "x86_64-linux-android",
     "armeabi-v7a" to "armv7-linux-androideabi",
-    "x86" to "i686-linux-android"
+//    "x86_64" to "x86_64-linux-android",
+//    "x86" to "i686-linux-android"
 )
 val cargoTasks = abiToTarget.map { (abi, target) ->
     val soSrcFile = rustProjectDir.resolve("target/$target/release/$rustLibName")
@@ -298,6 +317,10 @@ dependencies {
     implementation(project(":libs:common:reflekt"))
     implementation(libs.libsu.core)
     implementation(libs.dexmaker)
+    implementation(libs.arsclib)
+    implementation(libs.apksig)
+    implementation(libs.bouncycastle.prov)
+    implementation(libs.bouncycastle.pkix)
     @Suppress("AvoidDuplicateDependencies")
     implementation(project(":libs:common:annotation-scanner"))
     @Suppress("AvoidDuplicateDependencies")

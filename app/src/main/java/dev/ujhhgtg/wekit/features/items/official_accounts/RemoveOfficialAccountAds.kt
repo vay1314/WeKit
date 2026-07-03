@@ -65,7 +65,7 @@ object RemoveOfficialAccountAds : SwitchFeature(), IWePacketInterceptor {
     private val TAG = This.Class.simpleName
 
     /** 抓包模式：打印抓到的广告。 */
-    private const val CAPTURE_MODE = false
+    private const val CAPTURE_MODE = true
 
     /** 诊断模式：打印每个经过管线的 uri+cgiId（不含内容）。 */
     private const val DIAG_ALL_URIS = false

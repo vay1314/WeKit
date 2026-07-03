@@ -8,6 +8,7 @@ import dev.ujhhgtg.wekit.dexkit.dsl.dexClass
 import dev.ujhhgtg.wekit.dexkit.dsl.dexMethod
 import dev.ujhhgtg.wekit.features.core.ApiFeature
 import dev.ujhhgtg.wekit.features.core.Feature
+import dev.ujhhgtg.wekit.utils.HostInfo
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.android.runOnUiThread
 
@@ -15,6 +16,7 @@ import dev.ujhhgtg.wekit.utils.android.runOnUiThread
 object WeConversationApi : ApiFeature(), IResolveDex {
 
     private val TAG = nameOf(WeConversationApi)
+
     // Clears 4096, 1048576, 16777216 and 33554432, which drive 8071/8072 red prefixes
 //    private const val ATTR_FLAG_COMMON_RED_BITS = 51384320
 //    private const val ATTR_FLAG_8071_8072_RED_PACKET_BITS = 33280
@@ -32,6 +34,7 @@ object WeConversationApi : ApiFeature(), IResolveDex {
             usingEqStrings("MicroMsg.ConversationStorage", "updateUnreadByTalker %s")
         }
     }
+
     // ConversationStorage.k(String) aka `delChatContact`: deletes the rconversation row through the
     // cache-aware storage wrapper and notifies list observers, which is the core of WeChat's native
     // "不显示该聊天" for a normal contact.
@@ -44,7 +47,8 @@ object WeConversationApi : ApiFeature(), IResolveDex {
             returnType(Void.TYPE)
         }
     }
-//    private val methodClearConvRedHintsOnMarkRead by dexMethod(allowFailure = true) {
+
+    //    private val methodClearConvRedHintsOnMarkRead by dexMethod(allowFailure = true) {
 //        matcher {
 //            modifiers = Modifier.PUBLIC or Modifier.STATIC or Modifier.FINAL
 //            returnType(Void.TYPE)
@@ -74,7 +78,8 @@ object WeConversationApi : ApiFeature(), IResolveDex {
             usingEqStrings("Update rconversation set parentRef = '", "' where 1 != 1 ")
         }
     }
-//    private val methodGetConvByName by dexMethod {
+
+    //    private val methodGetConvByName by dexMethod {
 //        matcher {
 //            declaredClass(classConversationStorage.clazz)
 //            usingEqStrings("MicroMsg.ConversationStorage", "get null with username:")
@@ -114,6 +119,32 @@ object WeConversationApi : ApiFeature(), IResolveDex {
             declaredClass(classConversationStorage.clazz.superclass!!)
             paramCount = 3
             paramTypes("int", classConversationStorage.clazz.superclass!!.name, "java.lang.Object")
+            returnType(Void.TYPE)
+        }
+    }
+
+    // ConversationStorage.p(String) -> com.tencent.mm.storage.m3 (the rconversation model for a
+    // talker), or null. Needed to hand the conversation object to the native delete helper below.
+    private val methodGetConversationByTalker by dexMethod(allowFailure = true) {
+        matcher {
+            declaredClass(classConversationStorage.clazz)
+            usingStrings("MicroMsg.ConversationStorage", "get null with username:")
+            paramCount = 1
+            paramTypes(String::class.java)
+        }
+    }
+
+    // com.tencent.mm.ui.conversation.s1#d(context, talker, m3, PBool, ProgressDialog, boolean) =
+    // doDeleteConv: the work WeChat runs AFTER the user taps 删除 in the "删除该聊天" confirm dialog
+    // (both the normal-contact and group confirm handlers call it). Invoking it directly performs a
+    // permanent delete with NO confirmation dialog. Its progress callback null-checks the PBool and
+    // ProgressDialog, so nulls are safe; the trailing boolean starts a tablet/split-screen
+    // EmptyActivity, so we pass false. Anchored by two in-method log strings unique to s1.d.
+    private val methodDoDeleteConversation by dexMethod(allowFailure = true) {
+        searchPackages("com.tencent.mm.ui.conversation")
+        matcher {
+            usingStrings("oplog modContact user:%s", "oplog modContact user:%s remark:%s type:%d ")
+            paramCount = 6
             returnType(Void.TYPE)
         }
     }
@@ -188,7 +219,7 @@ object WeConversationApi : ApiFeature(), IResolveDex {
 //        reloadConversations()
 //    }
 
-//    fun markAsRead(talker: String) {
+    //    fun markAsRead(talker: String) {
 //        try {
 //            clearConversationUnreadState(talker)
 //        } catch (ex: Exception) {
@@ -215,12 +246,58 @@ object WeConversationApi : ApiFeature(), IResolveDex {
      *
      * @return true if the native delete was invoked without throwing.
      */
-    fun deleteConversation(talker: String): Boolean {
+    fun hideConversation(talker: String): Boolean {
         return try {
             methodDelChatContact.method.invoke(conversationStorage, talker)
             true
         } catch (ex: Exception) {
             WeLogger.w(TAG, "exception while deleting conversation for $talker", ex)
+            false
+        }
+    }
+
+    /** The rconversation model ([com.tencent.mm.storage.m3]) for [talker], or null if none exists. */
+    fun getConversationByTalker(talker: String): Any? {
+        if (methodGetConversationByTalker.isPlaceholder) return null
+        return try {
+            methodGetConversationByTalker.method.invoke(conversationStorage, talker)
+        } catch (ex: Exception) {
+            WeLogger.w(TAG, "exception while fetching conversation for $talker", ex)
+            null
+        }
+    }
+
+    /**
+     * Permanently delete a conversation the way WeChat's "删除该聊天" menu does AFTER the user
+     * confirms — i.e. delete the conversation AND its chat messages, syncing the removal to the
+     * server. Unlike [hideConversation] (which only hides the row, "不显示该聊天"), this is
+     * irreversible. No confirmation dialog is shown.
+     *
+     * Invokes the host's post-confirm delete worker (s1.d / doDeleteConv). Runs on the main thread
+     * because it notifies the conversation-list observers synchronously (see [reloadConversations]).
+     *
+     * @return true if the native delete was invoked without throwing (false if unavailable on this
+     *   build or the call threw).
+     */
+    fun deleteConversation(talker: String, conversation: Any? = getConversationByTalker(talker)): Boolean {
+        if (methodDoDeleteConversation.isPlaceholder) {
+            WeLogger.w(TAG, "permanent delete unavailable on this build for $talker")
+            return false
+        }
+        return try {
+            // s1.d(context, talker, m3, pBool=null, progressDialog=null, startEmptyActivity=false)
+            methodDoDeleteConversation.method.invoke(
+                null,
+                HostInfo.application,
+                talker,
+                conversation,
+                null,
+                null,
+                false
+            )
+            true
+        } catch (ex: Exception) {
+            WeLogger.w(TAG, "exception while permanently deleting conversation for $talker", ex)
             false
         }
     }

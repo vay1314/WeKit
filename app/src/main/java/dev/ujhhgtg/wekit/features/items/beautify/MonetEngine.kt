@@ -12,8 +12,9 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.compose.material3.Text
-import dev.ujhhgtg.reflekt.utils.toClass
 import dev.ujhhgtg.comptime.This
+import dev.ujhhgtg.reflekt.reflekt
+import dev.ujhhgtg.reflekt.utils.toClass
 import dev.ujhhgtg.wekit.features.core.ClickableFeature
 import dev.ujhhgtg.wekit.features.core.Feature
 import dev.ujhhgtg.wekit.ui.content.AlertDialogContent
@@ -22,7 +23,6 @@ import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.HostInfo
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.android.isDarkMode
-import dev.ujhhgtg.reflekt.reflekt
 
 @Feature(name = "莫奈引擎", categories = ["界面美化"], description = "为微信的部分组件启用动态壁纸取色 [需 SDK >= 31]")
 object MonetEngine : ClickableFeature() {
@@ -56,12 +56,13 @@ object MonetEngine : ClickableFeature() {
 
     private const val DEFAULT_COLOR = -16268960
 
-
     override fun onEnable() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             WeLogger.w(TAG, "sdk < 31, not applying dynamic colors")
             return
         }
+
+        if (MonetEngineModuleGenerator.isEnabled) return
 
         "com.tencent.mm.ui.widget.MMSwitchBtn".toClass().constructors.forEach {
             it.hookAfter {

@@ -330,7 +330,7 @@ object AutoLikeMoments : ClickableFeature(),
                 queryCachedTargetSnsIds()
             }.onFailure {
                 if (it !is UninitializedPropertyAccessException) {
-                    WeLogger.w(TAG, "failed to query cached target Moments", it)
+                    WeLogger.w(TAG, "failed to query cached target moments", it)
                 }
             }.getOrDefault(emptyList())
 

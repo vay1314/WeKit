@@ -89,6 +89,8 @@ import dev.ujhhgtg.wekit.ui.utils.iterable
 import dev.ujhhgtg.wekit.ui.utils.setLifecycleOwner
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.WeLogger
+import dev.ujhhgtg.wekit.utils.reflection.BInt
+import dev.ujhhgtg.wekit.utils.reflection.int
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -267,107 +269,110 @@ object ChatToolbar : ClickableFeature(), IResolveDex {
             }
         }
 
-        ChatFooter::class.reflekt()
-            .firstConstructor {
-                parameters(Context::class, AttributeSet::class, Int::class)
+        // very fucking weird
+        ChatFooter::class.reflekt().run {
+            firstConstructorOrNull {
+                parameters(Context::class, AttributeSet::class, int)
+            } ?: firstConstructor {
+                parameters(Context::class, AttributeSet::class, BInt)
             }
-            .hookAfter {
-                val chatFooter = thisObject as FrameLayout
-                val activity = chatFooter.context as Activity
+        }.hookAfter {
+            val chatFooter = thisObject as FrameLayout
+            val activity = chatFooter.context as Activity
 
-                val lifecycleOwner = LifecycleOwnerProvider.getOrCreate(activity )
+            val lifecycleOwner = LifecycleOwnerProvider.getOrCreate(activity)
 
-                chatFooter.setLifecycleOwner(lifecycleOwner)
-                val linearLayout = chatFooter.findViewByChildIndexes<LinearLayout>(0, 1)!!
-                linearLayout.setLifecycleOwner(lifecycleOwner)
-                if (linearLayout.findViewWhich<View> { it is ComposeView } != null) return@hookAfter
-                activity.window.decorView.setLifecycleOwner(lifecycleOwner)
+            chatFooter.setLifecycleOwner(lifecycleOwner)
+            val linearLayout = chatFooter.findViewByChildIndexes<LinearLayout>(0, 1)!!
+            linearLayout.setLifecycleOwner(lifecycleOwner)
+            if (linearLayout.findViewWhich<View> { it is ComposeView } != null) return@hookAfter
+            activity.window.decorView.setLifecycleOwner(lifecycleOwner)
 
-                linearLayout.addView(ComposeView(activity).apply {
-                    setLifecycleOwner(lifecycleOwner)
+            linearLayout.addView(ComposeView(activity).apply {
+                setLifecycleOwner(lifecycleOwner)
 
-                    setContent {
-                        AppTheme {
-                            DisposableEffect(lifecycleOwner) {
-                                val observer = LifecycleEventObserver { _, event ->
-                                    when (event) {
-                                        Lifecycle.Event.ON_PAUSE,
-                                        Lifecycle.Event.ON_STOP,
-                                        Lifecycle.Event.ON_DESTROY -> {
-                                            lastConversation = null
-                                        }
-
-                                        else -> {}
+                setContent {
+                    AppTheme {
+                        DisposableEffect(lifecycleOwner) {
+                            val observer = LifecycleEventObserver { _, event ->
+                                when (event) {
+                                    Lifecycle.Event.ON_PAUSE,
+                                    Lifecycle.Event.ON_STOP,
+                                    Lifecycle.Event.ON_DESTROY -> {
+                                        lastConversation = null
                                     }
-                                }
 
-                                lifecycleOwner.lifecycle.addObserver(observer)
-
-                                onDispose {
-                                    lifecycleOwner.lifecycle.removeObserver(observer)
-                                    toolsState.value = emptyList()
-                                    lastConversation = null
+                                    else -> {}
                                 }
                             }
 
-                            val tools by toolsState.collectAsStateWithLifecycle()
-                            val itemsOrder = remember { itemsOrder }
-                            val enabledItems = remember { enabledItems }
+                            lifecycleOwner.lifecycle.addObserver(observer)
 
-                            val sortedVisibleItems = remember(tools) {
-                                if (tools.isEmpty()) return@remember emptyList()
+                            onDispose {
+                                lifecycleOwner.lifecycle.removeObserver(observer)
+                                toolsState.value = emptyList()
+                                lastConversation = null
+                            }
+                        }
 
-                                val firstTool = tools[0].second
-                                val orderList = normalizeOrder(itemsOrder.split(",").filter { it.isNotEmpty() })
-                                val list = mutableListOf<Pair<String, () -> Unit>>()
+                        val tools by toolsState.collectAsStateWithLifecycle()
+                        val itemsOrder = remember { itemsOrder }
+                        val enabledItems = remember { enabledItems }
 
-                                list.add(QUICK_REPLY_NAME to {
-                                    showQuickReplyPicker(activity)
-                                })
+                        val sortedVisibleItems = remember(tools) {
+                            if (tools.isEmpty()) return@remember emptyList()
 
-                                list.add("相册" to {
-                                    firstTool.onClickListener.onItemClick(firstTool.gridView.get()!!, firstTool.itemView.get()!!, 0, 0)
-                                })
-                                list.add("系统拍摄" to {
-                                    firstTool.onLongClickListener.onItemLongClick(null, null, 0, 0)
-                                })
+                            val firstTool = tools[0].second
+                            val orderList = normalizeOrder(itemsOrder.split(",").filter { it.isNotEmpty() })
+                            val list = mutableListOf<Pair<String, () -> Unit>>()
 
-                                tools.forEach { (name, menuItem) ->
-                                    if (name in NAME_TO_ICON_MAP && name != "相册" && name != "系统拍摄") {
-                                        val gridView = menuItem.gridView.get() ?: return@forEach
-                                        val itemView = menuItem.itemView.get() ?: return@forEach
-                                        list.add(name to {
-                                            menuItem.onClickListener.onItemClick(
-                                                gridView,
-                                                itemView,
-                                                menuItem.indexInGrid + 1,
-                                                0
-                                            )
-                                        })
-                                    }
+                            list.add(QUICK_REPLY_NAME to {
+                                showQuickReplyPicker(activity)
+                            })
+
+                            list.add("相册" to {
+                                firstTool.onClickListener.onItemClick(firstTool.gridView.get()!!, firstTool.itemView.get()!!, 0, 0)
+                            })
+                            list.add("系统拍摄" to {
+                                firstTool.onLongClickListener.onItemLongClick(null, null, 0, 0)
+                            })
+
+                            tools.forEach { (name, menuItem) ->
+                                if (name in NAME_TO_ICON_MAP && name != "相册" && name != "系统拍摄") {
+                                    val gridView = menuItem.gridView.get() ?: return@forEach
+                                    val itemView = menuItem.itemView.get() ?: return@forEach
+                                    list.add(name to {
+                                        menuItem.onClickListener.onItemClick(
+                                            gridView,
+                                            itemView,
+                                            menuItem.indexInGrid + 1,
+                                            0
+                                        )
+                                    })
                                 }
-
-                                list.distinctBy { it.first }
-                                    .filter { it.first in enabledItems }
-                                    .sortedBy { item ->
-                                        val idx = orderList.indexOf(item.first)
-                                        if (idx == -1) Int.MAX_VALUE else idx
-                                    }
                             }
 
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp),
-                            ) {
-                                items(sortedVisibleItems, key = { it.first }) { (name, onClick) ->
-                                    val icon = iconFor(name)
-                                    FeatureChip(name, icon, onClick)
+                            list.distinctBy { it.first }
+                                .filter { it.first in enabledItems }
+                                .sortedBy { item ->
+                                    val idx = orderList.indexOf(item.first)
+                                    if (idx == -1) Int.MAX_VALUE else idx
                                 }
+                        }
+
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            items(sortedVisibleItems, key = { it.first }) { (name, onClick) ->
+                                val icon = iconFor(name)
+                                FeatureChip(name, icon, onClick)
                             }
                         }
                     }
-                }, 0)
-            }
+                }
+            }, 0)
+        }
     }
 
     override fun onDisable() {

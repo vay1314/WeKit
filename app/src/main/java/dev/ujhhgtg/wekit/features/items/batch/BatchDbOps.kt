@@ -13,7 +13,7 @@ private const val SQL_VARIABLE_CHUNK = 500
  * of rows deleted. Runs on the caller's thread.
  *
  * Note: the `rconversation` row is removed separately via WeChat's native cache-aware delete
- * ([dev.ujhhgtg.wekit.features.api.core.WeConversationApi.deleteConversation]) so the list refreshes
+ * ([dev.ujhhgtg.wekit.features.api.core.WeConversationApi.hideConversation]) so the list refreshes
  * live; message rows aren't cached in the conversation-list adapter, so a direct delete is fine.
  */
 fun deleteMessageRows(wxIds: Collection<String>, onError: (Throwable) -> Unit = {}): Int =

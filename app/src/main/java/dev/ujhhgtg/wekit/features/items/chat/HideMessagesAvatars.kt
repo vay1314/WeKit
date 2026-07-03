@@ -14,7 +14,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import de.robv.android.xposed.XC_MethodHook
 import dev.ujhhgtg.reflekt.reflekt
-import dev.ujhhgtg.wekit.features.api.core.models.MessageType
 import dev.ujhhgtg.wekit.features.api.ui.WeChatMessageViewApi
 import dev.ujhhgtg.wekit.features.core.ClickableFeature
 import dev.ujhhgtg.wekit.features.core.Feature
@@ -31,6 +30,12 @@ object HideMessagesAvatars : ClickableFeature(), WeChatMessageViewApi.ICreateVie
     var hideIncoming by prefOption("chat_hide_avatar_incoming", true)
     private var hideOutgoing by prefOption("chat_hide_avatar_outgoing", false)
 
+    private const val MASK_LAYOUT_CLASS = "com.tencent.mm.ui.base.MaskLayout"
+
+    // Remembers the original width of each avatar MaskLayout we shrink, so it can be restored
+    // when a recycled row should show its avatar again. Keyed weakly on the mask view itself.
+    private val originalMaskWidths = java.util.WeakHashMap<View, Int>()
+
     override fun onEnable() {
         WeChatMessageViewApi.addListener(this)
     }
@@ -43,10 +48,10 @@ object HideMessagesAvatars : ClickableFeature(), WeChatMessageViewApi.ICreateVie
         val tag = view.tag
         val msgInfo = WeChatMessageViewApi.getMsgInfoFromParam(param)
 
-        if (msgInfo.isSelfSender) {
-            if (!hideOutgoing) return
+        val hide = if (msgInfo.isSelfSender) {
+            hideOutgoing
         } else {
-            if (msgInfo.isInGroupChat || !hideIncoming) return
+            !msgInfo.isInGroupChat && hideIncoming
         }
 
         val avatar = tag.reflekt()
@@ -55,21 +60,35 @@ object HideMessagesAvatars : ClickableFeature(), WeChatMessageViewApi.ICreateVie
                 superclass()
             }.get() as? View? ?: return
 
-        if (msgInfo.type == MessageType.VIDEO) {
-            avatar.visibility = View.GONE
-            return
-        }
+        val parent = avatar.parent as? ViewGroup ?: return
 
-        if (msgInfo.type == MessageType.VOICE) {
+        if (parent.javaClass.name == MASK_LAYOUT_CLASS) {
+            // The avatar is wrapped in a MaskLayout (R.id.bk4) with a fixed 52dp size. In
+            // RelativeLayout-based rows (text, image, voice) sibling views are anchored
+            // toRightOf/toLeftOf this mask, so setting it GONE collapses the anchor to the
+            // edge and shifts the whole bubble. Instead, keep the mask visible but shrink it
+            // to zero width: the anchor stays valid while the avatar space disappears. This
+            // behaves identically to GONE inside LinearLayout rows (e.g. incoming video).
+            //
+            // WeChat resets the avatar's visibility on every bind but never its width, so the
+            // original width is remembered and restored on rows that should keep the avatar.
+            val lp = parent.layoutParams
+            if (hide) {
+                originalMaskWidths.getOrPut(parent) { lp.width }
+                lp.width = 0
+                parent.layoutParams = lp
+                avatar.visibility = View.GONE
+            } else {
+                originalMaskWidths.remove(parent)?.let { orig ->
+                    lp.width = orig
+                    parent.layoutParams = lp
+                }
+            }
+        } else if (hide) {
+            // The avatar is a direct child of the message row (e.g. outgoing video). A GONE
+            // child collapses correctly in the row's LinearLayout. Visibility is restored by
+            // WeChat itself on subsequent binds.
             avatar.visibility = View.GONE
-            return
-        }
-
-        (avatar.parent as ViewGroup).apply {
-            visibility = View.GONE
-            val lp = layoutParams as ViewGroup.MarginLayoutParams
-            if (msgInfo.isSelfSender) lp.rightMargin = 20 else lp.leftMargin = 20
-            requestLayout()
         }
     }
 

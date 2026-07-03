@@ -78,10 +78,11 @@ object BatchDeleteChatHistory : ClickableFeature() {
                 WeLogger.e(TAG, "failed to delete messages", it)
             }
 
-            // Remove the conversation rows via WeChat's native cache-aware delete (same path as the
-            // "删除该聊天" menu item), so the list refreshes immediately without a restart. That
-            // delete notifies list observers synchronously on the calling thread, so it must run on
-            // the main thread (see WeConversationApi.reloadConversations).
+            // Delete the conversations the way WeChat's "删除该聊天" does (after confirm): remove the
+            // rconversation row + sync the deletion to the server, not just hide the row. This is the
+            // fix for the old behavior, which called deleteConversation (the "不显示该聊天" hide path).
+            // It notifies list observers synchronously on the calling thread, so it must run on the
+            // main thread (see WeConversationApi.reloadConversations).
             withContext(Dispatchers.Main) {
                 wxIds.forEach { wxId -> WeConversationApi.deleteConversation(wxId) }
             }

@@ -411,11 +411,10 @@ unsafe extern "C" fn my_syscall(
                         return real as c_long;
                     }
                 }
-            } else if num == libc::SYS_ptrace {
-                if a as i64 == libc::PTRACE_TRACEME as i64 {
+            } else if num == libc::SYS_ptrace
+                && a as i64 == libc::PTRACE_TRACEME as i64 {
                     return 0;
                 }
-            }
         }
         orig(num, a, b, c, d, e, f)
     }

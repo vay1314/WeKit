@@ -68,7 +68,6 @@ import com.composables.icons.materialsymbols.outlined.Select_all
 import com.composables.icons.materialsymbols.outlined.Sort_by_alpha
 import com.composables.icons.materialsymbols.outlined.Swap_vert
 import com.composables.icons.materialsymbols.outlined.Tag
-import com.composables.icons.materialsymbols.outlined.Tune
 import dev.ujhhgtg.wekit.features.api.core.WeContactLabelApi
 import dev.ujhhgtg.wekit.features.api.core.WeDatabaseApi
 import dev.ujhhgtg.wekit.features.api.core.models.IWeContact

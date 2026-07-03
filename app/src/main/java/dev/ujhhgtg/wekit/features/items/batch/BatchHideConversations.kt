@@ -74,7 +74,7 @@ object BatchHideConversations : ClickableFeature() {
             var removed = 0
             withContext(Dispatchers.Main) {
                 wxIds.forEach { wxId ->
-                    if (WeConversationApi.deleteConversation(wxId)) removed++
+                    if (WeConversationApi.hideConversation(wxId)) removed++
                 }
             }
             showToastSuspend("已隐藏 $removed/${wxIds.size} 个对话")

@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import de.robv.android.xposed.XC_MethodHook
 import dev.ujhhgtg.comptime.This
+import dev.ujhhgtg.wekit.features.api.core.WeApi
 import dev.ujhhgtg.wekit.features.api.core.WeDatabaseApi
 import dev.ujhhgtg.wekit.features.api.core.WeMessageApi
 import dev.ujhhgtg.wekit.features.api.core.WeXmlParserApi
@@ -70,7 +71,7 @@ object AntiMessageRecall : ClickableFeature(), WeXmlParserApi.IAfterParseListene
             val msgSvrId = result[".sysmsg.revokemsg.newmsgid"] as? String?
                 ?: return
 
-            if (!replaceMsg.contains("\"") && !replaceMsg.contains("「")) {
+            if (talker == WeApi.selfWxId && !recallOutgoing) {
                 WeLogger.i(TAG, "outgoing message, skipping")
                 return
             }
@@ -78,7 +79,7 @@ object AntiMessageRecall : ClickableFeature(), WeXmlParserApi.IAfterParseListene
             result[typeKey] = null
 
             val cursor = WeDatabaseApi.rawQuery(
-                "SELECT content,createTime,talker FROM message WHERE msgSvrId = ?",
+                "SELECT content,createTime FROM message WHERE msgSvrId = ?",
                 arrayOf(msgSvrId)
             )
 
@@ -88,8 +89,6 @@ object AntiMessageRecall : ClickableFeature(), WeXmlParserApi.IAfterParseListene
                         cursor.getLong(cursor.getColumnIndexOrThrow("createTime"))
                     val content =
                         cursor.getString(cursor.getColumnIndexOrThrow("content"))
-                    val talker =
-                        cursor.getString(cursor.getColumnIndexOrThrow("talker"))
                     val match = NAME_REGEX.find(replaceMsg)
                     val senderName = match?.groupValues?.get(2) ?: "未知"
                     val humanReadable = try {
@@ -138,22 +137,26 @@ object AntiMessageRecall : ClickableFeature(), WeXmlParserApi.IAfterParseListene
                             supportingText = { Text($$"可使用占位符 $sender, $sendTime, $recallTime, $content") },
                             value = patternInput,
                             onValueChange = { patternInput = it },
-                            modifier = Modifier.fillMaxWidth())
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
                         TextField(
                             value = timeFormatInput,
                             onValueChange = { timeFormatInput = it },
                             label = { Text("时间格式") },
-                            modifier = Modifier.fillMaxWidth())
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 },
                 dismissButton = { TextButton(onDismiss) { Text("取消") } },
-                confirmButton = { Button({
-                    recallOutgoing = recallOutgoingInput
-                    pattern = patternInput
-                    timeFormat = timeFormatInput
-                    onDismiss()
-                }) { Text("确定") } })
+                confirmButton = {
+                    Button({
+                        recallOutgoing = recallOutgoingInput
+                        pattern = patternInput
+                        timeFormat = timeFormatInput
+                        onDismiss()
+                    }) { Text("确定") }
+                })
         }
     }
 }

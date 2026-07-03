@@ -292,7 +292,7 @@ object AutoForwardMoments : ClickableFeature(),
                 queryCachedTargetSnsIds()
             }.onFailure {
                 if (it !is UninitializedPropertyAccessException) {
-                    WeLogger.w(TAG, "failed to query cached target Moments", it)
+                    WeLogger.w(TAG, "failed to query cached target moments", it)
                 }
             }.getOrDefault(emptyList())
 
@@ -330,6 +330,7 @@ object AutoForwardMoments : ClickableFeature(),
         }
         return result
     }
+
     private fun processSnsInfo(snsInfo: Any, source: String) {
         val owner = WeMomentsApi.getOwnerWxId(snsInfo)?.trim().orEmpty()
         if (!isTarget(owner)) return
@@ -473,7 +474,11 @@ object AutoForwardMoments : ClickableFeature(),
         if (updated.size > MAX_FORWARDED_RECORDS) {
             val overflow = updated.size - MAX_FORWARDED_RECORDS
             val iterator = updated.iterator()
-            repeat(overflow) { if (iterator.hasNext()) { iterator.next(); iterator.remove() } }
+            repeat(overflow) {
+                if (iterator.hasNext()) {
+                    iterator.next(); iterator.remove()
+                }
+            }
         }
         forwardedSnsIds = updated
     }

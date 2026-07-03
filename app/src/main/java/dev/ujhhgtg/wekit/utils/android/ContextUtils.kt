@@ -1,6 +1,8 @@
 package dev.ujhhgtg.wekit.utils.android
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.os.Process
 import android.os.UserManager
@@ -18,3 +20,9 @@ inline val Context.androidUserId: Long
 // it is the caller's responsibility to ensure the class is a service
 inline fun <reified T : Any> Context.getSystemService(): T =
     getSystemService(T::class.java)!!
+
+tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}

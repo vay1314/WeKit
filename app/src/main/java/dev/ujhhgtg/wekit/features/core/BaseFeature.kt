@@ -41,7 +41,7 @@ abstract class BaseFeature {
             hasEnabled = true
             onEnable()
         }.onFailure { e ->
-            WeLogger.e(TAG, "failed to enable feature", e)
+            WeLogger.e(TAG, "failed to enable feature $displayName", e)
             // ensure transaction is fully discarded
             unhookAll()
             hasEnabled = false
@@ -56,7 +56,7 @@ abstract class BaseFeature {
             unhookAll()
             onDisable()
         }.onFailure { e ->
-            WeLogger.e(TAG, "failed to disable feature", e)
+            WeLogger.e(TAG, "failed to disable feature $displayName", e)
             hasEnabled = true
         }
     }
@@ -79,6 +79,7 @@ abstract class BaseFeature {
     internal fun registerUnhook(u: XC_MethodHook.Unhook) {
         unhooks += u
     }
+
     internal fun unhookAll() {
         unhooks.forEach { it.unhook() }
         unhooks.clear()
@@ -89,15 +90,16 @@ abstract class BaseFeature {
     internal fun Executable.hookBefore(
         priority: Int = 50,
         action: HookAction
-    ) = registerUnhook(XposedBridge.hookMethod(
-        this,
-        object :
-            XC_MethodHook(priority) {
-            override fun beforeHookedMethod(param: MethodHookParam) {
-                executeHookAction(param, action)
+    ) = registerUnhook(
+        XposedBridge.hookMethod(
+            this,
+            object :
+                XC_MethodHook(priority) {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    executeHookAction(param, action)
+                }
             }
-        }
-    ))
+        ))
 
     @JvmName("hookBefore2")
     internal fun BaseReflectedMethod.hookBefore(
@@ -134,15 +136,16 @@ abstract class BaseFeature {
     internal fun Executable.hookAfter(
         priority: Int = 50,
         action: HookAction
-    ) = registerUnhook(XposedBridge.hookMethod(
-        this,
-        object :
-            XC_MethodHook(priority) {
-            override fun afterHookedMethod(param: MethodHookParam) {
-                executeHookAction(param, action)
+    ) = registerUnhook(
+        XposedBridge.hookMethod(
+            this,
+            object :
+                XC_MethodHook(priority) {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    executeHookAction(param, action)
+                }
             }
-        }
-    ))
+        ))
 
     @JvmName("hookAfter2")
     internal fun BaseReflectedMethod.hookAfter(
