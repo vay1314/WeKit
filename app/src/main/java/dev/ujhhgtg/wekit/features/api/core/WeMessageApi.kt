@@ -2,6 +2,7 @@ package dev.ujhhgtg.wekit.features.api.core
 
 import android.annotation.SuppressLint
 import android.content.ContentValues
+import android.database.Cursor
 import com.tencent.mm.opensdk.modelmsg.WXFileObject
 import com.tencent.mm.opensdk.modelmsg.WXMediaMessage
 import com.tencent.mm.opensdk.modelmsg.WXMiniProgramObject
@@ -33,6 +34,7 @@ import dev.ujhhgtg.wekit.utils.collections.emptyHashSet
 import dev.ujhhgtg.wekit.utils.reflection.BBool
 import dev.ujhhgtg.wekit.utils.reflection.BInt
 import dev.ujhhgtg.wekit.utils.reflection.BString
+import dev.ujhhgtg.wekit.utils.reflection.StrArr
 import dev.ujhhgtg.wekit.utils.reflection.bool
 import dev.ujhhgtg.wekit.utils.reflection.int
 import dev.ujhhgtg.wekit.utils.reflection.void
@@ -235,21 +237,9 @@ object WeMessageApi : ApiFeature(), IResolveDex {
             )
         }
     }
-    private val classImageSender by dexClass()      // 发送逻辑核心
+    private val classImageSender by dexClass()
     private val classImageTask by dexClass(allowFailure = true) {
         matcher { usingStrings("msg_raw_img_send") }
-    }
-    private val classServiceManager by dexClass {
-        matcher {
-            usingStrings("MicroMsg.ServiceManager")
-            methods {
-                add {
-                    modifiers = Modifier.PUBLIC or Modifier.STATIC
-                    paramCount = 1
-                    paramTypes(Class::class.java.name)
-                }
-            }
-        }
     }
     private val classConfigLogic by dexClass {
         matcher {
@@ -273,17 +263,6 @@ object WeMessageApi : ApiFeature(), IResolveDex {
     private val classVoiceParams by dexClass {
         matcher {
             usingEqStrings("toUserName", "fileName", "send_voice_msg")
-        }
-    }
-    private val classVoiceTask by dexClass {
-        matcher {
-            usingStrings("MicroMsg.VoiceMsg.VoiceMsgSendTask")
-            methods {
-                add {
-                    name = "<init>"
-                    paramTypes(classVoiceParams.clazz)
-                }
-            }
         }
     }
     private val classVoiceNameGen by dexClass(allowFailure = true) {
@@ -380,24 +359,62 @@ object WeMessageApi : ApiFeature(), IResolveDex {
     // -------------------------------------------------------------------------------------
 
     // 基础 & 文本
-    private var getServiceMethod: Method? = null       // ServiceManager.getService
-    private lateinit var getSelfAliasMethod: Method
+    private val getSelfAliasMethod: Method by lazy {
+        classConfigLogic.reflekt()
+            .firstMethod {
+                name { it.length <= 2 }
+                modifiers(Modifiers.STATIC)
+                parameterCount = 0
+                returnType = String::class
+            }.self
+    }
 
     // 图片
-    private lateinit var imageServiceApiClass: Class<*>
-    private lateinit var sendImageMethod: Method
-    private lateinit var taskConstructor: Constructor<*>
-    private lateinit var crossParamsClass: Class<*>
+    private val imageServiceApiClass: Class<*> by lazy {
+        classImageServiceImpl.clazz.interfaces.first {
+            !it.isBuiltin
+        }
+    }
+    private val sendImageMethod: Method by lazy {
+        classImageServiceImpl.clazz.declaredMethods.first { m ->
+            m.parameterCount == 1 &&
+                    m.parameterTypes[0] == classImageTask.clazz &&
+                    m.returnType.name.contains("flow", ignoreCase = true)
+        }
+    }
+    private val taskConstructor: Constructor<*> by lazy { classImageTask.clazz.reflekt()
+        .firstConstructor { parameterCount = 5 }
+        .self }
+    private val crossParamsClass: Class<*> by lazy { taskConstructor.parameterTypes[4] }
 
     // 语音 & VFS
     private lateinit var vfsCopyMethod: Method         // VFS.L (write)
     private lateinit var vfsReadMethod: Method         // VFS.F (read)
     private lateinit var vfsExistsMethod: Method       // VFS.k/e (exists)
-    private lateinit var voiceNameGenMethod: Method    // g1.E
-    private lateinit var setVoiceMethod: Method        // 设置语音信息
+    private val voiceNameGenMethod: Method by lazy {
+        classVoiceNameGen.reflekt().firstMethod {
+            modifiers(Modifiers.STATIC)
+            parameters(String::class, VagueType)
+            returnType = String::class
+        }.self
+    }
+    private val setVoiceMethod: Method by lazy {
+        classVoiceNameGen.reflekt().firstMethod {
+            parameterCount { it == 3 || it == 4 }
+            parameters {
+                it[0] == BString && it[1].typeMatches(int) && it[2].typeMatches(int)
+            }
+            returnType = bool
+        }.self
+    }
     private var storageAccPathMethod: Method? = null  // b0.e (动态解析)
-    private lateinit var pathGenMethod: Method         // h1.c
-    private lateinit var voiceTaskConstructor: Constructor<*>
+    private val pathGenMethod: Method by lazy {
+        classPathUtil.reflekt().firstMethod {
+            modifiers(Modifiers.STATIC)
+            parameters(VagueType, VagueType, VagueType, VagueType, Int::class)
+            returnType = String::class
+        }.self
+    }
     private lateinit var voiceDurationField: Field     // 语音时长字段
     private lateinit var voiceOffsetField: Field       // 偏移量字段
 
@@ -475,13 +492,13 @@ object WeMessageApi : ApiFeature(), IResolveDex {
         classVoiceServiceInterface.setDescriptor(targetInterface.name)
     }
 
-    fun convertMsgInfoFromContentValues(contentValues: ContentValues, boolValue: Boolean): Any {
+    fun convertMsgInfoInstanceFromContentValues(contentValues: ContentValues): Any {
         val msgInfo = classMsgInfo.clazz.createInstance()
         msgInfo.reflekt().firstMethod {
             name = "convertFrom"
             parameters(ContentValues::class, Boolean::class)
             superclass()
-        }.invoke(contentValues, boolValue)
+        }.invoke(contentValues, true)
         return msgInfo
     }
 
@@ -495,9 +512,9 @@ object WeMessageApi : ApiFeature(), IResolveDex {
             put("talker", talker)
             put("content", content)
         }
-        val msgInfo = convertMsgInfoFromContentValues(values, true)
+        val msgInfo = convertMsgInfoInstanceFromContentValues(values)
         methodMsgInfoStorageInsertMessage.method.invoke(
-            WeServiceApi.messageInfoStorage,
+            WeServiceApi.msgInfoStorage,
             msgInfo
         )
     }
@@ -513,27 +530,66 @@ object WeMessageApi : ApiFeature(), IResolveDex {
         }
     }
 
-    fun getMsgInfoInstanceBySvrId(serverId: Long): Any {
-        val getMsgMethod = WeServiceApi.messageInfoStorage.reflekt()
-            .firstMethod { parameters(Long::class.java) }
-        return getMsgMethod.invoke(serverId)!!
+    fun revokeMsg(msgId: Long): Boolean {
+        return revokeMsg(MessageInfo(getMsgInfoInstanceByMsgId(msgId, arrayOf("createTime", "type"))))
     }
 
-    fun sendQuoteMsg(talker: String, msgSvrId: Long, content: String): Boolean {
-        return sendQuoteMsg(talker, msgSvrId, content, null)
+    private val classSqliteWrapper by dexClass {
+        matcher {
+            usingEqStrings("DB IS CLOSED ! {%s}", "beginTransaction Error :")
+        }
     }
 
-    fun sendQuoteMsg(talker: String, msgSvrId: Long, content: String, referContent: String?): Boolean {
+    fun getMsgInfoInstanceBySql(whereClause: String, whereArgs: Array<String>, columnNames: Array<String>): Any {
+        val msgInfoStorage = WeServiceApi.msgInfoStorage
+        val sqliteWrapper = msgInfoStorage.reflekt().firstField { type = classSqliteWrapper.clazz }.get()!!
+        val cursor = sqliteWrapper.reflekt().firstMethod {
+            parameters(BString, StrArr, BString, StrArr, BString, BString, BString, int)
+        }.invoke("message", columnNames + arrayOf("msgId", "lvbuffer"), whereClause, whereArgs, null, null, null, 2) as Cursor
+        return convertMsgInfoInstanceFromCursor(cursor)
+    }
+
+    fun getMsgInfoInstanceByMsgId(msgId: Long, columnNames: Array<String>): Any {
+        return getMsgInfoInstanceBySql("msgId=?", arrayOf(msgId.toString()), columnNames)
+    }
+
+//    /** Resolve a local [msgId] (message.msgId primary key) to its server id (message.msgSvrId). */
+//    fun msgIdToMsgSvrId(msgId: Long): Long {
+//        val msgInfo = getMsgInfoInstanceBySql("msgId=?", arrayOf(msgId.toString()), arrayOf("msgSvrId"))
+//        return MessageInfo(msgInfo).serverId
+//    }
+//
+//    /** Resolve a server id (message.msgSvrId) to its local [msgId] (message.msgId primary key). */
+//    fun msgSvrIdToMsgId(msgSvrId: Long): Long {
+//        val msgInfo = getMsgInfoInstanceBySql("msgSvrId=?", arrayOf(msgSvrId.toString()), arrayOf("msgId"))
+//        return MessageInfo(msgInfo).id
+//    }
+
+    fun convertMsgInfoInstanceFromCursor(cursor: Cursor): Any {
+        val msgInfo = classMsgInfo.clazz.createInstance()
+        msgInfo.reflekt().firstMethod {
+            name = "convertFrom"
+            parameters(Cursor::class)
+            returnType = void
+        }.invoke(cursor)
+        return msgInfo
+    }
+
+    fun sendQuoteMsg(talker: String, msgId: Long, content: String): Boolean {
+        return sendQuoteMsg(talker, msgId, content, null)
+    }
+
+    fun sendQuoteMsg(talker: String, msgId: Long, content: String, referContent: String?): Boolean {
         return try {
             WeLogger.i(TAG, "sending quote message to $talker")
-            val f8 = getMsgInfoInstanceBySvrId(msgSvrId)
+            val f8 = getMsgInfoInstanceByMsgId(msgId, arrayOf("type", "msgSvrId", "talker", "content", "createTime"))
             val mi = MessageInfo(f8)
             val appmsg = JSONObject()
             appmsg.put("type", 57)
             appmsg.put("title", content)
             val refermsg = JSONObject()
             refermsg.put("type", mi.typeCode)
-            refermsg.put("svrid", msgSvrId)
+            refermsg.put("svrid", msgId)
             refermsg.put("fromusr", mi.talker)
             refermsg.put("chatusr", mi.talker)
             refermsg.put("displayname", WeDatabaseApi.getDisplayName(mi.talker))
@@ -694,20 +750,6 @@ object WeMessageApi : ApiFeature(), IResolveDex {
     }
 
     override fun onEnable() {
-        // -----------------------------------------------------------------------------
-        // 图片组件初始化
-        // -----------------------------------------------------------------------------
-        taskConstructor = classImageTask.clazz.reflekt()
-            .firstConstructor { parameterCount = 5 }
-            .self
-
-        crossParamsClass = taskConstructor.parameterTypes[4]
-
-        // -----------------------------------------------------------------------------
-        // 语音/VFS 组件初始化
-        // -----------------------------------------------------------------------------
-
-        // VFS
         classVfs.reflekt().apply {
             vfsReadMethod = firstMethod {
                 modifiers(Modifiers.STATIC)
@@ -728,64 +770,11 @@ object WeMessageApi : ApiFeature(), IResolveDex {
             }.self
         }
 
-        pathGenMethod = classPathUtil.reflekt().firstMethod {
-            modifiers(Modifiers.STATIC)
-            parameters(VagueType, VagueType, VagueType, VagueType, Int::class)
-            returnType = String::class
-        }.self
-
-        // Voice Components
-        voiceNameGenMethod = classVoiceNameGen.reflekt().firstMethod {
-            modifiers(Modifiers.STATIC)
-            parameters(String::class, VagueType)
-            returnType = String::class
-        }.self
-
-        setVoiceMethod = classVoiceNameGen.reflekt().firstMethod {
-            parameterCount { it == 3 || it == 4 }
-            parameters {
-                it[0] == BString && it[1].typeMatches(int) && it[2].typeMatches(int)
-            }
-            returnType = bool
-        }.self
-
         classVoiceParams.reflekt().apply {
             val intFields = fields { type = Int::class }
             voiceDurationField = intFields[0].self
             voiceOffsetField = intFields[1].self
         }
-
-        voiceTaskConstructor = classVoiceTask.reflekt()
-            .firstConstructor {
-                parameters(classVoiceParams.clazz)
-            }.self
-
-        getServiceMethod = classServiceManager.reflekt()
-            .firstMethod {
-                modifiers(Modifiers.STATIC)
-                parameters(Class::class)
-            }.self
-
-        getSelfAliasMethod = classConfigLogic.reflekt()
-            .firstMethod {
-                name { it.length <= 2 }
-                modifiers(Modifiers.STATIC)
-                parameterCount = 0
-                returnType = String::class
-            }.self
-
-        imageServiceApiClass = classImageServiceImpl.clazz.interfaces.first {
-            !it.isBuiltin
-        }
-
-        sendImageMethod = classImageServiceImpl.clazz.declaredMethods.first { m ->
-            m.parameterCount == 1 &&
-                    m.parameterTypes[0] == classImageTask.clazz &&
-                    m.returnType.name.contains("flow", ignoreCase = true)
-        }
-
-        crossParamsClass = classImageTask.clazz.declaredConstructors
-            .first { it.parameterCount == 5 }.parameterTypes[4]
     }
 
     /**
@@ -839,7 +828,7 @@ object WeMessageApi : ApiFeature(), IResolveDex {
     /** 发送图片消息 */
     fun sendImage(toUser: String, imgPath: String): Boolean {
         return try {
-            val serviceObj = getServiceMethod?.invoke(null, imageServiceApiClass) ?: return false
+            val serviceObj = WeServiceApi.getServiceByClass(imageServiceApiClass)
 
             val paramsObj = crossParamsClass.createInstance()
             paramsObj.reflekt()

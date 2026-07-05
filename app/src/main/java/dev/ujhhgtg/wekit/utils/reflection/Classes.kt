@@ -35,3 +35,5 @@ inline val BDouble get() = Double::class.java
 inline val BChar get() = Char::class.java
 
 inline val BString get() = String::class.java
+
+inline val StrArr get() = Array<String>::class.java

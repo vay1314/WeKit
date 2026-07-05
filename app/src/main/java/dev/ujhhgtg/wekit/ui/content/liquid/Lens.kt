@@ -69,6 +69,7 @@ fun BackdropEffectScope.lens(
         }
     }
 }
+
 private fun BackdropEffectScope.roundedRectCornerRadii(): FloatArray? {
     val cornerShape = shape as? CornerBasedShape ?: return null
     val sizePx = size

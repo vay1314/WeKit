@@ -22,8 +22,8 @@ import java.nio.ByteBuffer
 
 class MessageInfo(val instance: Any) {
 
-    val typeCode = getFieldByName<Int>(instance, "field_type")
-    val type = MessageType.fromCode(typeCode)
+    val typeCode by lazy { getFieldByName<Int>(instance, "field_type") }
+    val type by lazy { MessageType.fromCode(typeCode) }
 
     val id by lazy { getFieldByName<Long>(instance, "field_msgId") }
     val serverId by lazy { getFieldByName<Long>(instance, "field_msgSvrId") }
@@ -123,8 +123,8 @@ class MessageInfo(val instance: Any) {
             return false
         }
 
-    val isInGroupChat = talker.isGroupChatWxId
-    val isOfficialAccount = talker.startsWith("gh_")
+    val isInGroupChat get() = talker.isGroupChatWxId
+    val isOfficialAccount get() = talker.startsWith("gh_")
     val sender by lazy {
         @Suppress("DEPRECATION")
         if (typeCode == MessageType.SYSTEM.code) {
@@ -291,7 +291,7 @@ class MessageInfo(val instance: Any) {
         }
 
         fun fromContentValues(contentValues: ContentValues): MessageInfo {
-            return MessageInfo(WeMessageApi.convertMsgInfoFromContentValues(contentValues, true))
+            return MessageInfo(WeMessageApi.convertMsgInfoInstanceFromContentValues(contentValues))
         }
     }
 }

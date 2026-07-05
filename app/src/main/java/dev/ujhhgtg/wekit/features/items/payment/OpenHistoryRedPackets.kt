@@ -58,6 +58,9 @@ object OpenHistoryRedPackets : ClickableFeature(), WeContactPrefsScreenApi.ICont
     private val TAG = This.Class.simpleName
     private const val PREF_KEY = "open_history_red_packets"
 
+    // 微信红包超过 24 小时即过期, 扫描更早的消息没有意义
+    private const val RED_PACKET_EXPIRY_MILLIS = 24L * 60 * 60 * 1000
+
     private val classReceiveLuckyMoney by dexClass {
         matcher {
             methods {
@@ -218,8 +221,11 @@ object OpenHistoryRedPackets : ClickableFeature(), WeContactPrefsScreenApi.ICont
             try {
                 var pageIndex = 1
                 val pageSize = 20
+                // 消息按 createTime 倒序返回, 一旦遇到超过 24 小时的消息, 其后的消息必然全部过期, 可直接停止扫描
+                val expiryThreshold = System.currentTimeMillis() - RED_PACKET_EXPIRY_MILLIS
+                var reachedExpired = false
 
-                while (isRunning) {
+                while (isRunning && !reachedExpired) {
                     val messages = WeDatabaseApi.getMessages(convId, pageIndex, pageSize)
                     if (messages.isEmpty()) {
                         break
@@ -227,6 +233,11 @@ object OpenHistoryRedPackets : ClickableFeature(), WeContactPrefsScreenApi.ICont
 
                     for (msg in messages) {
                         if (!isRunning) break
+
+                        if (msg.createTime < expiryThreshold) {
+                            reachedExpired = true
+                            break
+                        }
 
                         val isRedPacket = MessageType.fromCode(msg.typeCode)?.isRedPacket == true
                         if (isRedPacket) {
@@ -238,7 +249,11 @@ object OpenHistoryRedPackets : ClickableFeature(), WeContactPrefsScreenApi.ICont
                 }
 
                 if (isRunning) {
-                    updateLog("所有历史消息扫描完毕")
+                    if (reachedExpired) {
+                        updateLog("已扫描完 24 小时内的消息, 更早的红包已过期, 停止扫描")
+                    } else {
+                        updateLog("所有历史消息扫描完毕")
+                    }
                     isRunning = false
                 }
             } catch (e: Throwable) {

@@ -74,6 +74,9 @@ object DisplayGroupMemberRoles : ClickableFeature(), IResolveDex,
     private var ownerFg by WePrefs.prefOption("group_role_owner_fg", DEFAULT_OWNER_FG)
     private var adminFg by WePrefs.prefOption("group_role_admin_fg", DEFAULT_ADMIN_FG)
     private var memberFg by WePrefs.prefOption("group_role_member_fg", DEFAULT_MEMBER_FG)
+    private var ownerText by WePrefs.prefOption("group_role_owner_text", "群主")
+    private var adminText by WePrefs.prefOption("group_role_admin_text", "管理员")
+    private var memberText by WePrefs.prefOption("group_role_member_text", "成员")
 
     private var showMember by WePrefs.prefOption("group_role_show_member", true)
 
@@ -88,6 +91,9 @@ object DisplayGroupMemberRoles : ClickableFeature(), IResolveDex,
             var of by remember { mutableStateOf(ownerFg) }
             var af by remember { mutableStateOf(adminFg) }
             var mf by remember { mutableStateOf(memberFg) }
+            var ot by remember { mutableStateOf(ownerText) }
+            var at by remember { mutableStateOf(memberText) }
+            var mt by remember { mutableStateOf(adminText) }
             var showMem by remember { mutableStateOf(showMember) }
 
             AlertDialogContent(
@@ -100,29 +106,41 @@ object DisplayGroupMemberRoles : ClickableFeature(), IResolveDex,
                             trailingContent = { Switch(showMem, null) },
                         )
                         TextField(
-                            label = { Text("群主 背景色 (ARGB)") },
+                            label = { Text("群主 | 背景色") },
                             value = ob,
                             onValueChange = { ob = it })
                         TextField(
-                            label = { Text("群主 前景色 (ARGB)") },
+                            label = { Text("群主 | 前景色") },
                             value = of,
                             onValueChange = { of = it })
                         TextField(
-                            label = { Text("管理员 背景色 (ARGB)") },
+                            label = { Text("管理员 | 背景色") },
                             value = ab,
                             onValueChange = { ab = it })
                         TextField(
-                            label = { Text("管理员 前景色 (ARGB)") },
+                            label = { Text("管理员 | 前景色") },
                             value = af,
                             onValueChange = { af = it })
                         TextField(
-                            label = { Text("成员 背景色 (ARGB)") },
+                            label = { Text("成员 | 背景色") },
                             value = mb,
                             onValueChange = { mb = it })
                         TextField(
-                            label = { Text("成员 前景色 (ARGB)") },
+                            label = { Text("成员 | 前景色") },
                             value = mf,
                             onValueChange = { mf = it })
+                        TextField(
+                            label = { Text("群主 | 文本") },
+                            value = ot,
+                            onValueChange = { ot = it })
+                        TextField(
+                            label = { Text("管理员 | 文本") },
+                            value = at,
+                            onValueChange = { at = it })
+                        TextField(
+                            label = { Text("成员 | 文本") },
+                            value = mt,
+                            onValueChange = { mt = it })
                     }
                 },
                 dismissButton = { TextButton(onDismiss) { Text("取消") } },
@@ -135,6 +153,9 @@ object DisplayGroupMemberRoles : ClickableFeature(), IResolveDex,
                         adminFg = af
                         memberFg = mf
                         showMember = showMem
+                        ownerText = ot
+                        adminText = at
+                        memberText = mt
                         onDismiss()
                     }) { Text("确定") }
                 })
@@ -188,9 +209,9 @@ object DisplayGroupMemberRoles : ClickableFeature(), IResolveDex,
         val displayName = textView.text
 
         val roleText = when (role) {
-            1 -> "群主"
-            2 -> "管理员"
-            3 -> "成员"
+            1 -> ownerText
+            2 -> adminText
+            3 -> memberText
             else -> unreachable()
         }
 

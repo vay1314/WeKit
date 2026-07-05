@@ -125,7 +125,7 @@ object ReMoment : SwitchFeature(), WeMomentsContextMenuApi.IMenuItemsProvider {
                     Button(onClick = {
                         onDismiss()
                         quickRepostMoment(context)
-                    }) { Text("一键转发, 保留实况") }
+                    }) { Text("保留实况一键转发") }
                 },
                 dismissButton = {
                     TextButton(onClick = {

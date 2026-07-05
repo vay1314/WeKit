@@ -6,14 +6,18 @@ import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import io.github.libxposed.service.XposedServiceHelper.OnServiceListener
 import kotlinx.coroutines.flow.MutableStateFlow
-import java.io.File
 
 /**
- * This class is only intended to be used in module process, not in host process.
+ * Activation status detection via the libxposed service.
+ *
+ * Only intended to be used in the module process. Modern frameworks (LSPosed etc.)
+ * bind an [XposedService] to the module process, from which the activation state and
+ * scope can be read. The legacy de.robv api is not consulted here.
  */
 object HookStatus {
 
     val xposedService: MutableStateFlow<XposedService?> = MutableStateFlow(null)
+
     private var xposedServiceListenerRegistered = false
     private val xposedServiceListener = object : OnServiceListener {
         override fun onServiceBind(service: XposedService) {
@@ -25,105 +29,10 @@ object HookStatus {
         }
     }
 
-    val zygoteHookProvider: String?
-        get() = HookStatusImpl.zygoteHookProvider
-
-    val isZygoteHookMode: Boolean
-        get() = HookStatusImpl.zygoteHookMode
-
-    val isLegacyXposed: Boolean
-        get() {
-            try {
-                ClassLoader.getSystemClassLoader()
-                    .loadClass("de.robv.android.xposed.XposedBridge")
-                return true
-            } catch (_: ClassNotFoundException) {
-                return false
-            }
-        }
-
-    val isElderDriverXposed: Boolean
-        get() = File("/system/framework/edxp.jar").exists()
-
     fun init(context: Context) {
-        if (context.packageName == PackageNames.MODULE) {
-            if (!xposedServiceListenerRegistered) {
-                XposedServiceHelper.registerListener(xposedServiceListener)
-                xposedServiceListenerRegistered = true
-            }
-        } else {
-            // in host process???
-            try {
-                initHookStatusImplInHostProcess()
-            } catch (_: LinkageError) {
-            }
+        if (context.packageName == PackageNames.MODULE && !xposedServiceListenerRegistered) {
+            XposedServiceHelper.registerListener(xposedServiceListener)
+            xposedServiceListenerRegistered = true
         }
-    }
-
-    val hookType: HookType
-        get() {
-            if (isZygoteHookMode) {
-                return HookType.ZYGOTE
-            }
-            return HookType.NONE
-        }
-
-    private fun initHookStatusImplInHostProcess() {
-        val xposedClass = LoaderExtensionHelper.getXposedBridgeClass()
-        var dexObfsEnabled = false
-        if (xposedClass != null) {
-            dexObfsEnabled = "de.robv.android.xposed.XposedBridge" != xposedClass.name
-        }
-        var hookProvider: String? = null
-        if (dexObfsEnabled) {
-            HookStatusImpl.isLsposedDexObfsEnabled = true
-            hookProvider = "LSPosed"
-        } else {
-            var bridgeTag: String? = null
-            if (xposedClass != null) {
-                try {
-                    bridgeTag = xposedClass.getDeclaredField("TAG").get(null) as String?
-                } catch (_: ReflectiveOperationException) {
-                }
-            }
-            if (bridgeTag != null) {
-                if (bridgeTag.startsWith("LSPosed")) {
-                    hookProvider = "LSPosed"
-                } else if (bridgeTag.startsWith("EdXposed")) {
-                    hookProvider = "EdXposed"
-                } else if (bridgeTag.startsWith("PineXposed")) {
-                    hookProvider = "Dreamland"
-                }
-            }
-        }
-        if (hookProvider != null) {
-            HookStatusImpl.zygoteHookProvider = hookProvider
-        }
-    }
-
-    val hookProviderNameForLegacyApi: String
-        get() {
-            if (isZygoteHookMode) {
-                val name: String? = zygoteHookProvider
-                if (name != null) {
-                    return name
-                }
-                if (isLegacyXposed) {
-                    return "Legacy Xposed"
-                }
-                if (isElderDriverXposed) {
-                    return "EdXposed"
-                }
-                return "Unknown (Zygote)"
-            }
-            return "None"
-        }
-
-    val isModuleEnabled: Boolean
-        get() = hookType != HookType.NONE
-
-    enum class HookType {
-        NONE,
-        ZYGOTE,
     }
 }

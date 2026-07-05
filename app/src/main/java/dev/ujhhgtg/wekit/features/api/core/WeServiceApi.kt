@@ -183,7 +183,7 @@ object WeServiceApi : ApiFeature(), IResolveDex {
         getServiceByClass(classStorageFeatureService.clazz)
     }
 
-    val messageInfoStorage by lazy {
+    val msgInfoStorage by lazy {
         storageFeatureService.reflekt()
             .firstMethod {
                 parameterCount = 0

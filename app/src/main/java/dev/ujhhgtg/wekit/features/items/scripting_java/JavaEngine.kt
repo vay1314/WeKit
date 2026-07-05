@@ -23,7 +23,6 @@ import dev.ujhhgtg.wekit.features.api.core.WeGroupApi
 import dev.ujhhgtg.wekit.features.api.core.WeMessageApi
 import dev.ujhhgtg.wekit.features.api.core.WePaymentApi
 import dev.ujhhgtg.wekit.features.api.core.WeServiceApi
-import dev.ujhhgtg.wekit.features.api.core.models.MessageInfo
 import dev.ujhhgtg.wekit.features.api.core.models.MessageType
 import dev.ujhhgtg.wekit.features.api.net.WeNetSceneApi
 import dev.ujhhgtg.wekit.features.api.ui.WeCurrentConversationApi
@@ -912,9 +911,9 @@ object JavaEngine {
             setMethod(BshMethod(
                 "revokeMsg", arrayOf(java.lang.Long.TYPE)
             ) {
-                val msgSvrId = it[0] as Long
+                val msgId = it[0] as Long
                 return@BshMethod runCatchingBsh("revokeMsg") {
-                    WeMessageApi.revokeMsg(MessageInfo(WeMessageApi.getMsgInfoInstanceBySvrId(msgSvrId)))
+                    WeMessageApi.revokeMsg(msgId)
                 }.getOrDefault(false)
             })
 
@@ -923,10 +922,10 @@ object JavaEngine {
                 "sendQuoteMsg", arrayOf(BString, java.lang.Long.TYPE, BString)
             ) {
                 val talker = it[0] as String
-                val msgSvrId = it[1] as Long
-                val content = it[2] as String
+                val content = it[1] as String
+                val msgId = it[2] as Long
                 return@BshMethod runCatchingBsh("sendQuoteMsg") {
-                    WeMessageApi.sendQuoteMsg(talker, msgSvrId, content)
+                    WeMessageApi.sendQuoteMsg(talker, msgId, content)
                 }.getOrDefault(false)
             })
 

@@ -150,7 +150,8 @@ object ActivityProxy {
 
     object ActProxyMgr {
         const val ACTIVITY_PROXY_INTENT_TOKEN = "wekit_target_intent_token"
-        const val STUB_DEFAULT_ACTIVITY = "${PackageNames.WECHAT}.app.WeChatSplashActivity"
+        const val SETTINGS_PROXY = "${PackageNames.WECHAT}.app.WeChatSplashActivity"
+        const val TRANSPARENT_PROXY = "${PackageNames.WECHAT}.plugin.appbrand.ipc.AppBrandProxyTransparentUI"
 
         fun isModuleProxyActivity(className: String?): Boolean =
             className?.startsWith(PackageNames.MODULE) == true
@@ -186,8 +187,10 @@ object ActivityProxy {
 
         private fun createTokenWrapper(raw: Intent): Intent {
             val token = IntentTokenCache.put(Intent(raw))
+            val className = raw.component!!.className
+            val proxyClass = if (className.contains("SettingsActivity")) ActProxyMgr.SETTINGS_PROXY else ActProxyMgr.TRANSPARENT_PROXY
             return Intent {
-                component = ComponentName(HostInfo.packageName, ActProxyMgr.STUB_DEFAULT_ACTIVITY)
+                component = ComponentName(HostInfo.packageName, proxyClass)
                 flags = raw.flags
                 action = raw.action
                 setDataAndType(raw.data, raw.type)
@@ -197,7 +200,7 @@ object ActivityProxy {
             }.also {
                 WeLogger.i(
                     TAG,
-                    "hijacked startActivity via token: ${raw.component!!.className} -> ${ActProxyMgr.STUB_DEFAULT_ACTIVITY}"
+                    "hijacked startActivity via token: $className -> $proxyClass"
                 )
             }
         }

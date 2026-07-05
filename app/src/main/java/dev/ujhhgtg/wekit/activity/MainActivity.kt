@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -34,6 +36,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
@@ -48,8 +52,10 @@ import androidx.core.net.toUri
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.outlined.Open_in_new
 import com.composables.icons.materialsymbols.outlined.Settings
+import com.composables.icons.materialsymbols.outlinedfilled.Check_circle
 import com.composables.icons.materialsymbols.outlinedfilled.Info
 import com.composables.icons.materialsymbols.outlinedfilled.More_vert
+import com.composables.icons.materialsymbols.outlinedfilled.Warning
 import com.topjohnwu.superuser.Shell
 import dev.ujhhgtg.wekit.BuildConfig
 import dev.ujhhgtg.wekit.constants.PackageNames
@@ -61,7 +67,6 @@ import dev.ujhhgtg.wekit.ui.utils.GitHubIcon
 import dev.ujhhgtg.wekit.ui.utils.TelegramIcon
 import dev.ujhhgtg.wekit.ui.utils.theme.darkScheme
 import dev.ujhhgtg.wekit.ui.utils.theme.lightScheme
-import dev.ujhhgtg.wekit.utils.android.Intent
 import dev.ujhhgtg.wekit.utils.android.androidUserId
 import dev.ujhhgtg.wekit.utils.android.getEnabled
 import dev.ujhhgtg.wekit.utils.android.setEnabled
@@ -70,7 +75,6 @@ import dev.ujhhgtg.wekit.utils.formatEpoch
 import dev.ujhhgtg.wekit.utils.hook_status.HookStatus
 import dev.ujhhgtg.wekit.utils.openInSystem
 import dev.ujhhgtg.wekit.utils.registerBshSnapshotDecompileLaunchers
-
 
 class MainActivity : ComponentActivity() {
 
@@ -106,7 +110,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        runCatching { HookStatus.init(this) }
+        if (BuildConfig.HAS_LIBXPOSED_ENTRY) {
+            runCatching { HookStatus.init(this) }
+        }
+
         Shell.getShell()
 
         setContent {
@@ -121,12 +128,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-//    private data class ActivationState(
-//        val isActivated: Boolean,
-//        val title: String,
-//        val desc: String,
-//        val color: Color
-//    )
+    private data class ActivationState(
+        val isActivated: Boolean,
+        val title: String,
+        val desc: String,
+        val color: Color
+    )
 
     @Composable
     private fun AppContent(resultLauncher: ActivityResultLauncher<String>, onUrlClick: (String) -> Unit) {
@@ -149,44 +156,25 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-//        val isHookEnabledByLegacyApi = remember { HookStatus.isModuleEnabled || HostInfo.isHost }
+        @Composable
+        fun rememberActivationState(): ActivationState {
+            val xposedService by HookStatus.xposedService.collectAsState()
+            val isHookEnabled = remember(xposedService) {
+                xposedService?.scope?.contains(PackageNames.WECHAT) == true
+            }
 
-//        @Composable
-//        fun rememberActivationState(): ActivationState {
-//            val hostAppPackages = remember { setOf(PackageNames.WECHAT) }
-//            val xposedService by HookStatus.xposedService.collectAsState()
-//            val isHookEnabledByLibXposedApi = remember(xposedService) {
-//                xposedService?.let {
-//                    hostAppPackages.intersect(it.scope.toSet()).isNotEmpty()
-//                } ?: false
-//            }
-//
-//            val isHookEnabled = isHookEnabledByLegacyApi || isHookEnabledByLibXposedApi
-//
-//            return remember(
-//                isHookEnabled,
-//                isHookEnabledByLibXposedApi,
-//                xposedService
-//            ) {
-//                ActivationState(
-//                    isActivated = isHookEnabled,
-//                    title = if (isHookEnabled) "已激活" else "未激活",
-//                    desc = if (HostInfo.isHost) {
-//                        HostInfo.packageName
-//                    } else {
-//                        if (isHookEnabledByLibXposedApi) {
-//                            "${xposedService?.frameworkName} ${xposedService?.frameworkVersion} " +
-//                                    "(${xposedService?.frameworkVersionCode}), API ${xposedService?.apiVersion}"
-//                        } else {
-//                            HookStatus.hookProviderNameForLegacyApi
-//                        }
-//                    },
-//                    color = if (isHookEnabled) Color(0xFF4CAF50) else Color(0xFFF44336)
-//                )
-//            }
-//        }
-
-//        val activationState = rememberActivationState()
+            return remember(isHookEnabled, xposedService) {
+                ActivationState(
+                    isActivated = isHookEnabled,
+                    title = if (isHookEnabled) "已激活" else "未激活",
+                    desc = xposedService?.let {
+                        "${it.frameworkName} ${it.frameworkVersion} " +
+                                "(${it.frameworkVersionCode}), API ${it.apiVersion}"
+                    } ?: "未检测到 Xposed 框架, 请确认已在管理器中启用模块并勾选微信",
+                    color = if (isHookEnabled) Color(0xFF4CAF50) else Color(0xFFF44336)
+                )
+            }
+        }
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -211,7 +199,10 @@ class MainActivity : ComponentActivity() {
                     ),
                     actions = {
                         IconButton(onClick = { showMenu = !showMenu }) {
-                            Icon(MaterialSymbols.OutlinedFilled.More_vert, contentDescription = "Menu")
+                            Icon(
+                                MaterialSymbols.OutlinedFilled.More_vert,
+                                contentDescription = "Menu"
+                            )
                         }
                         DropdownMenu(
                             expanded = showMenu,
@@ -278,35 +269,40 @@ class MainActivity : ComponentActivity() {
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-//                Card(
-//                    colors = CardDefaults.cardColors(containerColor = activationState.color),
-//                    modifier = Modifier.fillMaxWidth()
-//                ) {
-//                    Row(
-//                        modifier = Modifier.padding(16.dp),
-//                        verticalAlignment = Alignment.CenterVertically
-//                    ) {
-//                        Icon(
-//                            imageVector = if (activationState.isActivated) MaterialSymbols.OutlinedFilled.Check_circle else MaterialSymbols.OutlinedFilled.Warning,
-//                            contentDescription = null,
-//                            tint = Color.White,
-//                            modifier = Modifier.size(32.dp)
-//                        )
-//                        Spacer(modifier = Modifier.width(16.dp))
-//                        Column {
-//                            Text(
-//                                text = activationState.title,
-//                                style = MaterialTheme.typography.titleMedium,
-//                                color = Color.White
-//                            )
-//                            Text(
-//                                text = activationState.desc,
-//                                style = MaterialTheme.typography.bodySmall,
-//                                color = Color.White.copy(alpha = 0.8f)
-//                            )
-//                        }
-//                    }
-//                }
+                // The activation card relies on the libxposed service, which is only
+                // bound when the module ships the libxposed entry point (standard flavor).
+                if (BuildConfig.HAS_LIBXPOSED_ENTRY) {
+                    val activationState = rememberActivationState()
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = activationState.color),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (activationState.isActivated) MaterialSymbols.OutlinedFilled.Check_circle else MaterialSymbols.OutlinedFilled.Warning,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    text = activationState.title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = activationState.desc,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
+                }
 
                 ElevatedCard(
                     modifier = Modifier.fillMaxWidth(),
@@ -387,7 +383,7 @@ class MainActivity : ComponentActivity() {
                         val hostPkg =
                             prefs.getString("host_pkg_name", PackageNames.WECHAT)!!
                         try {
-                            startActivity(Intent {
+                            startActivity(dev.ujhhgtg.wekit.utils.android.Intent {
                                 setClassName(hostPkg, "${PackageNames.WECHAT}.ui.LauncherUI")
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 putExtra(BuildConfig.TAG, "1")
@@ -427,7 +423,14 @@ class MainActivity : ComponentActivity() {
                 }
 
                 if (showModifyHostPkgNameDialog) {
-                    var pkgName by remember { mutableStateOf(prefs.getString("host_pkg_name", PackageNames.WECHAT)!!) }
+                    var pkgName by remember {
+                        mutableStateOf(
+                            prefs.getString(
+                                "host_pkg_name",
+                                PackageNames.WECHAT
+                            )!!
+                        )
+                    }
 
                     AlertDialog(
                         onDismissRequest = { showModifyHostPkgNameDialog = false },
@@ -445,7 +448,9 @@ class MainActivity : ComponentActivity() {
 
                         },
                         dismissButton = {
-                            TextButton(onClick = { showModifyHostPkgNameDialog = false }) { Text("取消") }
+                            TextButton(onClick = {
+                                showModifyHostPkgNameDialog = false
+                            }) { Text("取消") }
                         },
                         confirmButton = {
                             Button(onClick = {
@@ -485,7 +490,9 @@ class MainActivity : ComponentActivity() {
                             )
                         },
                         dismissButton = {
-                            TextButton(onClick = { showConfirmDeleteTinkerDialog = false }) { Text("取消") }
+                            TextButton(onClick = {
+                                showConfirmDeleteTinkerDialog = false
+                            }) { Text("取消") }
                         },
                         confirmButton = {
                             Button(onClick = {
@@ -530,7 +537,9 @@ class MainActivity : ComponentActivity() {
                             )
                         },
                         dismissButton = {
-                            TextButton(onClick = { showConfirmDeleteModuleDataDialog = false }) { Text("取消") }
+                            TextButton(onClick = {
+                                showConfirmDeleteModuleDataDialog = false
+                            }) { Text("取消") }
                         },
                         confirmButton = {
                             Button(onClick = {

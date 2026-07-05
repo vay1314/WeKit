@@ -59,7 +59,7 @@ object RemoveChatMessageContextMenuItems : ClickableFeature(), IResolveDex {
 
     private var removedItemNames by prefOption(
         "removed_menu_item_names",
-        "收藏,总结,提醒,翻译,搜一搜,编辑,打开,相关表情,合拍,查看专辑,静音播放,听筒播放,背景播放,从当前听"
+        "收藏,总结,提醒,翻译,搜一搜,打开,相关表情,合拍,查看专辑,静音播放,听筒播放,背景播放,从当前听"
     )
 
     override fun onEnable() {

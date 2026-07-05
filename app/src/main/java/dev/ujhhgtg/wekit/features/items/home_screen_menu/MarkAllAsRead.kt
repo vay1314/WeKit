@@ -8,7 +8,7 @@ import dev.ujhhgtg.wekit.features.core.SwitchFeature
 import dev.ujhhgtg.wekit.ui.utils.CheckCircleIcon
 import dev.ujhhgtg.wekit.utils.android.showToast
 
-@Feature(name = "清空未读", categories = ["聊天", "首页右上角菜单"], description = "在首页右上角菜单添加「清空未读」选项")
+@Feature(name = "清空未读", categories = ["首页右上角菜单"], description = "在首页右上角菜单添加「清空未读」选项")
 object MarkAllAsRead : SwitchFeature(), WeHomeScreenPopupMenuApi.IMenuItemsProvider {
 
     override fun onEnable() {

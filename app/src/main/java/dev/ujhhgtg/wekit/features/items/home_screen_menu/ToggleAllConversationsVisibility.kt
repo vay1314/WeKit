@@ -8,7 +8,7 @@ import dev.ujhhgtg.wekit.features.core.SwitchFeature
 import dev.ujhhgtg.wekit.ui.utils.VisibilityIcon
 import dev.ujhhgtg.wekit.ui.utils.VisibilityOffIcon
 
-@Feature(name = "显隐全部对话", categories = ["聊天", "首页右上角菜单"], description = "在首页右上角菜单添加菜单项, 可显示或隐藏全部对话")
+@Feature(name = "显隐全部对话", categories = ["首页右上角菜单"], description = "在首页右上角菜单添加菜单项, 可显示或隐藏全部对话")
 object ToggleAllConversationsVisibility : SwitchFeature(), WeHomeScreenPopupMenuApi.IMenuItemsProvider {
 
     override fun onEnable() {

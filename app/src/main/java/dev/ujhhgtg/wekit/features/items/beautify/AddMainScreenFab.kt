@@ -65,7 +65,7 @@ import com.composables.icons.materialsymbols.outlinedfilled.Update
 import com.composables.icons.materialsymbols.outlinedfilled.Wallet
 import dev.ujhhgtg.comptime.This
 import dev.ujhhgtg.reflekt.reflekt
-import dev.ujhhgtg.wekit.activity.SettingsActivity
+import dev.ujhhgtg.wekit.activity.settings.SettingsActivity
 import dev.ujhhgtg.wekit.features.api.core.WeConversationApi
 import dev.ujhhgtg.wekit.features.api.ui.WeMainActivityBeautifyApi
 import dev.ujhhgtg.wekit.features.core.ClickableFeature

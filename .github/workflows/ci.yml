@@ -100,17 +100,36 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew assembleRelease --warning-mode all --stacktrace
 
+      - name: Collect APKs
+        run: |
+          # Flavors nest output under apk/<flavor>/release/; flatten into one dir
+          # so downstream jobs (release / telegram) keep a flat artifact layout.
+          mkdir -p dist/apk
+          find app/build/outputs/apk -type f -name '*.apk' -exec cp -v {} dist/apk/ \;
+          echo "Collected APKs:"
+          ls -1 dist/apk
+
+      - name: Collect mappings
+        run: |
+          # One mapping.txt per flavor; rename per flavor to avoid collisions.
+          mkdir -p dist/mapping
+          for m in app/build/outputs/mapping/*/mapping.txt; do
+            flavorDir=$(basename "$(dirname "$m")")   # e.g. standardRelease
+            cp -v "$m" "dist/mapping/mapping-${flavorDir}.txt"
+          done
+          ls -1 dist/mapping || echo "(no mappings — unsigned PR build without minify?)"
+
       - name: Upload Release APKs
         uses: actions/upload-artifact@v7
         with:
           name: wekit-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: dist/apk/*.apk
 
       - name: Upload Release Obfuscation Mapping
         uses: actions/upload-artifact@v7
         with:
           name: wekit-mapping
-          path: app/build/outputs/mapping/release/mapping.txt
+          path: dist/mapping/*.txt
 
   release-ci:
     needs: build

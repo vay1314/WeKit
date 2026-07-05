@@ -50,36 +50,36 @@ import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.shadow.Shadow as ComposeShadow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.fastRoundToInt
 import androidx.compose.ui.util.lerp
+import dev.ujhhgtg.wekit.ui.content.animation.DampedDragAnimation
+import dev.ujhhgtg.wekit.ui.content.animation.InteractiveHighlight
+import dev.ujhhgtg.wekit.ui.content.liquid.InnerShadow
+import dev.ujhhgtg.wekit.ui.content.liquid.innerShadow
+import dev.ujhhgtg.wekit.ui.content.liquid.lens
+import dev.ujhhgtg.wekit.ui.content.liquid.rememberCombinedBackdrop
+import dev.ujhhgtg.wekit.ui.content.liquid.vibrancy
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.blur.blur
 import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.highlight.Highlight
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
-import dev.ujhhgtg.wekit.ui.content.liquid.InnerShadow
-import dev.ujhhgtg.wekit.ui.content.liquid.innerShadow
-import dev.ujhhgtg.wekit.ui.content.liquid.lens
-import dev.ujhhgtg.wekit.ui.content.liquid.rememberCombinedBackdrop
-import dev.ujhhgtg.wekit.ui.content.liquid.vibrancy
-import dev.ujhhgtg.wekit.ui.content.animation.DampedDragAnimation
-import dev.ujhhgtg.wekit.ui.content.animation.InteractiveHighlight
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.sign
 import androidx.compose.material3.LocalContentColor as M3LocalContentColor
+import androidx.compose.ui.graphics.shadow.Shadow as ComposeShadow
 
 val LocalFloatingBottomBarContentColor = staticCompositionLocalOf { Color.Unspecified }
 val LocalFloatingBottomBarTabScale = staticCompositionLocalOf { { 1f } }
@@ -360,7 +360,7 @@ fun FloatingBottomBar(
                             Modifier.background(containerColor, pillShape)
                         }
                     )
-                    .then(if (interactiveHighlight != null) interactiveHighlight.modifier else Modifier)
+                    .then(interactiveHighlight?.modifier ?: Modifier)
                     .height(64.dp)
                     .padding(4.dp),
                 verticalAlignment = Alignment.CenterVertically,

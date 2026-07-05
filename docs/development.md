@@ -40,15 +40,45 @@ $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;$(grep '^ndk' ./gradle/li
 
 ```bash
 chmod +x ./gradlew
-./gradlew :app:assembleRelease
+```
+
+### 变体 (Flavor)
+
+模块提供两个入口点变体, 通过 `entrypoint` flavor 维度区分:
+
+- **standard**: 包含现代 libxposed api 入口点 (`entry/lxp/*` 与 `META-INF/xposed/*`), 框架会优先使用 libxposed 加载. 大多数用户应使用此变体.
+- **legacy**: 移除了 libxposed 入口点与相关元数据, 使框架自动回退到传统 de.robv xposed api (`Xp51HookEntry` + `assets/xposed_init`). 供设备或框架对 libxposed 兼容性差的用户使用.
+
+两个变体共用同一份 `applicationId` 与除入口点外的所有代码资源, 由 Gradle 的 flavor source set 机制自动分离, 无须手动删除文件.
+
+```bash
+# 单独构建某个变体
+./gradlew :app:assembleStandardRelease
+./gradlew :app:assembleLegacyRelease
+
+# 一次性构建全部变体 (standard/legacy × debug/release)
+./gradlew :app:assembleRelease   # 所有 release 变体
+./gradlew :app:assemble          # 所有变体
+```
+
+产物按 `变体/构建类型` 分目录输出:
+
+```
+app/build/outputs/apk/standard/release/app-standard-arm64-v8a-release.apk
+app/build/outputs/apk/legacy/release/app-legacy-arm64-v8a-release.apk
 ```
 
 ## 4. 安装
 
 ```bash
-adb install ./app/build/outputs/apk/release/app-arm64-v8a-release.apk
+# standard 变体
+adb install ./app/build/outputs/apk/standard/release/app-standard-arm64-v8a-release.apk
+# legacy 变体
+adb install ./app/build/outputs/apk/legacy/release/app-legacy-arm64-v8a-release.apk
+
 # --- 或 ---
-./gradlew :app:installRelease
+./gradlew :app:installStandardRelease
+./gradlew :app:installLegacyRelease
 
 # 可选: 应用基准配置 (Baseline Profile)
 adb shell cmd package compile -m speed-profile dev.ujhhgtg.wekit

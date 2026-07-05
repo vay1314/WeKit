@@ -101,6 +101,6 @@ object ParcelableFixer {
                     parameters(BString, Class::class)
                 }.hookDirectly(hook)
             }
-        }.onFailure { WeLogger.w(TAG, "failed to hook some Intent methods", it) }
+        }.onFailure { WeLogger.w(TAG, "failed to hook some Intent methods") }
     }
 }

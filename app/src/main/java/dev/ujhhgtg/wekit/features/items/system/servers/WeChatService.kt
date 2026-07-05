@@ -3,6 +3,7 @@ package dev.ujhhgtg.wekit.features.items.system.servers
 import android.util.Base64
 import dev.ujhhgtg.reflekt.reflekt
 import dev.ujhhgtg.reflekt.utils.Modifiers
+import dev.ujhhgtg.reflekt.utils.toClass
 import dev.ujhhgtg.wekit.features.api.core.WeApi
 import dev.ujhhgtg.wekit.features.api.core.WeAuthApi
 import dev.ujhhgtg.wekit.features.api.core.WeContactApi
@@ -11,14 +12,12 @@ import dev.ujhhgtg.wekit.features.api.core.WeDatabaseApi
 import dev.ujhhgtg.wekit.features.api.core.WeGroupApi
 import dev.ujhhgtg.wekit.features.api.core.WeMessageApi
 import dev.ujhhgtg.wekit.features.api.core.WePaymentApi
-import dev.ujhhgtg.wekit.features.api.core.models.MessageInfo as ApiMessageInfo
 import dev.ujhhgtg.wekit.features.api.core.models.MessageType
 import dev.ujhhgtg.wekit.features.api.ui.WeCurrentConversationApi
 import dev.ujhhgtg.wekit.features.api.ui.WeMomentsApi
 import dev.ujhhgtg.wekit.utils.AudioUtils
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.collections.LruCache
-import dev.ujhhgtg.reflekt.utils.toClass
 import dev.ujhhgtg.wekit.utils.strings.isGroupChatWxId
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
@@ -220,10 +219,9 @@ object WeChatService {
         else Result.Error("Failed to send app brand message")
     }
 
-    fun revokeMessage(msgSvrId: Long): Result<Unit> =
+    fun revokeMessage(msgId: Long): Result<Unit> =
         runCatching {
-            val msgInfoObj = WeMessageApi.getMsgInfoInstanceBySvrId(msgSvrId)
-            if (WeMessageApi.revokeMsg(ApiMessageInfo(msgInfoObj))) Result.Success(Unit)
+            if (WeMessageApi.revokeMsg(msgId)) Result.Success(Unit)
             else Result.Error("Failed to revoke message")
         }.getOrElse { Result.Error(it.message ?: "Failed to revoke message") }
 

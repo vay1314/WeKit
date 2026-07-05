@@ -9,9 +9,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -24,6 +26,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.core.graphics.withTranslation
 import top.yukonga.miuix.kmp.blur.Backdrop
 
 /**
@@ -97,9 +100,14 @@ class ViewBackdrop internal constructor(
     // effect needs doesn't depend on Compose recomposition.
     override val isCoordinatesDependent: Boolean = true
 
-    // We always record at full resolution and never downscale, so no sub-pixel residual to report.
-    override val offsetResidualX: Float = 0f
-    override val offsetResidualY: Float = 0f
+    // When the blur pipeline records into a downscaled layer, the alignment translate is done in
+    // downscaled space and rounded to an even pixel; the leftover fraction is reported here so the
+    // node's drawUpscaledLayer can shift the upscaled result back to sub-pixel-correct alignment
+    // (mirrors LayerBackdrop). At downscaleFactor == 1 these stay 0.
+    override var offsetResidualX: Float = 0f
+        private set
+    override var offsetResidualY: Float = 0f
+        private set
 
     internal fun bumpVersion() {
         version++
@@ -125,10 +133,9 @@ class ViewBackdrop internal constructor(
                 // the *parent's* draw traversal, NOT by the public View.draw(canvas) we call here, so
                 // without this translate every page draws at its raw layout x and only page 0 (home)
                 // fits in the layer. This is why the glass was stuck on the home tab.
-                val checkpoint = nativeCanvas.save()
-                nativeCanvas.translate(-view.scrollX.toFloat(), -view.scrollY.toFloat())
-                view.draw(nativeCanvas)
-                nativeCanvas.restoreToCount(checkpoint)
+                nativeCanvas.withTranslation(-view.scrollX.toFloat(), -view.scrollY.toFloat()) {
+                    view.draw(nativeCanvas)
+                }
             }
         }
         return true
@@ -138,9 +145,11 @@ class ViewBackdrop internal constructor(
         density: Density,
         coordinates: LayoutCoordinates?,
         layerBlock: (GraphicsLayerScope.() -> Unit)?,
-        // We record the native view at full resolution and ignore downscaling — miuix passes
-        // downscaleFactor > 1 as a perf hint the LayerBackdrop honors, but our native-View capture
-        // always draws full-res, matching the previous behavior.
+        // The blur pipeline records the backdrop into a layer downscaled by this factor (1/2/4/…)
+        // and upscales the blurred result afterwards. We MUST honor it: the layer we draw into here
+        // is already downscaled, so drawing the full-res capture 1:1 overfills it and the later
+        // upscale magnifies the content by exactly `downscaleFactor` (the "zoomed backdrop" bug).
+        // Scale the capture down by 1/downscaleFactor so it fits, exactly like LayerBackdrop.
         downscaleFactor: Int,
     ) {
         @Suppress("UNUSED_EXPRESSION") version // subscribe the draw phase to source redraws
@@ -153,13 +162,36 @@ class ViewBackdrop internal constructor(
         // on a settled static tab. If the source isn't ready yet, keep whatever was last recorded.
         recordSource()
 
-        // Offset so the region of the source view directly behind the bar lines up with the bar.
+        // Position of the bar (this consumer) relative to the captured source view, i.e. how far
+        // into the source the region behind the bar sits. We translate the layer by -offset so that
+        // region aligns under the bar.
         val barInWindow = barCoordinates.positionInWindow()
         val viewLocation = IntArray(2).also { view.getLocationInWindow(it) }
-        val dx = viewLocation[0] - barInWindow.x
-        val dy = viewLocation[1] - barInWindow.y
-        translate(dx, dy) {
-            drawLayer(graphicsLayer)
+        val offsetX = barInWindow.x - viewLocation[0]
+        val offsetY = barInWindow.y - viewLocation[1]
+
+        if (downscaleFactor > 1) {
+            // Alignment happens in downscaled space; round to an even pixel (matching LayerBackdrop's
+            // even-snap for stable box-filter sampling) and report the leftover as a residual so the
+            // node's upscale pass restores sub-pixel-correct placement.
+            val inv = 1f / downscaleFactor
+            val scaledX = offsetX * inv
+            val scaledY = offsetY * inv
+            val roundedX = kotlin.math.round(scaledX * 0.5f).toInt().toFloat() * 2f
+            val roundedY = kotlin.math.round(scaledY * 0.5f).toInt().toFloat() * 2f
+            offsetResidualX = (scaledX - roundedX) * downscaleFactor
+            offsetResidualY = (scaledY - roundedY) * downscaleFactor
+            translate(-roundedX, -roundedY) {
+                scale(inv, inv, Offset.Zero) {
+                    drawLayer(graphicsLayer)
+                }
+            }
+        } else {
+            offsetResidualX = 0f
+            offsetResidualY = 0f
+            translate(-offsetX, -offsetY) {
+                drawLayer(graphicsLayer)
+            }
         }
     }
 }

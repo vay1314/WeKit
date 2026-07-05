@@ -14,7 +14,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import de.robv.android.xposed.XC_MethodHook
 import dev.ujhhgtg.comptime.This
-import dev.ujhhgtg.wekit.features.api.core.WeApi
 import dev.ujhhgtg.wekit.features.api.core.WeDatabaseApi
 import dev.ujhhgtg.wekit.features.api.core.WeMessageApi
 import dev.ujhhgtg.wekit.features.api.core.WeXmlParserApi
@@ -30,8 +29,6 @@ import dev.ujhhgtg.wekit.ui.content.TextButton
 import dev.ujhhgtg.wekit.ui.utils.showComposeDialog
 import dev.ujhhgtg.wekit.utils.WeLogger
 import dev.ujhhgtg.wekit.utils.formatEpoch
-import dev.ujhhgtg.wekit.utils.strings.isGroupChatWxId
-import dev.ujhhgtg.wekit.utils.strings.stripWxId
 
 @Feature(name = "防撤回", categories = ["聊天"], description = "阻止撤回消息")
 object AntiMessageRecall : ClickableFeature(), WeXmlParserApi.IAfterParseListener {
@@ -52,6 +49,8 @@ object AntiMessageRecall : ClickableFeature(), WeXmlParserApi.IAfterParseListene
         WeXmlParserApi.removeListener(this)
     }
 
+    private const val TYPE_KEY = $$".sysmsg.$type"
+
     override fun onParse(param: XC_MethodHook.MethodHookParam, result: MutableMap<String, Any?>) {
         val args = param.args
         val xmlContent = args[0] as? String ?: ""
@@ -61,54 +60,44 @@ object AntiMessageRecall : ClickableFeature(), WeXmlParserApi.IAfterParseListene
             return
         }
 
-        val typeKey = $$".sysmsg.$type"
-
-        if (result[typeKey] == "revokemsg") {
-            val talker = result[".sysmsg.revokemsg.session"] as? String?
-                ?: return
-            val replaceMsg = result[".sysmsg.revokemsg.replacemsg"] as? String?
-                ?: return
-            val msgSvrId = result[".sysmsg.revokemsg.newmsgid"] as? String?
-                ?: return
-
-            if (talker == WeApi.selfWxId && !recallOutgoing) {
-                WeLogger.i(TAG, "outgoing message, skipping")
-                return
-            }
-
-            result[typeKey] = null
-
+        if (result[TYPE_KEY] == "revokemsg") {
             val cursor = WeDatabaseApi.rawQuery(
-                "SELECT content,createTime FROM message WHERE msgSvrId = ?",
-                arrayOf(msgSvrId)
+                "SELECT type,content,talker,createTime,lvbuffer,msgId,msgSvrId,isSend FROM message WHERE msgSvrId = ?",
+                arrayOf(result[".sysmsg.revokemsg.newmsgid"] as? String? ?: return)
             )
 
             cursor.use { cursor ->
                 if (cursor.moveToFirst()) {
-                    val createTime =
-                        cursor.getLong(cursor.getColumnIndexOrThrow("createTime"))
-                    val content =
-                        cursor.getString(cursor.getColumnIndexOrThrow("content"))
-                    val match = NAME_REGEX.find(replaceMsg)
-                    val senderName = match?.groupValues?.get(2) ?: "未知"
-                    val humanReadable = try {
-                        MessageInfo(WeMessageApi.getMsgInfoInstanceBySvrId(msgSvrId.toLong())).humanReadableRepr
-                    } catch (e: Exception) {
-                        WeLogger.w(TAG, "failed to build MessageInfo, falling back to raw content", e)
-                        if (talker.isGroupChatWxId) content.stripWxId() else content
+                    val msgInfo = MessageInfo(WeMessageApi.convertMsgInfoInstanceFromCursor(cursor))
+                    val talker = msgInfo.talker
+                    val createTime = msgInfo.createTime
+
+                    if (msgInfo.isSelfSender && !recallOutgoing) {
+                        WeLogger.i(TAG, "sender is self and not recall outgoing, skipping")
+                        return
                     }
+
+                    result[TYPE_KEY] = null
+
+                    val replaceMsg = result[".sysmsg.revokemsg.replacemsg"] as? String?
+                        ?: return
+                    val match = NAME_REGEX.find(replaceMsg)
+                    val senderName = match?.groupValues?.get(2) ?: if (recallOutgoing) "自己" else return
+
                     val interceptNotice = pattern
                         .replace($$"$sender", senderName)
                         .replace($$"$sendTime", formatEpoch(createTime, timeFormat))
                         .replace($$"$recallTime", formatEpoch(System.currentTimeMillis(), timeFormat))
-                        .replace($$"$content", humanReadable)
+                        .replace($$"$content", msgInfo.humanReadableRepr)
+
                     WeMessageApi.createSimpleMsgInfoAndInsert(
                         MessageType.SYSTEM.code,
                         talker,
                         interceptNotice,
                         createTime + 1
                     )
-                    WeLogger.d(TAG, "blocked message revoke")
+
+                    WeLogger.i(TAG, "blocked message revoke")
                 }
             }
         }
@@ -125,7 +114,7 @@ object AntiMessageRecall : ClickableFeature(), WeXmlParserApi.IAfterParseListene
                     DefaultColumn {
                         ListItem(
                             headlineContent = { Text("防撤回自己的消息") },
-                            supportingContent = { Text("是否对自己发出的消息也生效") },
+                            supportingContent = { Text("是否对自己发出的消息也生效 (这个功能现在是坏的, 别用)") },
                             trailingContent = {
                                 Switch(checked = recallOutgoingInput, onCheckedChange = null)
                             },

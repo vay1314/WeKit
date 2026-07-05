@@ -27,5 +27,4 @@ local.properties
 /app/src/main/jniLibs/*/libwekit_native.so
 /build-logic/convention/build/
 
-/app/src/main/java/dev/ujhhgtg/wekit/features/items/chat/ExploitGroupMemberRealNamesFirstChar.kt
 /decrypted_wechat.db

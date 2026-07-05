@@ -9,10 +9,6 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam
 
-/**
- * TODO: THE LIBXPOSED ENTRY POINT HAS BEEN TEMPORARILY DISABLED
- *       BY REMOVING 'java_init.list' 'module.prop' 'scope.list'
- * */
 @Keep
 class LxpHookEntry : XposedModule() {
 

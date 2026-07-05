@@ -473,7 +473,6 @@ object DetectDeletedFriends : ClickableFeature() {
                                 copyToClipboard(context, text)
                                 showToast(context, "已复制")
                             }) { Text("复制") }
-                            Button(onDismiss) { Text("关闭") }
                         }
                     }
 

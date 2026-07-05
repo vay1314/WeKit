@@ -6,13 +6,6 @@ import dev.ujhhgtg.wekit.features.api.net.WeProtoData
 import dev.ujhhgtg.wekit.features.api.net.abc.IWePacketInterceptor
 import dev.ujhhgtg.wekit.features.core.Feature
 import dev.ujhhgtg.wekit.features.core.SwitchFeature
-import dev.ujhhgtg.wekit.features.items.official_accounts.RemoveOfficialAccountAds.AD_CARD_PREFIX
-import dev.ujhhgtg.wekit.features.items.official_accounts.RemoveOfficialAccountAds.AD_INFO_FIELD
-import dev.ujhhgtg.wekit.features.items.official_accounts.RemoveOfficialAccountAds.CAPTURE_MODE
-import dev.ujhhgtg.wekit.features.items.official_accounts.RemoveOfficialAccountAds.DIAG_ALL_URIS
-import dev.ujhhgtg.wekit.features.items.official_accounts.RemoveOfficialAccountAds.URI_BATCH_GET_MSG_LIST
-import dev.ujhhgtg.wekit.features.items.official_accounts.RemoveOfficialAccountAds.URI_BIZ_MSG_RESORT
-import dev.ujhhgtg.wekit.features.items.official_accounts.RemoveOfficialAccountAds.URI_RECOMMEND_FEEDS
 import dev.ujhhgtg.wekit.utils.WeLogger
 import org.json.JSONArray
 import org.json.JSONObject

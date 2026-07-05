@@ -45,7 +45,7 @@ object CrashLogsManager {
         return try {
             ensureCrashLogDirExists()
 
-            val sdf = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.getDefault())
+            val sdf = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.getDefault())
             val fileName = CRASH_LOGS_PREFIX + sdf.format(Date()) + CRASH_LOG_SUFFIX
             val logFile = crashLogsDir / fileName
 
@@ -215,7 +215,9 @@ object CrashLogsManager {
     private val TAG = nameOf(CrashLogsManager::class)
 
     private const val CRASH_LOGS_DIR = "crashes"
-    private const val CRASH_LOGS_PREFIX = "crash_"
+    // Unified with the run-log naming style (logs/wekit-*.log): "wekit-crash-" prefix plus a
+    // dash-separated timestamp precise to the millisecond so multiple crashes per second stay unique.
+    private const val CRASH_LOGS_PREFIX = "wekit-crash-"
     private const val CRASH_LOG_SUFFIX = ".log"
     private const val PENDING_CRASH_FLAG = "pending_crash.flag"
     private const val PENDING_JAVA_CRASH_FLAG = "pending_java_crash.flag"

@@ -716,17 +716,17 @@ object ApiServer : ClickableFeature() {
 
         addTool(
             name = "revoke-message",
-            description = "Revoke (unsend) a message by its server ID (msgSvrId)",
+            description = "Revoke (unsend) a message by its ID (msgId)",
             inputSchema = ToolSchema(
                 properties = buildJsonObject {
-                    addField("msg-svr-id", "Server ID of message to revoke", "integer")
+                    addField("msg-id", "Local ID of message to revoke", "integer")
                 },
-                required = listOf("msg-svr-id")
+                required = listOf("msg-id")
             )
         ) { req ->
             val args = req.arguments ?: return@addTool textRes("Arguments are empty", true)
-            val msgSvrId = args["msg-svr-id"]?.jsonPrimitive?.intOrNull?.toLong() ?: return@addTool textRes("Invalid msg-svr-id", true)
-            WeChatService.revokeMessage(msgSvrId).toCallToolResult { textRes("Revoked successfully") }
+            val msgId = args["msg-id"]?.jsonPrimitive?.intOrNull?.toLong() ?: return@addTool textRes("Invalid msg-id", true)
+            WeChatService.revokeMessage(msgId).toCallToolResult { textRes("Revoked successfully") }
         }
 
         addTool(

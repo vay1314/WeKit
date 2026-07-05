@@ -37,11 +37,9 @@ public class Xp51HookEntry implements IXposedHookLoadPackage, IXposedHookZygoteI
     }
 
     @Override
-    public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws ReflectiveOperationException {
+    public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) {
         param = lpparam;
-        if (lpparam.packageName.equals(PackageNames.MODULE)) {
-            Xp51HookStatusInit.init(lpparam.classLoader);
-        } else if (PackageNames.isWeChat(lpparam.packageName)) {
+        if (PackageNames.isWeChat(lpparam.packageName)) {
             if (startupParam == null) {
                 throw new IllegalStateException("handleLoadPackage: sInitZygoteStartupParam is null");
             }

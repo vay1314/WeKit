@@ -102,6 +102,30 @@ object WeLogger {
         }
     }
 
+    // ========== File Logging: public accessors (for the log viewer UI) ==========
+
+    /** The directory run logs are written to (`moduleData/logs`), created on first access. */
+    val logsDir: java.nio.file.Path?
+        get() = runCatching { (KnownPaths.moduleData / "logs").createDirsSafe() }.getOrNull()
+
+    /**
+     * All run-log files (`wekit-yyyy-MM-dd.log`), newest first. Flushes the active writer first so
+     * the current day's file reflects the latest entries before the UI reads it.
+     */
+    val allLogFiles: List<java.nio.file.Path>
+        get() {
+            flush()
+            val dir = logsDir ?: return emptyList()
+            val regex = Regex("""wekit-\d{4}-\d{2}-\d{2}\.log""")
+            return runCatching {
+                dir.toFile().listFiles()
+                    ?.filter { it.isFile && regex.matches(it.name) }
+                    ?.sortedByDescending { it.name }
+                    ?.map { it.toPath() }
+                    ?: emptyList()
+            }.getOrDefault(emptyList())
+        }
+
     // ========== Tag + String ==========
 
     fun e(tag: String?, msg: String) {
