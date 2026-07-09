@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * In-process scheduler for [TriggerType.SCHEDULE] triggers (per the user's decision: purely
@@ -75,7 +76,7 @@ class TriggerScheduler(
                 return
             }
             val wait = next - now
-            if (wait > 0) delay(wait)
+            if (wait > 0) delay(wait.milliseconds)
 
             // Re-check we weren't cancelled during the sleep.
             if (!scope.isActive) return

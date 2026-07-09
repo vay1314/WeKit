@@ -110,12 +110,11 @@ object ApplyGlobalBackground : ClickableFeature() {
             firstMethod {
                 name = "onResume"
                 parameterCount = 0
+            }.hookAfter {
+                val activity = thisObject as Activity
+                applyTransparentStatusBarIfEnabled(activity)
+                applyBackground(activity)
             }
-                .hookAfter {
-                    val activity = thisObject as Activity
-                    applyTransparentStatusBarIfEnabled(activity)
-                    applyBackground(activity)
-                }
 
             firstMethod {
                 name = "onWindowFocusChanged"
@@ -304,6 +303,7 @@ object ApplyGlobalBackground : ClickableFeature() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
+            elevation = 100f
             decor.addView(this)
         }
     }
