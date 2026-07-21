@@ -158,6 +158,54 @@ fn write_rgba_frame<W: std::io::Write>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn gif_frame_count(data: &[u8]) -> usize {
+        let mut options = gif::DecodeOptions::new();
+        options.set_color_output(gif::ColorOutput::RGBA);
+        let mut decoder = options.read_info(data).expect("decode GIF");
+        let mut count = 0;
+        while decoder.read_next_frame().expect("read GIF frame").is_some() {
+            count += 1;
+        }
+        count
+    }
+
+    #[test]
+    fn preserves_multiple_png_frames_in_gif() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "wekit-telegram-gif-test-{}-{nonce}",
+            std::process::id(),
+        ));
+        fs::create_dir_all(&directory).expect("create frame directory");
+        for (index, color) in [
+            image::Rgba([255, 0, 0, 255]),
+            image::Rgba([0, 255, 0, 255]),
+            image::Rgba([0, 0, 255, 255]),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let image = image::RgbaImage::from_pixel(4, 4, color);
+            image
+                .save(directory.join(format!("{index:04}.png")))
+                .expect("write PNG frame");
+        }
+        let output = directory.join("output.gif");
+        png_frames_to_gif(
+            directory.to_str().expect("UTF-8 frame directory"),
+            output.to_str().expect("UTF-8 output path"),
+            67,
+        )
+        .expect("encode GIF");
+        let data = fs::read(&output).expect("read GIF output");
+        assert_eq!(gif_frame_count(&data), 3);
+        fs::remove_dir_all(directory).expect("remove test directory");
+    }
 
     #[test]
     fn converts_tgs_sample_from_environment() {
@@ -169,6 +217,7 @@ mod tests {
         let data = fs::read(&output).expect("read GIF output");
         assert!(data.starts_with(b"GIF8"));
         assert!(data.len() > 100);
+        assert!(gif_frame_count(&data) > 1);
         let _ = fs::remove_file(output);
     }
 
@@ -183,6 +232,7 @@ mod tests {
         let data = fs::read(&output).expect("read GIF output");
         assert!(data.starts_with(b"GIF8"));
         assert!(data.len() > 100);
+        assert!(gif_frame_count(&data) > 1);
         let _ = fs::remove_file(output);
     }
 }

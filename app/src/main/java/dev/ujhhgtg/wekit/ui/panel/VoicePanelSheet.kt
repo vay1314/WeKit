@@ -239,7 +239,6 @@ private fun VoicePanelContent(
     var clones by remember { mutableStateOf<List<CloneVoice>>(emptyList()) }
     var selectedCloneId by remember { mutableStateOf("") }
     var managingClones by remember { mutableStateOf(false) }
-    var choosingClone by remember { mutableStateOf(false) }
     var cloneSource by remember { mutableStateOf<String?>(null) }
     var exampleGroups by remember { mutableStateOf<PanelUiState<List<String>>>(PanelUiState.Loading) }
     var selectedExampleGroup by remember { mutableStateOf<String?>(null) }
@@ -925,28 +924,16 @@ private fun VoicePanelContent(
                         mode = ttsMode,
                         text = ttsText,
                         converted = convertedTts != null,
-                        clones = clones,
                         selectedClone = selectedClone,
                         selectedEdgeVoice = selectedEdgeVoice,
                         onModeChange = { clearConvertedTts(); ttsMode = it },
                         onTextChange = { clearConvertedTts(); ttsText = it },
-                        onSelectClone = { voice ->
-                            clearConvertedTts()
-                            scope.launch {
-                                actions.selectClone(voice.id).onSuccess { selectedCloneId = voice.id }
-                                    .onFailure { operationMessage = it.message }
-                            }
-                        },
                         onSelectEdgeVoice = { voice ->
                             clearConvertedTts()
                             selectedEdgeVoice = voice
                             PanelSettings.selectedEdgeVoice = voice
                         },
-                        onChoose = { choosingClone = true },
-                        onManage = {
-                            choosingClone = false
-                            managingClones = true
-                        },
+                        onChooseOrManage = { managingClones = true },
                         onConvert = ::convertTts,
                         onPreviewConverted = {
                             convertedTts?.let { generated ->
@@ -1113,11 +1100,19 @@ private fun VoicePanelContent(
                     if (source == SOURCE_EXAMPLES) loadExampleGroups()
                     if (source == SOURCE_SHARED && cloneSharedPacksState == PanelUiState.Loading) loadCloneSharedPacks()
                 },
+                onSelectNone = {
+                    clearConvertedTts()
+                    scope.launch {
+                        actions.selectClone(null)
+                            .onSuccess { selectedCloneId = "" }
+                            .onFailure { operationMessage = it.message ?: "音色选择失败" }
+                    }
+                },
                 onSelect = { voice ->
                     clearConvertedTts()
                     scope.launch {
                         actions.selectClone(voice.id).onSuccess { selectedCloneId = voice.id }
-                            .onFailure { operationMessage = it.message }
+                            .onFailure { operationMessage = it.message ?: "音色选择失败" }
                     }
                 },
                 onDelete = { prompt = VoicePrompt.DeleteClone(it) },
@@ -1194,36 +1189,6 @@ private fun VoicePanelContent(
                         progressMessage = null
                         operationMessage = result.exceptionOrNull()?.message ?: "音色已导入"
                         refreshClones()
-                    }
-                },
-            )
-        }
-
-        if (choosingClone) {
-            ClonePickerOverlay(
-                clones = clones,
-                selectedId = selectedCloneId,
-                onDismiss = { choosingClone = false },
-                onSelectNone = {
-                    clearConvertedTts()
-                    scope.launch {
-                        actions.selectClone(null)
-                            .onSuccess {
-                                selectedCloneId = ""
-                                choosingClone = false
-                            }
-                            .onFailure { operationMessage = it.message ?: "音色选择失败" }
-                    }
-                },
-                onSelect = { voice ->
-                    clearConvertedTts()
-                    scope.launch {
-                        actions.selectClone(voice.id)
-                            .onSuccess {
-                                selectedCloneId = voice.id
-                                choosingClone = false
-                            }
-                            .onFailure { operationMessage = it.message ?: "音色选择失败" }
                     }
                 },
             )
@@ -1794,6 +1759,7 @@ private fun CloneManagerOverlay(
     playingId: String?,
     onDismiss: () -> Unit,
     onSource: (String) -> Unit,
+    onSelectNone: () -> Unit,
     onSelect: (CloneVoice) -> Unit,
     onDelete: (CloneVoice) -> Unit,
     onImportFile: () -> Unit,
@@ -1820,7 +1786,7 @@ private fun CloneManagerOverlay(
             if (source != null) {
                 IconButton(onClick = onSystemBack) { Icon(MaterialSymbols.Outlined.Arrow_back, "返回") }
             }
-            Text("管理音色", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text("选择或管理音色", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             IconButton(onClick = onDismiss) { Icon(MaterialSymbols.Outlined.Close, "关闭") }
         }
         when (source) {
@@ -1832,22 +1798,32 @@ private fun CloneManagerOverlay(
                 OutlinedButton(onClick = { onSource(SOURCE_EXAMPLES) }, modifier = Modifier.fillMaxWidth()) {
                     Text("语音示例")
                 }
-                if (clones.isEmpty()) {
-                    PanelEmptyAction("暂无音色")
-                } else {
-                    LazyColumn(Modifier.weight(1f)) {
-                        items(clones, key = { it.id }) { voice ->
-                            ListItem(
-                                modifier = Modifier.clickable { onSelect(voice) },
-                                colors = panelListItemColors(),
-                                headlineContent = { Text(if (voice.id == selectedId) "[当前] ${voice.name}" else voice.name) },
-                                trailingContent = {
-                                    IconButton(onClick = { onDelete(voice) }) {
-                                        Icon(MaterialSymbols.Outlined.Delete, "删除音色")
-                                    }
-                                },
-                            )
-                        }
+                LazyColumn(Modifier.weight(1f)) {
+                    item {
+                        ListItem(
+                            modifier = Modifier.clickable(onClick = onSelectNone),
+                            colors = panelListItemColors(),
+                            headlineContent = { Text("无") },
+                            supportingContent = { Text("不使用克隆音色") },
+                            leadingContent = {
+                                RadioButton(selected = selectedId.isBlank(), onClick = onSelectNone)
+                            },
+                        )
+                    }
+                    items(clones, key = { it.id }) { voice ->
+                        ListItem(
+                            modifier = Modifier.clickable { onSelect(voice) },
+                            colors = panelListItemColors(),
+                            headlineContent = { Text(voice.name) },
+                            leadingContent = {
+                                RadioButton(selected = voice.id == selectedId, onClick = { onSelect(voice) })
+                            },
+                            trailingContent = {
+                                IconButton(onClick = { onDelete(voice) }) {
+                                    Icon(MaterialSymbols.Outlined.Delete, "删除音色")
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -1944,57 +1920,6 @@ private fun CloneManagerOverlay(
                             }
                         }
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ClonePickerOverlay(
-    clones: List<CloneVoice>,
-    selectedId: String,
-    onDismiss: () -> Unit,
-    onSelectNone: () -> Unit,
-    onSelect: (CloneVoice) -> Unit,
-) {
-    PanelPageOverlay(onDismiss) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("选择音色", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            IconButton(onClick = onDismiss) { Icon(MaterialSymbols.Outlined.Close, "关闭") }
-        }
-        if (clones.isEmpty()) {
-            ListItem(
-                modifier = Modifier.clickable { onSelectNone() },
-                colors = panelListItemColors(),
-                headlineContent = { Text("无") },
-                supportingContent = { Text("不使用克隆音色") },
-                leadingContent = {
-                    RadioButton(selected = selectedId.isBlank(), onClick = onSelectNone)
-                },
-            )
-        } else {
-            LazyColumn(Modifier.weight(1f)) {
-                item {
-                    ListItem(
-                        modifier = Modifier.clickable { onSelectNone() },
-                        colors = panelListItemColors(),
-                        headlineContent = { Text("无") },
-                        supportingContent = { Text("不使用克隆音色") },
-                        leadingContent = {
-                            RadioButton(selected = selectedId.isBlank(), onClick = onSelectNone)
-                        },
-                    )
-                }
-                items(clones, key = { it.id }) { voice ->
-                    ListItem(
-                        modifier = Modifier.clickable { onSelect(voice) },
-                        colors = panelListItemColors(),
-                        headlineContent = { Text(voice.name) },
-                        leadingContent = {
-                            RadioButton(selected = voice.id == selectedId, onClick = { onSelect(voice) })
-                        },
-                    )
                 }
             }
         }
