@@ -1640,10 +1640,11 @@ private fun VoiceSettingsContent() {
     var maxHistory by remember { mutableLongStateOf(PanelSettings.voiceMaxHistory.coerceAtLeast(1L)) }
     var sortType by remember { mutableIntStateOf(PanelSettings.voiceSortType) }
     var autoClose by remember { mutableStateOf(PanelSettings.voiceAutoClose) }
+    var clientIdPrompt by remember { mutableStateOf(false) }
     var historyPrompt by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize()) {
-            item { PanelFunBoxApiClientIdSetting() }
+            item { PanelFunBoxApiClientIdSetting { clientIdPrompt = true } }
             panelCollectionSettings(
                 maxHistory = maxHistory,
                 onMaxHistoryChange = {
@@ -1663,6 +1664,13 @@ private fun VoiceSettingsContent() {
                 },
             )
         }
+        if (clientIdPrompt) PanelFunBoxApiClientIdPrompt(
+            onDismiss = { clientIdPrompt = false },
+            onConfirm = {
+                PanelSettings.funBoxApiClientWxId = it
+                clientIdPrompt = false
+            },
+        )
         if (historyPrompt) PanelNumberPrompt(
             title = "最大历史数量",
             label = "数量（至少 1）",

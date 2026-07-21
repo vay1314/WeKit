@@ -133,55 +133,53 @@ fun PanelSortSetting(
 }
 
 @Composable
-fun PanelFunBoxApiClientIdSetting() {
-    var editing by remember { mutableStateOf(false) }
+fun PanelFunBoxApiClientIdSetting(onClick: () -> Unit) {
     val current = PanelSettings.effectiveFunBoxApiClientWxId
     ListItem(
-        modifier = Modifier.clickable { editing = true },
+        modifier = Modifier.clickable(onClick = onClick),
         headlineContent = { Text("伪装 FunBox API 客户端微信 ID") },
         supportingContent = { Text(current) },
     )
-    if (editing) {
-        var input by remember(editing) { mutableStateOf(current) }
-        val normalized = input.trim()
-        val valid = PanelSettings.isValidFunBoxApiClientWxId(normalized)
-        PanelFullOverlay(onDismiss = { editing = false }) {
-            Text("伪装 FunBox API 客户端微信 ID", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "该 ID 仅用于 FunBox API 请求，不会修改微信账号信息。",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            OutlinedTextField(
-                value = input,
-                onValueChange = { input = it },
-                label = { Text("微信 ID") },
-                supportingText = if (valid) null else ({ Text("请输入 6-64 位字母、数字、下划线或连字符") }),
-                isError = !valid,
-                singleLine = true,
-                trailingIcon = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { input = WeApi.selfWxId }) {
-                            Icon(MaterialSymbols.Outlined.Person, "填入当前微信 ID")
-                        }
-                        IconButton(onClick = { input = PanelSettings.randomFunBoxApiClientWxId() }) {
-                            Icon(MaterialSymbols.Outlined.Autorenew, "随机生成微信 ID")
-                        }
+}
+
+@Composable
+fun PanelFunBoxApiClientIdPrompt(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var input by remember { mutableStateOf(PanelSettings.effectiveFunBoxApiClientWxId) }
+    val normalized = input.trim()
+    val valid = PanelSettings.isValidFunBoxApiClientWxId(normalized)
+    PanelFullOverlay(onDismiss = onDismiss) {
+        Text("伪装 FunBox API 客户端微信 ID", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "该 ID 仅用于 FunBox API 请求，不会修改微信账号信息。",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        OutlinedTextField(
+            value = input,
+            onValueChange = { input = it },
+            label = { Text("微信 ID") },
+            supportingText = if (valid) null else ({ Text("请输入 6-64 位字母、数字、下划线或连字符") }),
+            isError = !valid,
+            singleLine = true,
+            trailingIcon = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { input = WeApi.selfWxId }) {
+                        Icon(MaterialSymbols.Outlined.Person, "填入当前微信 ID")
                     }
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f))
-                TextButton(onClick = { editing = false }) { Text("取消") }
-                TextButton(
-                    onClick = {
-                        PanelSettings.funBoxApiClientWxId = normalized
-                        editing = false
-                    },
-                    enabled = valid,
-                ) { Text("确定") }
-            }
+                    IconButton(onClick = { input = PanelSettings.randomFunBoxApiClientWxId() }) {
+                        Icon(MaterialSymbols.Outlined.Autorenew, "随机生成微信 ID")
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f))
+            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = { onConfirm(normalized) }, enabled = valid) { Text("确定") }
         }
     }
 }

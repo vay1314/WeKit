@@ -1252,11 +1252,12 @@ private fun StickerSettingsContent() {
     var sortType by remember { mutableIntStateOf(PanelSettings.stickerSortType) }
     var autoClose by remember { mutableStateOf(PanelSettings.stickerAutoClose) }
     var onlinePacksUseList by remember { mutableStateOf(PanelSettings.onlineStickerPacksUseList) }
+    var clientIdPrompt by remember { mutableStateOf(false) }
     var numberPrompt by remember { mutableStateOf(false) }
     var historyPrompt by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize()) {
-            item { PanelFunBoxApiClientIdSetting() }
+            item { PanelFunBoxApiClientIdSetting { clientIdPrompt = true } }
             item {
                 ListItem(
                     modifier = Modifier.clickable { numberPrompt = true },
@@ -1308,6 +1309,13 @@ private fun StickerSettingsContent() {
                 )
             }
         }
+        if (clientIdPrompt) PanelFunBoxApiClientIdPrompt(
+            onDismiss = { clientIdPrompt = false },
+            onConfirm = {
+                PanelSettings.funBoxApiClientWxId = it
+                clientIdPrompt = false
+            },
+        )
         if (numberPrompt) PanelNumberPrompt(
             title = "每行表情数量",
             label = "数量（1-15）",
