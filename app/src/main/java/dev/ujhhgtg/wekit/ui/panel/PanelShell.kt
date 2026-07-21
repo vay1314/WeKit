@@ -19,6 +19,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
@@ -216,6 +218,7 @@ fun <T> PanelShell(
     selected: T,
     title: String,
     actions: List<PanelAction> = emptyList(),
+    wrapActions: Boolean = false,
     onSelect: (T) -> Unit,
     onDismiss: () -> Unit,
     onBack: () -> Unit = onDismiss,
@@ -323,56 +326,83 @@ fun <T> PanelShell(
                 }
                 HorizontalDivider()
                 if (actions.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        actions.forEach { action ->
-                            if (action.showLabel) {
-                                if (action.onLongClick == null) {
-                                    TextButton(onClick = action.onClick, enabled = action.enabled) {
-                                        Icon(action.icon, action.label, Modifier.size(20.dp))
-                                        Text(action.label, Modifier.padding(start = 6.dp))
-                                    }
-                                } else {
-                                    CompositionLocalProvider(
-                                        LocalContentColor provides MaterialTheme.colorScheme.primary,
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .defaultMinSize(minWidth = 64.dp, minHeight = 40.dp)
-                                                .clip(CircleShape)
-                                                .combinedClickable(
-                                                    enabled = action.enabled,
-                                                    onClick = action.onClick,
-                                                    onLongClick = action.onLongClick,
-                                                )
-                                                .padding(horizontal = 12.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Icon(action.icon, action.label, Modifier.size(20.dp))
-                                            Text(
-                                                text = action.label,
-                                                modifier = Modifier.padding(start = 6.dp),
-                                                style = MaterialTheme.typography.labelLarge,
-                                            )
-                                        }
-                                    }
-                                }
-                            } else {
-                                IconButton(onClick = action.onClick, enabled = action.enabled) {
-                                    Icon(action.icon, action.label)
-                                }
-                            }
-                        }
-                    }
+                    PanelActionStrip(actions, wrapActions)
                     HorizontalDivider()
                 }
                 Box(Modifier.fillMaxSize()) { content() }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PanelActionStrip(
+    actions: List<PanelAction>,
+    wrapActions: Boolean,
+) {
+    if (wrapActions) {
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+        ) {
+            actions.forEach { action -> PanelActionItem(action) }
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            actions.forEach { action -> PanelActionItem(action) }
+        }
+    }
+}
+
+@Composable
+private fun PanelActionItem(action: PanelAction) {
+    Box(
+        modifier = Modifier.height(48.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (action.showLabel) {
+            if (action.onLongClick == null) {
+                TextButton(onClick = action.onClick, enabled = action.enabled) {
+                    Icon(action.icon, action.label, Modifier.size(20.dp))
+                    Text(action.label, Modifier.padding(start = 6.dp))
+                }
+            } else {
+                CompositionLocalProvider(
+                    LocalContentColor provides MaterialTheme.colorScheme.primary,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .defaultMinSize(minWidth = 64.dp, minHeight = 40.dp)
+                            .clip(CircleShape)
+                            .combinedClickable(
+                                enabled = action.enabled,
+                                onClick = action.onClick,
+                                onLongClick = action.onLongClick,
+                            )
+                            .padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(action.icon, action.label, Modifier.size(20.dp))
+                        Text(
+                            text = action.label,
+                            modifier = Modifier.padding(start = 6.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+                }
+            }
+        } else {
+            IconButton(onClick = action.onClick, enabled = action.enabled) {
+                Icon(action.icon, action.label)
             }
         }
     }

@@ -218,6 +218,7 @@ private fun StickerPanelContent(
     var localPackDetailId by remember { mutableStateOf<String?>(null) }
     var localPackLayout by remember { mutableStateOf(PanelSettings.localStickerPackLayout) }
     var onlinePackLayout by remember { mutableStateOf(PanelSettings.onlineStickerPackLayout) }
+    var wrapActions by remember { mutableStateOf(PanelSettings.wrapPanelActions) }
     var query by remember { mutableStateOf("") }
     var onlineQuery by remember { mutableStateOf("") }
     var onlinePacksState by remember { mutableStateOf<PanelUiState<List<StickerPack>>>(PanelUiState.Loading) }
@@ -370,7 +371,7 @@ private fun StickerPanelContent(
             showToastSuspend(context, result.exceptionOrNull()?.message ?: "表情发送成功")
             if (result.isSuccess) {
                 refreshLocal()
-                if (PanelSettings.stickerAutoClose) onDismiss()
+                if (PanelSettings.panelAutoClose) onDismiss()
             }
         }
     }
@@ -677,6 +678,7 @@ private fun StickerPanelContent(
             selected = destination,
             title = title,
             actions = panelActions,
+            wrapActions = wrapActions,
             onSelect = {
                 if (reorderTarget != null) return@PanelShell
                 multiSelectMode = false
@@ -872,6 +874,7 @@ private fun StickerPanelContent(
                 StickerDestination.SETTINGS -> StickerSettingsContent(
                     localPackLayout = localPackLayout,
                     onlinePackLayout = onlinePackLayout,
+                    wrapActions = wrapActions,
                     onLocalPackLayoutChange = {
                         localPackLayout = it
                         localPackDetailId = null
@@ -880,6 +883,10 @@ private fun StickerPanelContent(
                     onOnlinePackLayoutChange = {
                         onlinePackLayout = it
                         PanelSettings.onlineStickerPackLayout = it
+                    },
+                    onWrapActionsChange = {
+                        wrapActions = it
+                        PanelSettings.wrapPanelActions = it
                     },
                 )
                 }
@@ -1824,12 +1831,14 @@ private fun TelegramImportProgressOverlay(
 private fun StickerSettingsContent(
     localPackLayout: StickerPackLayout,
     onlinePackLayout: StickerPackLayout,
+    wrapActions: Boolean,
     onLocalPackLayoutChange: (StickerPackLayout) -> Unit,
     onOnlinePackLayoutChange: (StickerPackLayout) -> Unit,
+    onWrapActionsChange: (Boolean) -> Unit,
 ) {
     var columns by remember { mutableIntStateOf(PanelSettings.stickerColumnCount.coerceIn(1, 15)) }
     var maxHistory by remember { mutableLongStateOf(PanelSettings.stickerMaxHistory.coerceAtLeast(1L)) }
-    var autoClose by remember { mutableStateOf(PanelSettings.stickerAutoClose) }
+    var autoClose by remember { mutableStateOf(PanelSettings.panelAutoClose) }
     var telegramToken by remember { mutableStateOf(PanelSettings.telegramBotToken) }
     var removeRoundedVideoMask by remember {
         mutableStateOf(PanelSettings.stickerRemoveRoundedVideoMask)
@@ -1916,8 +1925,10 @@ private fun StickerSettingsContent(
                 autoClose = autoClose,
                 onAutoCloseChange = {
                     autoClose = it
-                    PanelSettings.stickerAutoClose = it
+                    PanelSettings.panelAutoClose = it
                 },
+                wrapActions = wrapActions,
+                onWrapActionsChange = onWrapActionsChange,
             )
         }
         if (clientIdPrompt) PanelFunBoxApiClientIdPrompt(

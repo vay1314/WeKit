@@ -239,6 +239,7 @@ private fun VoicePanelContent(
     }
     var localPackDetailId by remember { mutableStateOf<String?>(null) }
     var localPackLayout by remember { mutableStateOf(PanelSettings.localVoicePackLayout) }
+    var wrapActions by remember { mutableStateOf(PanelSettings.wrapPanelActions) }
     var localQuery by remember { mutableStateOf("") }
     var destination by remember {
         mutableStateOf(
@@ -500,7 +501,7 @@ private fun VoicePanelContent(
             showToastSuspend(context, result.exceptionOrNull()?.message ?: "语音发送成功")
             if (result.isSuccess) {
                 refreshLocal()
-                if (PanelSettings.voiceAutoClose) onDismiss()
+                if (PanelSettings.panelAutoClose) onDismiss()
             }
         }
     }
@@ -941,6 +942,7 @@ private fun VoicePanelContent(
             selected = destination,
             title = title,
             actions = panelActions,
+            wrapActions = wrapActions,
             onSelect = {
                 if (reorderTarget == null) destination = it
             },
@@ -1092,7 +1094,7 @@ private fun VoicePanelContent(
                                     }
                                     progressMessage = null
                                     showToastSuspend(context, result.exceptionOrNull()?.message ?: "语音发送成功")
-                                    if (result.isSuccess && PanelSettings.voiceAutoClose) onDismiss()
+                                    if (result.isSuccess && PanelSettings.panelAutoClose) onDismiss()
                                 }
                             }
                         },
@@ -1199,10 +1201,15 @@ private fun VoicePanelContent(
 
                     VoiceDestination.SETTINGS -> VoiceSettingsContent(
                         localPackLayout = localPackLayout,
+                        wrapActions = wrapActions,
                         onLocalPackLayoutChange = {
                             localPackLayout = it
                             localPackDetailId = null
                             PanelSettings.localVoicePackLayout = it
+                        },
+                        onWrapActionsChange = {
+                            wrapActions = it
+                            PanelSettings.wrapPanelActions = it
                         },
                     )
                     }
@@ -1926,10 +1933,12 @@ private fun SharedVoiceContent(
 @Composable
 private fun VoiceSettingsContent(
     localPackLayout: VoicePackLayout,
+    wrapActions: Boolean,
     onLocalPackLayoutChange: (VoicePackLayout) -> Unit,
+    onWrapActionsChange: (Boolean) -> Unit,
 ) {
     var maxHistory by remember { mutableLongStateOf(PanelSettings.voiceMaxHistory.coerceAtLeast(1L)) }
-    var autoClose by remember { mutableStateOf(PanelSettings.voiceAutoClose) }
+    var autoClose by remember { mutableStateOf(PanelSettings.panelAutoClose) }
     var clientIdPrompt by remember { mutableStateOf(false) }
     var historyPrompt by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
@@ -1956,8 +1965,10 @@ private fun VoiceSettingsContent(
                 autoClose = autoClose,
                 onAutoCloseChange = {
                     autoClose = it
-                    PanelSettings.voiceAutoClose = it
+                    PanelSettings.panelAutoClose = it
                 },
+                wrapActions = wrapActions,
+                onWrapActionsChange = onWrapActionsChange,
             )
         }
         if (clientIdPrompt) PanelFunBoxApiClientIdPrompt(

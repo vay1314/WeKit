@@ -110,6 +110,24 @@ fun PanelAutoCloseSetting(
 }
 
 @Composable
+fun PanelActionWrapSetting(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    ListItem(
+        colors = panelListItemColors(),
+        headlineContent = { Text("操作栏内容自动换行") },
+        supportingContent = { Text("内容超出屏幕宽度时换行显示") },
+        trailingContent = {
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+            )
+        },
+    )
+}
+
+@Composable
 fun PanelHistorySetting(
     value: Long,
     onValueChange: (Long) -> Unit,
@@ -279,6 +297,8 @@ fun LazyListScope.panelCollectionSettings(
     onCustomHistory: () -> Unit,
     autoClose: Boolean,
     onAutoCloseChange: (Boolean) -> Unit,
+    wrapActions: Boolean,
+    onWrapActionsChange: (Boolean) -> Unit,
 ) {
     item {
         PanelHistorySetting(
@@ -291,6 +311,12 @@ fun LazyListScope.panelCollectionSettings(
         PanelAutoCloseSetting(
             checked = autoClose,
             onCheckedChange = onAutoCloseChange,
+        )
+    }
+    item {
+        PanelActionWrapSetting(
+            checked = wrapActions,
+            onCheckedChange = onWrapActionsChange,
         )
     }
 }
