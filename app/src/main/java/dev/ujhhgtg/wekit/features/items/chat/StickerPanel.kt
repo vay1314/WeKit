@@ -42,15 +42,9 @@ import kotlin.io.path.writeBytes
 object StickerPanel : SwitchFeature() { // entry implementation in ChatFooterHooks
 
     fun openPanel(anchor: View) {
-        val talker = WeCurrentConversationApi.value
-        CoroutineScope(Dispatchers.IO).launch {
-            PanelPaths.cleanupStalePanelCache()
-            val packs = loadLocalPacks()
-            withContext(Dispatchers.Main) {
-                showStickerPanelSheet(
-                    context = anchor.context,
-                    packs = packs,
-                    actions = StickerPanelActions(
+        showStickerPanelSheet(
+            context = anchor.context,
+            actions = StickerPanelActions(
                         reloadLocal = ::loadLocalPacks,
                         importSticker = { packId, mode, onStarted, onComplete ->
                             when (mode) {
@@ -130,23 +124,27 @@ object StickerPanel : SwitchFeature() { // entry implementation in ChatFooterHoo
                         saveItemOrder = StickerPanelRepository::saveItemOrder,
                         ensurePack = { name -> withContext(Dispatchers.IO) { StickerPanelRepository.ensurePack(name) } },
                         saveOnlineSticker = { packId, item -> saveOnlineSticker(packId, item) },
-                    ),
-                ) { item ->
-                    withContext(Dispatchers.IO) {
-                        runCatching {
-                            val path = resolveStickerPath(item).getOrThrow()
-                            val temporary = item.localPath == null
-                            try {
-                                check(WeMessageApi.sendSticker(talker, path)) { "表情发送失败" }
-                                if (temporary) StickerPanelRepository.recordOnlineRecent(item)
-                                else StickerPanelRepository.recordRecent(path)
-                            } finally {
-                                if (temporary) path.asPath.deleteIfExists()
-                            }
+                ),
+        ) { item ->
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    val path = resolveStickerPath(item).getOrThrow()
+                    val temporary = item.localPath == null
+                    try {
+                        check(WeMessageApi.sendSticker(WeCurrentConversationApi.value, path)) {
+                            "表情发送失败"
                         }
+                        if (temporary) StickerPanelRepository.recordOnlineRecent(item)
+                        else StickerPanelRepository.recordRecent(path)
+                    } finally {
+                        if (temporary) path.asPath.deleteIfExists()
                     }
                 }
             }
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            PanelPaths.cleanupStalePanelCache()
         }
     }
 

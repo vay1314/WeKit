@@ -78,22 +78,18 @@ internal val EDGE_TTS_VOICES = listOf(
 object VoicePanel : SwitchFeature() { // entry implementation in ChatFooterHooks
 
     fun openPanel(anchor: View) {
-        val talker = WeCurrentConversationApi.value
         val context = anchor.context
+        showVoicePanelSheet(
+            context = context,
+            actions = buildActions(context),
+        )
+
         CoroutineScope(Dispatchers.IO).launch {
             PanelPaths.cleanupStalePanelCache()
-            val packs = VoicePanelRepository.loadPacks()
-            withContext(Dispatchers.Main) {
-                showVoicePanelSheet(
-                    context = context,
-                    packs = packs,
-                    actions = buildActions(context, talker),
-                )
-            }
         }
     }
 
-    private fun buildActions(context: Context, talker: String) = VoicePanelActions(
+    private fun buildActions(context: Context) = VoicePanelActions(
         reloadLocal = VoicePanelRepository::loadPacks,
         importVoice = { packId, mode, onStarted, onComplete ->
             when (mode) {
@@ -136,7 +132,7 @@ object VoicePanel : SwitchFeature() { // entry implementation in ChatFooterHooks
         releasePreview = { preview ->
             if (preview.temporary) preview.path.asPath.deleteIfExists()
         },
-        send = { sendVoice(talker, it) },
+        send = { sendVoice(WeCurrentConversationApi.value, it) },
         ensureLocalPack = { name -> withContext(Dispatchers.IO) { VoicePanelRepository.ensurePack(name) } },
         addToLocal = addToLocal@{ packId, item ->
             if (VoicePanelRepository.hasOnlineVoice(packId, item)) return@addToLocal Result.success(Unit)
@@ -150,8 +146,8 @@ object VoicePanel : SwitchFeature() { // entry implementation in ChatFooterHooks
                 }
             }
         },
-        synthesizeEdge = { text, voice -> synthesizeEdgeAndSend(talker, text, voice) },
-        synthesizeSystem = { text -> synthesizeSystemAndSend(context, talker, text) },
+        synthesizeEdge = { text, voice -> synthesizeEdgeAndSend(WeCurrentConversationApi.value, text, voice) },
+        synthesizeSystem = { text -> synthesizeSystemAndSend(context, WeCurrentConversationApi.value, text) },
         convertEdge = ::synthesizeEdgePreview,
         convertSystem = { text -> synthesizeSystemPreview(context, text) },
         loadClones = { withContext(Dispatchers.IO) { CloneVoiceRepository.load() } },
@@ -171,9 +167,9 @@ object VoicePanel : SwitchFeature() { // entry implementation in ChatFooterHooks
                 }
             }
         },
-        synthesizeClone = { text, voice -> synthesizeCloneAndSend(talker, text, voice) },
+        synthesizeClone = { text, voice -> synthesizeCloneAndSend(WeCurrentConversationApi.value, text, voice) },
         convertClone = ::synthesizeClonePreview,
-        sendConverted = { preview, title -> sendPreview(talker, preview, title) },
+        sendConverted = { preview, title -> sendPreview(WeCurrentConversationApi.value, preview, title) },
         loadExampleGroups = FunBoxCloneVoiceRepository::exampleGroups,
         loadExamples = FunBoxCloneVoiceRepository::examples,
         previewExample = ::resolveExamplePath,

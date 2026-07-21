@@ -86,10 +86,24 @@ fun <T> PanelPackChips(
                 selected = id(pack) == selectedId,
                 onClick = { onSelect(pack) },
                 label = { Text(title(pack), maxLines = 1) },
+                modifier = Modifier.animateItem(),
             )
         }
     }
     HorizontalDivider()
+}
+
+internal fun <T> panelItemsWithStableKeys(
+    items: List<T>,
+    key: (T) -> String,
+): List<Pair<String, T>> {
+    val occurrences = mutableMapOf<String, Int>()
+    return items.map { item ->
+        val base = key(item)
+        val occurrence = occurrences.getOrDefault(base, 0)
+        occurrences[base] = occurrence + 1
+        "$base#$occurrence" to item
+    }
 }
 
 @Composable

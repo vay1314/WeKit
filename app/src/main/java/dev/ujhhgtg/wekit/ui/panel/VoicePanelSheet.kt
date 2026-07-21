@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
@@ -70,6 +69,7 @@ import com.composables.icons.materialsymbols.outlined.Send
 import com.composables.icons.materialsymbols.outlined.Settings
 import com.composables.icons.materialsymbols.outlined.Share
 import com.composables.icons.materialsymbols.outlined.Text_to_speech
+import com.composables.icons.materialsymbols.outlined.Travel_explore
 import com.composables.icons.materialsymbols.outlined.Upload_file
 import dev.ujhhgtg.wekit.features.items.chat.panel.CloneExample
 import dev.ujhhgtg.wekit.features.items.chat.panel.CloneVoice
@@ -89,6 +89,7 @@ import dev.ujhhgtg.wekit.features.items.chat.panel.voice.VoiceProvider
 import dev.ujhhgtg.wekit.features.items.chat.panel.voice.VoiceProviderRegistry
 import dev.ujhhgtg.wekit.utils.android.showToastSuspend
 import dev.ujhhgtg.wekit.utils.fs.asPath
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -177,13 +178,11 @@ private enum class VoiceReorderTarget {
 
 fun showVoicePanelSheet(
     context: Context,
-    packs: List<VoicePack>,
     actions: VoicePanelActions,
     onDismiss: () -> Unit = {},
 ) {
     showPanelDialog(context, onDismiss) {
         VoicePanelContent(
-            initialPacks = packs,
             actions = actions,
             onDismiss = ::dismiss,
         )
@@ -208,13 +207,11 @@ private val LocalVoiceDurationOverrides = staticCompositionLocalOf<Map<String, L
 
 private data class ProviderRootSnapshot(
     val page: Int,
-    val query: String,
     val state: PanelUiState<VoiceProviderPage>,
 )
 
 @Composable
 private fun VoicePanelContent(
-    initialPacks: List<VoicePack>,
     actions: VoicePanelActions,
     onDismiss: () -> Unit,
 ) {
@@ -233,14 +230,17 @@ private fun VoicePanelContent(
     var activePreview by remember { mutableStateOf<VoicePreview?>(null) }
     var previewJob by remember { mutableStateOf<Job?>(null) }
     var previewRequest by remember { mutableIntStateOf(0) }
-    var localPacks by remember { mutableStateOf(initialPacks) }
+    var localPacks by remember { mutableStateOf<List<VoicePack>>(emptyList()) }
+    var localState by remember { mutableStateOf<PanelUiState<Unit>>(PanelUiState.Loading) }
     var selectedLocalId by remember {
-        mutableStateOf(initialPacks.firstOrNull { it.id != RECENT_PACK_ID }?.id)
+        mutableStateOf<String?>(null)
     }
     var localPackDetailId by remember { mutableStateOf<String?>(null) }
     var localPackLayout by remember { mutableStateOf(PanelSettings.localVoicePackLayout) }
     var wrapActions by remember { mutableStateOf(PanelSettings.wrapPanelActions) }
     var localQuery by remember { mutableStateOf("") }
+    var localPackFilterQuery by remember { mutableStateOf("") }
+    var localPackFilterExpanded by remember { mutableStateOf(false) }
     var destination by remember {
         mutableStateOf(
             VoiceDestination.entries.firstOrNull { it.name == PanelSettings.voiceLastDestination }
@@ -265,10 +265,19 @@ private fun VoicePanelContent(
     var provider by remember { mutableStateOf(VoiceProviderRegistry.get(PanelSettings.selectedVoiceProvider)) }
     var providerParent by remember { mutableStateOf<VoiceItem?>(null) }
     var providerPage by remember { mutableIntStateOf(0) }
-    var providerQuery by remember { mutableStateOf("") }
+    var providerFilterQuery by remember { mutableStateOf("") }
+    var providerSearchExpanded by remember { mutableStateOf(false) }
     var providerState by remember { mutableStateOf<PanelUiState<VoiceProviderPage>>(PanelUiState.Loading) }
     var providerRootSnapshot by remember { mutableStateOf<ProviderRootSnapshot?>(null) }
     var providerRequest by remember { mutableIntStateOf(0) }
+    var onlineSearchQuery by remember { mutableStateOf("") }
+    var onlineSearchParent by remember { mutableStateOf<VoiceItem?>(null) }
+    var onlineSearchPage by remember { mutableIntStateOf(0) }
+    var onlineSearchState by remember {
+        mutableStateOf<PanelUiState<VoiceProviderPage>>(PanelUiState.Empty("输入关键词搜索在线语音"))
+    }
+    var onlineSearchRootSnapshot by remember { mutableStateOf<ProviderRootSnapshot?>(null) }
+    var onlineSearchRequest by remember { mutableIntStateOf(0) }
     var sharedPacksState by remember { mutableStateOf<PanelUiState<List<VoicePack>>>(PanelUiState.Loading) }
     var sharedPacksRequest by remember { mutableIntStateOf(0) }
     var selectedSharedPack by remember { mutableStateOf<VoicePack?>(null) }
@@ -295,6 +304,8 @@ private fun VoicePanelContent(
     var onlineSaveJob by remember { mutableStateOf<Job?>(null) }
     val providerRootListState = rememberLazyListState()
     val providerChildListState = rememberLazyListState()
+    val onlineSearchRootListState = rememberLazyListState()
+    val onlineSearchChildListState = rememberLazyListState()
     val localPackListState = rememberLazyListState()
     val localItemListState = rememberLazyListState()
 
@@ -307,15 +318,29 @@ private fun VoicePanelContent(
 
     fun refreshLocal() {
         val request = ++localRequest
+        val showFullLoadingState = localState !is PanelUiState.Content
+        if (showFullLoadingState) localState = PanelUiState.Loading
         scope.launch {
-            val packs = withContext(Dispatchers.IO) { actions.reloadLocal() }
-            if (request != localRequest) return@launch
-            localPacks = packs
-            if (selectedLocalId !in localPacks.map { it.id }) {
-                selectedLocalId = localPacks.firstOrNull { it.id != RECENT_PACK_ID }?.id
-            }
-            if (localPackDetailId !in localPacks.map { it.id }) {
-                localPackDetailId = null
+            try {
+                val packs = withContext(Dispatchers.IO) { actions.reloadLocal() }
+                if (request != localRequest) return@launch
+                localPacks = packs
+                localState = PanelUiState.Content(Unit)
+                if (selectedLocalId !in localPacks.map { it.id }) {
+                    selectedLocalId = localPacks.firstOrNull { it.id != RECENT_PACK_ID }?.id
+                }
+                if (localPackDetailId !in localPacks.map { it.id }) {
+                    localPackDetailId = null
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                if (request != localRequest) return@launch
+                if (showFullLoadingState) {
+                    localState = PanelUiState.Error(error.message ?: "本地语音加载失败")
+                } else {
+                    operationMessage = error.message ?: "本地语音刷新失败"
+                }
             }
         }
     }
@@ -333,11 +358,9 @@ private fun VoicePanelContent(
         val requestedProvider = provider
         val requestedParent = providerParent
         val requestedPage = providerPage
-        val requestedQuery = providerQuery
         providerState = PanelUiState.Loading
         scope.launch {
-            val result = if (requestedQuery.isBlank()) requestedProvider.browse(requestedParent, requestedPage)
-            else requestedProvider.search(requestedQuery, requestedPage)
+            val result = requestedProvider.browse(requestedParent, requestedPage)
             if (request != providerRequest) return@launch
             providerState = result.fold(
                 {
@@ -346,6 +369,36 @@ private fun VoicePanelContent(
                     else PanelUiState.Content(it.copy(items = uniqueItems))
                 },
                 { PanelUiState.Error(it.message ?: "语音加载失败") },
+            )
+        }
+    }
+
+    fun loadOnlineSearch(reset: Boolean = false) {
+        if (reset) onlineSearchPage = 0
+        val request = ++onlineSearchRequest
+        val requestedProvider = provider
+        val requestedParent = onlineSearchParent
+        val requestedPage = onlineSearchPage
+        val requestedQuery = onlineSearchQuery.trim()
+        if (requestedParent == null && requestedQuery.isBlank()) {
+            onlineSearchState = PanelUiState.Empty("输入关键词搜索在线语音")
+            return
+        }
+        onlineSearchState = PanelUiState.Loading
+        scope.launch {
+            val result = if (requestedParent == null) {
+                requestedProvider.search(requestedQuery, requestedPage)
+            } else {
+                requestedProvider.browse(requestedParent, requestedPage)
+            }
+            if (request != onlineSearchRequest) return@launch
+            onlineSearchState = result.fold(
+                {
+                    val uniqueItems = it.items.distinctBy(::voiceSelectionKey)
+                    if (uniqueItems.isEmpty()) PanelUiState.Empty("没有更多语音")
+                    else PanelUiState.Content(it.copy(items = uniqueItems))
+                },
+                { PanelUiState.Error(it.message ?: "在线语音搜索失败") },
             )
         }
     }
@@ -534,7 +587,10 @@ private fun VoicePanelContent(
         provider.id,
         providerParent?.id,
         providerPage,
-        providerQuery,
+        providerFilterQuery,
+        onlineSearchParent?.id,
+        onlineSearchPage,
+        onlineSearchQuery,
         selectedSharedPack?.id,
         sharedQuery,
         localPackDetailId,
@@ -547,6 +603,10 @@ private fun VoicePanelContent(
         val message = operationMessage ?: return@LaunchedEffect
         showToastSuspend(context, message)
         operationMessage = null
+    }
+
+    LaunchedEffect(Unit) {
+        refreshLocal()
     }
 
     val selectedClone = clones.firstOrNull { it.id == selectedCloneId }
@@ -608,6 +668,19 @@ private fun VoicePanelContent(
     else editableLocalPacks.firstOrNull { it.id == localPackDetailId }
     val selectedLocal = if (localPackLayout == VoicePackLayout.TABS) selectedLocalTab else localDetailPack
     val localCatalogVisible = localPackLayout == VoicePackLayout.LIST && localDetailPack == null
+    val localFilterActive = localPackFilterQuery.trim().isNotEmpty()
+    val visibleLocalPacks = remember(localPacks, localPackFilterQuery, localCatalogVisible) {
+        if (!localCatalogVisible || localPackFilterQuery.isBlank()) editableLocalPacks
+        else editableLocalPacks.filter {
+            it.title.contains(localPackFilterQuery.trim(), ignoreCase = true)
+        }
+    }
+    val visibleSelectedLocal = remember(selectedLocal, localPackFilterQuery, localCatalogVisible) {
+        selectedLocal?.let { pack ->
+            if (localCatalogVisible || localPackFilterQuery.isBlank()) pack
+            else pack.copy(items = pack.items.filter { it.matchesLocalSearch(pack, localPackFilterQuery) })
+        }
+    }
     val recentItems = remember(recent?.items, recentMostUsed) {
         recent?.items.orEmpty().let { items ->
             if (recentMostUsed) {
@@ -619,10 +692,11 @@ private fun VoicePanelContent(
     }
     val rail = listOf(
         PanelRailItem(VoiceDestination.RECENT, MaterialSymbols.Outlined.History, "最近使用"),
-        PanelRailItem(VoiceDestination.SEARCH, MaterialSymbols.Outlined.Manage_search, "本地搜索"),
         PanelRailItem(VoiceDestination.LOCAL, MaterialSymbols.Outlined.Folder, "本地语音包"),
+        PanelRailItem(VoiceDestination.SEARCH, MaterialSymbols.Outlined.Manage_search, "本地搜索"),
         PanelRailItem(VoiceDestination.TTS, MaterialSymbols.Outlined.Text_to_speech, "文字转语音"),
         PanelRailItem(VoiceDestination.ONLINE, MaterialSymbols.Outlined.Cloud, "在线语音包"),
+        PanelRailItem(VoiceDestination.ONLINE_SEARCH, MaterialSymbols.Outlined.Travel_explore, "在线搜索"),
         PanelRailItem(VoiceDestination.SHARED, MaterialSymbols.Outlined.Share, "共享语音包"),
         PanelRailItem(VoiceDestination.SETTINGS, MaterialSymbols.Outlined.Settings, "设置"),
     )
@@ -633,14 +707,30 @@ private fun VoicePanelContent(
         VoiceDestination.LOCAL -> "本地语音包"
         VoiceDestination.TTS -> "文字转语音"
         VoiceDestination.ONLINE -> "在线语音包"
+        VoiceDestination.ONLINE_SEARCH -> "在线搜索"
         VoiceDestination.SHARED -> selectedSharedPack?.title ?: "我的共享语音包"
         VoiceDestination.SETTINGS -> "设置"
+    }
+
+    val visibleProviderState = remember(providerState, providerFilterQuery) {
+        val term = providerFilterQuery.trim()
+        if (term.isBlank() || providerState !is PanelUiState.Content) {
+            providerState
+        } else {
+            val page = (providerState as PanelUiState.Content<VoiceProviderPage>).value
+            val items = page.items.filter { it.title.contains(term, ignoreCase = true) }
+            if (items.isEmpty()) PanelUiState.Empty("当前页面没有匹配的语音")
+            else PanelUiState.Content(page.copy(items = items))
+        }
     }
 
     val batchCandidates = when (destination) {
         VoiceDestination.LOCAL -> localDetailPack?.items.orEmpty()
 
-        VoiceDestination.ONLINE -> (providerState as? PanelUiState.Content)?.value?.items
+        VoiceDestination.ONLINE -> (visibleProviderState as? PanelUiState.Content)?.value?.items
+            .orEmpty().filterNot(VoiceItem::isContainer).distinctBy(::voiceSelectionKey)
+
+        VoiceDestination.ONLINE_SEARCH -> (onlineSearchState as? PanelUiState.Content)?.value?.items
             .orEmpty().filterNot(VoiceItem::isContainer).distinctBy(::voiceSelectionKey)
 
         VoiceDestination.SHARED -> if (selectedSharedPack == null) emptyList() else {
@@ -705,8 +795,7 @@ private fun VoicePanelContent(
         )
     }
 
-    fun saveWholeVoicePack() {
-        val parent = providerParent ?: return
+    fun saveWholeVoicePack(parent: VoiceItem) {
         stopOnlineSave()
         onlineSaveProgress = PanelSaveProgress("正在读取语音包“${parent.title}”", 1)
         onlineSaveJob = scope.launch {
@@ -881,7 +970,6 @@ private fun VoicePanelContent(
                 providerParent = null
                 providerRootSnapshot?.let { snapshot ->
                     providerPage = snapshot.page
-                    providerQuery = snapshot.query
                     providerState = snapshot.state
                 } ?: loadProvider(true)
                 providerRootSnapshot = null
@@ -892,7 +980,36 @@ private fun VoicePanelContent(
                     batchMode = true
                     selectedDownloadIds = emptySet()
                 })
-                add(PanelAction(MaterialSymbols.Outlined.Save, "保存") { saveWholeVoicePack() })
+                add(PanelAction(MaterialSymbols.Outlined.Save, "保存") {
+                    providerParent?.let(::saveWholeVoicePack)
+                })
+            }
+        }
+
+        VoiceDestination.ONLINE_SEARCH -> buildList {
+            if (onlineSearchParent != null) {
+                add(PanelAction(MaterialSymbols.Outlined.Arrow_back, "返回搜索结果") {
+                    onlineSearchParent = null
+                    onlineSearchRootSnapshot?.let { snapshot ->
+                        onlineSearchPage = snapshot.page
+                        onlineSearchState = snapshot.state
+                    } ?: loadOnlineSearch(true)
+                    onlineSearchRootSnapshot = null
+                })
+            }
+            add(PanelAction(MaterialSymbols.Outlined.Refresh, "刷新", onlineSearchQuery.isNotBlank()) {
+                loadOnlineSearch()
+            })
+            if (batchCandidates.isNotEmpty()) {
+                add(PanelAction(MaterialSymbols.Outlined.Select_all, "多选") {
+                    batchMode = true
+                    selectedDownloadIds = emptySet()
+                })
+            }
+            if (onlineSearchParent != null && batchCandidates.isNotEmpty()) {
+                add(PanelAction(MaterialSymbols.Outlined.Save, "保存") {
+                    onlineSearchParent?.let(::saveWholeVoicePack)
+                })
             }
         }
 
@@ -935,6 +1052,28 @@ private fun VoicePanelContent(
 
         else -> emptyList()
     }
+    val actionSearch = when {
+        reorderTarget != null || batchMode -> null
+
+        destination == VoiceDestination.LOCAL -> PanelActionSearch(
+            expanded = localPackFilterExpanded,
+            value = localPackFilterQuery,
+            label = if (localCatalogVisible) "筛选本地语音包" else "筛选当前语音包",
+            actionIndex = (panelActions.size - 1).coerceAtLeast(0),
+            onValueChange = { localPackFilterQuery = it },
+            onExpandedChange = { localPackFilterExpanded = it },
+        )
+
+        destination == VoiceDestination.ONLINE -> PanelActionSearch(
+            expanded = providerSearchExpanded,
+            value = providerFilterQuery,
+            label = if (providerParent == null) "筛选当前语音包" else "筛选当前语音",
+            onValueChange = { providerFilterQuery = it },
+            onExpandedChange = { providerSearchExpanded = it },
+        )
+
+        else -> null
+    }
 
     Box(Modifier.fillMaxSize()) {
         PanelShell(
@@ -942,6 +1081,7 @@ private fun VoicePanelContent(
             selected = destination,
             title = title,
             actions = panelActions,
+            actionSearch = actionSearch,
             wrapActions = wrapActions,
             onSelect = {
                 if (reorderTarget == null) destination = it
@@ -964,10 +1104,18 @@ private fun VoicePanelContent(
                         providerParent = null
                         providerRootSnapshot?.let { snapshot ->
                             providerPage = snapshot.page
-                            providerQuery = snapshot.query
                             providerState = snapshot.state
                         } ?: loadProvider(true)
                         providerRootSnapshot = null
+                    }
+
+                    destination == VoiceDestination.ONLINE_SEARCH && onlineSearchParent != null -> {
+                        onlineSearchParent = null
+                        onlineSearchRootSnapshot?.let { snapshot ->
+                            onlineSearchPage = snapshot.page
+                            onlineSearchState = snapshot.state
+                        } ?: loadOnlineSearch(true)
+                        onlineSearchRootSnapshot = null
                     }
 
                     destination == VoiceDestination.SHARED && selectedSharedPack != null -> {
@@ -1009,52 +1157,61 @@ private fun VoicePanelContent(
                     )
 
                     null -> when (destination) {
-                    VoiceDestination.RECENT -> if (recent == null || recent.items.isEmpty()) {
-                        PanelEmptyAction("还没有发送过语音")
-                    } else {
-                        VoiceList(
-                            voices = recentItems,
+                    VoiceDestination.RECENT -> PanelStateContent(localState, ::refreshLocal) {
+                        if (recent == null || recent.items.isEmpty()) {
+                            PanelEmptyAction("还没有发送过语音")
+                        } else {
+                            VoiceList(
+                                voices = recentItems,
+                                playingId = playingId,
+                                onPreview = { item -> preview(item.id, item.title, item) { actions.preview(item) } },
+                                onSend = ::send,
+                            )
+                        }
+                    }
+
+                    VoiceDestination.SEARCH -> PanelStateContent(localState, ::refreshLocal) {
+                        VoiceSearchContent(
+                            packs = editableLocalPacks,
+                            query = localQuery,
+                            onQueryChange = { localQuery = it },
                             playingId = playingId,
                             onPreview = { item -> preview(item.id, item.title, item) { actions.preview(item) } },
                             onSend = ::send,
                         )
                     }
 
-                    VoiceDestination.SEARCH -> VoiceSearchContent(
-                        packs = editableLocalPacks,
-                        query = localQuery,
-                        onQueryChange = { localQuery = it },
-                        playingId = playingId,
-                        onPreview = { item -> preview(item.id, item.title, item) { actions.preview(item) } },
-                        onSend = ::send,
-                    )
-
-                    VoiceDestination.LOCAL -> LocalVoiceContent(
-                        packs = editableLocalPacks,
-                        layout = localPackLayout,
-                        selected = selectedLocal,
-                        playingId = playingId,
-                        packListState = localPackListState,
-                        itemListState = localItemListState,
-                        onSelectPack = {
-                            selectedLocalId = it.id
-                            if (localPackLayout == VoicePackLayout.LIST) {
-                                localPackDetailId = it.id
-                                scope.launch { localItemListState.scrollToItem(0) }
+                    VoiceDestination.LOCAL -> PanelStateContent(localState, ::refreshLocal) {
+                        LocalVoiceContent(
+                            packs = visibleLocalPacks,
+                            layout = localPackLayout,
+                            selected = visibleSelectedLocal,
+                            filterActive = localFilterActive,
+                            playingId = playingId,
+                            packListState = localPackListState,
+                            itemListState = localItemListState,
+                            onSelectPack = {
+                                selectedLocalId = it.id
+                                if (localPackLayout == VoicePackLayout.LIST) {
+                                    localPackFilterQuery = ""
+                                    localPackFilterExpanded = false
+                                    localPackDetailId = it.id
+                                    scope.launch { localItemListState.scrollToItem(0) }
+                                }
+                            },
+                            onPreview = { item -> preview(item.id, item.title, item) { actions.preview(item) } },
+                            onSend = ::send,
+                            onImport = { selectedLocal?.let { prompt = VoicePrompt.ImportLocal(it) } },
+                            selectable = batchMode && localDetailPack != null,
+                            selectedIds = selectedDownloadIds,
+                            onToggleSelection = { item ->
+                                val key = voiceSelectionKey(item)
+                                selectedDownloadIds = selectedDownloadIds.toMutableSet().apply {
+                                    if (!add(key)) remove(key)
+                                }
                             }
-                        },
-                        onPreview = { item -> preview(item.id, item.title, item) { actions.preview(item) } },
-                        onSend = ::send,
-                        onImport = { selectedLocal?.let { prompt = VoicePrompt.ImportLocal(it) } },
-                        selectable = batchMode && localDetailPack != null,
-                        selectedIds = selectedDownloadIds,
-                        onToggleSelection = { item ->
-                            val key = voiceSelectionKey(item)
-                            selectedDownloadIds = selectedDownloadIds.toMutableSet().apply {
-                                if (!add(key)) remove(key)
-                            }
-                        },
-                    )
+                        )
+                    }
 
                     VoiceDestination.TTS -> TtsContent(
                         mode = ttsMode,
@@ -1102,8 +1259,7 @@ private fun VoicePanelContent(
 
                     VoiceDestination.ONLINE -> OnlineVoiceContent(
                         provider = provider,
-                        query = providerQuery,
-                        state = providerState,
+                        state = visibleProviderState,
                         playingId = playingId,
                         listState = if (providerParent == null) providerRootListState else providerChildListState,
                         onProvider = {
@@ -1111,31 +1267,31 @@ private fun VoicePanelContent(
                             PanelSettings.selectedVoiceProvider = it.id
                             providerParent = null
                             providerRootSnapshot = null
-                            providerQuery = ""
+                            providerFilterQuery = ""
+                            providerSearchExpanded = false
+                            onlineSearchParent = null
+                            onlineSearchRootSnapshot = null
+                            onlineSearchRequest++
+                            onlineSearchState = PanelUiState.Empty(
+                                if (onlineSearchQuery.isBlank()) "输入关键词搜索在线语音"
+                                else "点击搜索查找在线语音",
+                            )
                             scope.launch {
                                 providerRootListState.scrollToItem(0)
                                 providerChildListState.scrollToItem(0)
                             }
                             loadProvider(true)
                         },
-                        onQueryChange = {
-                            providerQuery = it
-                            providerRequest++
-                            providerState = PanelUiState.Empty(
-                                if (it.isBlank()) "点击刷新浏览语音" else "点击搜索查找语音",
-                            )
-                        },
-                        onSearch = { loadProvider(true) },
                         onOpen = { item ->
                             if (providerParent == null) {
                                 providerRootSnapshot = ProviderRootSnapshot(
                                     page = providerPage,
-                                    query = providerQuery,
                                     state = providerState,
                                 )
                             }
                             providerParent = item
-                            providerQuery = ""
+                            providerFilterQuery = ""
+                            providerSearchExpanded = false
                             scope.launch { providerChildListState.scrollToItem(0) }
                             loadProvider(true)
                         },
@@ -1159,6 +1315,78 @@ private fun VoicePanelContent(
                             loadProvider()
                         },
                         onRetry = { loadProvider() },
+                    )
+
+                    VoiceDestination.ONLINE_SEARCH -> OnlineVoiceSearchContent(
+                        provider = provider,
+                        query = onlineSearchQuery,
+                        state = onlineSearchState,
+                        playingId = playingId,
+                        listState = if (onlineSearchParent == null) {
+                            onlineSearchRootListState
+                        } else {
+                            onlineSearchChildListState
+                        },
+                        onProvider = {
+                            provider = it
+                            PanelSettings.selectedVoiceProvider = it.id
+                            providerRequest++
+                            providerParent = null
+                            providerRootSnapshot = null
+                            providerFilterQuery = ""
+                            providerState = PanelUiState.Loading
+                            onlineSearchRequest++
+                            onlineSearchParent = null
+                            onlineSearchRootSnapshot = null
+                            onlineSearchPage = 0
+                            onlineSearchState = PanelUiState.Empty(
+                                if (onlineSearchQuery.isBlank()) "输入关键词搜索在线语音"
+                                else "点击搜索查找在线语音",
+                            )
+                        },
+                        onQueryChange = {
+                            onlineSearchQuery = it
+                            onlineSearchRequest++
+                            onlineSearchParent = null
+                            onlineSearchRootSnapshot = null
+                            onlineSearchPage = 0
+                            onlineSearchState = PanelUiState.Empty(
+                                if (it.isBlank()) "输入关键词搜索在线语音"
+                                else "点击搜索查找在线语音",
+                            )
+                        },
+                        onSearch = { loadOnlineSearch(true) },
+                        onOpen = { item ->
+                            if (onlineSearchParent == null) {
+                                onlineSearchRootSnapshot = ProviderRootSnapshot(
+                                    page = onlineSearchPage,
+                                    state = onlineSearchState,
+                                )
+                            }
+                            onlineSearchParent = item
+                            scope.launch { onlineSearchChildListState.scrollToItem(0) }
+                            loadOnlineSearch(true)
+                        },
+                        onPreview = { item -> preview(item.id, item.title, item) { actions.preview(item) } },
+                        onSend = ::send,
+                        onAdd = { item -> showVoicePackPicker(listOf(item)) },
+                        selectable = batchMode,
+                        selectedIds = selectedDownloadIds,
+                        onToggleSelection = { item ->
+                            val key = voiceSelectionKey(item)
+                            selectedDownloadIds = selectedDownloadIds.toMutableSet().apply {
+                                if (!add(key)) remove(key)
+                            }
+                        },
+                        onPrevious = {
+                            if (onlineSearchPage > 0) onlineSearchPage--
+                            loadOnlineSearch()
+                        },
+                        onNext = {
+                            onlineSearchPage++
+                            loadOnlineSearch()
+                        },
+                        onRetry = { loadOnlineSearch() },
                     )
 
                     VoiceDestination.SHARED -> SharedVoiceContent(
@@ -1537,6 +1765,7 @@ private fun LocalVoiceContent(
     packs: List<VoicePack>,
     layout: VoicePackLayout,
     selected: VoicePack?,
+    filterActive: Boolean,
     playingId: String?,
     packListState: LazyListState,
     itemListState: LazyListState,
@@ -1562,35 +1791,40 @@ private fun LocalVoiceContent(
             if (selected == null) {
                 PanelEmptyAction("暂无本地语音包", "请先新建语音包")
             } else if (selected.items.isEmpty()) {
-                PanelEmptyAction("语音包中还没有语音", "从文件导入", onImport)
+                if (filterActive) PanelEmptyAction("当前语音包没有匹配的语音")
+                else PanelEmptyAction("语音包中还没有语音", "从文件导入", onImport)
             } else {
                 VoiceList(selected.items, playingId, onPreview, onSend)
             }
         }
     } else if (selected == null) {
         if (packs.isEmpty()) {
-            PanelEmptyAction("暂无本地语音包", "请先新建语音包")
+            if (filterActive) PanelEmptyAction("没有找到本地语音包")
+            else PanelEmptyAction("暂无本地语音包", "请先新建语音包")
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 state = packListState,
             ) {
                 items(packs, key = VoicePack::id) { pack ->
-                    ListItem(
-                        modifier = Modifier.clickable { onSelectPack(pack) },
-                        colors = panelListItemColors(),
-                        headlineContent = {
-                            Text(pack.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        },
-                        supportingContent = { Text("${pack.itemCount} 条语音") },
-                        leadingContent = { Icon(MaterialSymbols.Outlined.Folder, null) },
-                    )
-                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    Column(Modifier.animateItem()) {
+                        ListItem(
+                            modifier = Modifier.clickable { onSelectPack(pack) },
+                            colors = panelListItemColors(),
+                            headlineContent = {
+                                Text(pack.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            },
+                            supportingContent = { Text("${pack.itemCount} 条语音") },
+                            leadingContent = { Icon(MaterialSymbols.Outlined.Folder, null) },
+                        )
+                        HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    }
                 }
             }
         }
     } else if (selected.items.isEmpty()) {
-        PanelEmptyAction("语音包中还没有语音", "从文件导入", onImport)
+        if (filterActive) PanelEmptyAction("当前语音包没有匹配的语音")
+        else PanelEmptyAction("语音包中还没有语音", "从文件导入", onImport)
     } else {
         VoiceList(
             voices = selected.items,
@@ -1697,9 +1931,7 @@ private fun VoiceSearchContent(
         val term = query.trim()
         if (term.isBlank()) emptyList()
         else packs.flatMap { pack ->
-            pack.items.filter {
-                it.title.contains(term, ignoreCase = true) || pack.title.contains(term, ignoreCase = true)
-            }
+            pack.items.filter { it.matchesLocalSearch(pack, term) }
         }
     }
     Column(Modifier.fillMaxSize()) {
@@ -1719,6 +1951,13 @@ private fun VoiceSearchContent(
     }
 }
 
+private fun VoiceItem.matchesLocalSearch(pack: VoicePack, query: String): Boolean {
+    val term = query.trim()
+    return term.isBlank() ||
+            title.contains(term, ignoreCase = true) ||
+            pack.title.contains(term, ignoreCase = true)
+}
+
 @Composable
 private fun VoiceList(
     voices: List<VoiceItem>,
@@ -1736,53 +1975,59 @@ private fun VoiceList(
 ) {
     val resolvedListState = listState ?: rememberLazyListState()
     val durationOverrides = LocalVoiceDurationOverrides.current
+    val keyedVoices = remember(voices) {
+        panelItemsWithStableKeys(voices, ::voiceSelectionKey)
+    }
     LazyColumn(Modifier.fillMaxSize(), state = resolvedListState) {
-        itemsIndexed(voices, key = { index, voice -> "${voiceSelectionKey(voice)}#$index" }) { _, voice ->
+        items(keyedVoices, key = { it.first }) { keyedVoice ->
+            val voice = keyedVoice.second
             val durationMs = durationOverrides[voiceSelectionKey(voice)] ?: voice.durationMs
-            ListItem(
-                modifier = Modifier.clickable {
-                    if (selectable && !voice.isContainer) onToggleSelection?.invoke(voice)
-                    else if (voice.isContainer) onOpen?.invoke(voice) else onPreview(voice)
-                },
-                colors = panelListItemColors(),
-                leadingContent = {
-                    if (selectable && !voice.isContainer) {
-                        Checkbox(
-                            checked = voiceSelectionKey(voice) in selectedIds,
-                            onCheckedChange = { onToggleSelection?.invoke(voice) },
-                        )
-                    } else {
-                        Icon(
-                            if (voice.isContainer) MaterialSymbols.Outlined.Folder else MaterialSymbols.Outlined.Mic,
-                            null,
-                        )
-                    }
-                },
-                headlineContent = { Text(voice.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                supportingContent = if (durationMs > 0) ({
-                    Text(formatDuration(durationMs))
-                }) else null,
-                trailingContent = if (voice.isContainer || selectable) null else ({
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        SendCountBadge(voice.sendCount, Modifier.padding(end = 2.dp))
-                        IconButton(onClick = { onPreview(voice) }) {
+            Column(Modifier.animateItem()) {
+                ListItem(
+                    modifier = Modifier.clickable {
+                        if (selectable && !voice.isContainer) onToggleSelection?.invoke(voice)
+                        else if (voice.isContainer) onOpen?.invoke(voice) else onPreview(voice)
+                    },
+                    colors = panelListItemColors(),
+                    leadingContent = {
+                        if (selectable && !voice.isContainer) {
+                            Checkbox(
+                                checked = voiceSelectionKey(voice) in selectedIds,
+                                onCheckedChange = { onToggleSelection?.invoke(voice) },
+                            )
+                        } else {
                             Icon(
-                                if (playingId == voice.id) MaterialSymbols.Outlined.Pause else MaterialSymbols.Outlined.Play_arrow,
-                                if (playingId == voice.id) "暂停" else "试听",
+                                if (voice.isContainer) MaterialSymbols.Outlined.Folder else MaterialSymbols.Outlined.Mic,
+                                null,
                             )
                         }
-                        if (onAdd != null) {
-                            IconButton(onClick = { onAdd(voice) }) {
-                                Icon(MaterialSymbols.Outlined.Download, "添加到本地")
+                    },
+                    headlineContent = { Text(voice.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    supportingContent = if (durationMs > 0) ({
+                        Text(formatDuration(durationMs))
+                    }) else null,
+                    trailingContent = if (voice.isContainer || selectable) null else ({
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            SendCountBadge(voice.sendCount, Modifier.padding(end = 2.dp))
+                            IconButton(onClick = { onPreview(voice) }) {
+                                Icon(
+                                    if (playingId == voice.id) MaterialSymbols.Outlined.Pause else MaterialSymbols.Outlined.Play_arrow,
+                                    if (playingId == voice.id) "暂停" else "试听",
+                                )
+                            }
+                            if (onAdd != null) {
+                                IconButton(onClick = { onAdd(voice) }) {
+                                    Icon(MaterialSymbols.Outlined.Download, "添加到本地")
+                                }
+                            }
+                            IconButton(onClick = { onSend(voice) }) {
+                                Icon(terminalActionIcon, terminalActionLabel)
                             }
                         }
-                        IconButton(onClick = { onSend(voice) }) {
-                            Icon(terminalActionIcon, terminalActionLabel)
-                        }
-                    }
-                }),
-            )
-            HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    }),
+                )
+                HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+            }
         }
     }
 }
@@ -1792,6 +2037,45 @@ private fun voiceSelectionKey(item: VoiceItem): String =
 
 @Composable
 private fun OnlineVoiceContent(
+    provider: VoiceProvider,
+    state: PanelUiState<VoiceProviderPage>,
+    playingId: String?,
+    listState: LazyListState,
+    onProvider: (VoiceProvider) -> Unit,
+    onOpen: (VoiceItem) -> Unit,
+    onPreview: (VoiceItem) -> Unit,
+    onSend: (VoiceItem) -> Unit,
+    onAdd: ((VoiceItem) -> Unit)?,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onRetry: () -> Unit,
+    selectable: Boolean = false,
+    selectedIds: Set<String> = emptySet(),
+    onToggleSelection: ((VoiceItem) -> Unit)? = null,
+) {
+    Column(Modifier.fillMaxSize()) {
+        VoiceProviderSelector(provider, onProvider)
+        OnlineVoiceResults(
+            state = state,
+            playingId = playingId,
+            listState = listState,
+            onOpen = onOpen,
+            onPreview = onPreview,
+            onSend = onSend,
+            onAdd = onAdd,
+            onPrevious = onPrevious,
+            onNext = onNext,
+            onRetry = onRetry,
+            selectable = selectable,
+            selectedIds = selectedIds,
+            onToggleSelection = onToggleSelection,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun OnlineVoiceSearchContent(
     provider: VoiceProvider,
     query: String,
     state: PanelUiState<VoiceProviderPage>,
@@ -1812,27 +2096,72 @@ private fun OnlineVoiceContent(
     onToggleSelection: ((VoiceItem) -> Unit)? = null,
 ) {
     Column(Modifier.fillMaxSize()) {
-        LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            items(VoiceProviderRegistry.providers, key = { it.id }) { item ->
-                FilterChip(item.id == provider.id, { onProvider(item) }, label = { Text(item.name) })
-            }
-        }
+        VoiceProviderSelector(provider, onProvider)
         PanelSearchField(
             value = query,
             onValueChange = onQueryChange,
-            label = "搜索语音",
+            label = "搜索在线语音",
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 6.dp),
             onSearch = onSearch,
         )
         HorizontalDivider()
+        OnlineVoiceResults(
+            state = state,
+            playingId = playingId,
+            listState = listState,
+            onOpen = onOpen,
+            onPreview = onPreview,
+            onSend = onSend,
+            onAdd = onAdd,
+            onPrevious = onPrevious,
+            onNext = onNext,
+            onRetry = onRetry,
+            selectable = selectable,
+            selectedIds = selectedIds,
+            onToggleSelection = onToggleSelection,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun VoiceProviderSelector(
+    provider: VoiceProvider,
+    onProvider: (VoiceProvider) -> Unit,
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(44.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        items(VoiceProviderRegistry.providers, key = { it.id }) { item ->
+            FilterChip(item.id == provider.id, { onProvider(item) }, label = { Text(item.name) })
+        }
+    }
+}
+
+@Composable
+private fun OnlineVoiceResults(
+    state: PanelUiState<VoiceProviderPage>,
+    playingId: String?,
+    listState: LazyListState,
+    onOpen: (VoiceItem) -> Unit,
+    onPreview: (VoiceItem) -> Unit,
+    onSend: (VoiceItem) -> Unit,
+    onAdd: ((VoiceItem) -> Unit)?,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onRetry: () -> Unit,
+    selectable: Boolean,
+    selectedIds: Set<String>,
+    onToggleSelection: ((VoiceItem) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier) {
         Box(Modifier.weight(1f)) {
             PanelStateContent(state, onRetry) { page ->
                 VoiceList(
@@ -2047,9 +2376,11 @@ private fun CloneManagerOverlay(
                     Text("语音示例")
                 }
                 LazyColumn(Modifier.weight(1f)) {
-                    item {
+                    item(key = "none") {
                         ListItem(
-                            modifier = Modifier.clickable(onClick = onSelectNone),
+                            modifier = Modifier
+                                .animateItem()
+                                .clickable(onClick = onSelectNone),
                             colors = panelListItemColors(),
                             headlineContent = { Text("无") },
                             supportingContent = { Text("不使用克隆音色") },
@@ -2060,7 +2391,9 @@ private fun CloneManagerOverlay(
                     }
                     items(clones, key = { it.id }) { voice ->
                         ListItem(
-                            modifier = Modifier.clickable { onSelect(voice) },
+                            modifier = Modifier
+                                .animateItem()
+                                .clickable { onSelect(voice) },
                             colors = panelListItemColors(),
                             headlineContent = { Text(voice.name) },
                             leadingContent = {
@@ -2096,9 +2429,11 @@ private fun CloneManagerOverlay(
             SOURCE_SHARED -> if (sharedPack == null) {
                 PanelStateContent(sharedPacksState) { packs ->
                     LazyColumn(Modifier.fillMaxSize()) {
-                        items(packs) { pack ->
+                        items(packs, key = VoicePack::id) { pack ->
                             ListItem(
-                                modifier = Modifier.clickable { onSelectSharedPack(pack) },
+                                modifier = Modifier
+                                    .animateItem()
+                                    .clickable { onSelectSharedPack(pack) },
                                 colors = panelListItemColors(),
                                 headlineContent = { Text(pack.title) },
                                 supportingContent = { Text("${pack.itemCount} 条语音") },
@@ -2131,9 +2466,11 @@ private fun CloneManagerOverlay(
                 if (selectedExampleGroup == null) {
                     PanelStateContent(exampleGroupsState, onLoadGroups) { groups ->
                         LazyColumn(Modifier.fillMaxSize()) {
-                            items(groups) { group ->
+                            items(groups, key = { it }) { group ->
                                 ListItem(
-                                    modifier = Modifier.clickable { onSelectExampleGroup(group) },
+                                    modifier = Modifier
+                                        .animateItem()
+                                        .clickable { onSelectExampleGroup(group) },
                                     colors = panelListItemColors(),
                                     headlineContent = { Text(group) },
                                     leadingContent = { Icon(MaterialSymbols.Outlined.Folder, null) },
@@ -2150,6 +2487,7 @@ private fun CloneManagerOverlay(
                         LazyColumn(Modifier.fillMaxSize()) {
                             items(examples, key = { "${it.group}/${it.fileName}" }) { example ->
                                 ListItem(
+                                    modifier = Modifier.animateItem(),
                                     colors = panelListItemColors(),
                                     headlineContent = {
                                         Text(example.title, maxLines = 1, overflow = TextOverflow.Ellipsis)

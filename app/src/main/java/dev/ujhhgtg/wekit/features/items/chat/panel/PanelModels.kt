@@ -136,6 +136,7 @@ enum class VoiceDestination {
     LOCAL,
     TTS,
     ONLINE,
+    ONLINE_SEARCH,
     SHARED,
     SETTINGS,
 }

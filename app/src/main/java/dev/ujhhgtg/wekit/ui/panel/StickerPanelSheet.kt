@@ -107,6 +107,7 @@ import dev.ujhhgtg.wekit.features.items.chat.panel.sticker.TelegramStickerPackRe
 import dev.ujhhgtg.wekit.ui.content.GlobalImageLoader
 import dev.ujhhgtg.wekit.ui.utils.TelegramIcon
 import dev.ujhhgtg.wekit.utils.android.showToastSuspend
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -182,13 +183,11 @@ private const val SIMILARITY_SEARCH_PRIVACY_MESSAGE =
 
 fun showStickerPanelSheet(
     context: Context,
-    packs: List<StickerPack>,
     actions: StickerPanelActions = StickerPanelActions(),
     onSend: suspend (StickerItem) -> Result<Unit>,
 ) {
     showPanelDialog(context) {
         StickerPanelContent(
-            initialPacks = packs,
             actions = actions,
             onSend = onSend,
             onDismiss = ::dismiss,
@@ -216,14 +215,14 @@ private enum class StickerReorderTarget {
 
 @Composable
 private fun StickerPanelContent(
-    initialPacks: List<StickerPack>,
     actions: StickerPanelActions,
     onSend: suspend (StickerItem) -> Result<Unit>,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var localPacks by remember { mutableStateOf(initialPacks) }
+    var localPacks by remember { mutableStateOf<List<StickerPack>>(emptyList()) }
+    var localState by remember { mutableStateOf<PanelUiState<Unit>>(PanelUiState.Loading) }
     var destination by remember {
         mutableStateOf(
             StickerDestination.entries.firstOrNull { it.name == PanelSettings.stickerLastDestination }
@@ -231,14 +230,18 @@ private fun StickerPanelContent(
         )
     }
     var selectedPackId by remember {
-        mutableStateOf(initialPacks.firstOrNull { it.id != RECENT_PACK_ID }?.id)
+        mutableStateOf<String?>(null)
     }
     var localPackDetailId by remember { mutableStateOf<String?>(null) }
     var localPackLayout by remember { mutableStateOf(PanelSettings.localStickerPackLayout) }
     var onlinePackLayout by remember { mutableStateOf(PanelSettings.onlineStickerPackLayout) }
     var wrapActions by remember { mutableStateOf(PanelSettings.wrapPanelActions) }
     var query by remember { mutableStateOf("") }
+    var localPackFilterQuery by remember { mutableStateOf("") }
+    var localPackFilterExpanded by remember { mutableStateOf(false) }
     var onlineQuery by remember { mutableStateOf("") }
+    var onlinePackQuery by remember { mutableStateOf("") }
+    var onlinePackSearchExpanded by remember { mutableStateOf(false) }
     var onlinePacksState by remember { mutableStateOf<PanelUiState<List<StickerPack>>>(PanelUiState.Loading) }
     var onlinePacksRequest by remember { mutableIntStateOf(0) }
     var myUploadsState by remember { mutableStateOf<PanelUiState<List<StickerPack>>>(PanelUiState.Loading) }
@@ -280,15 +283,29 @@ private fun StickerPanelContent(
 
     fun refreshLocal() {
         val request = ++localRequest
+        val showFullLoadingState = localState !is PanelUiState.Content
+        if (showFullLoadingState) localState = PanelUiState.Loading
         scope.launch {
-            val packs = withContext(Dispatchers.IO) { actions.reloadLocal() }
-            if (request != localRequest) return@launch
-            localPacks = packs
-            if (selectedPackId !in localPacks.map { it.id }) {
-                selectedPackId = localPacks.firstOrNull { it.id != RECENT_PACK_ID }?.id
-            }
-            if (localPackDetailId !in localPacks.map { it.id }) {
-                localPackDetailId = null
+            try {
+                val packs = withContext(Dispatchers.IO) { actions.reloadLocal() }
+                if (request != localRequest) return@launch
+                localPacks = packs
+                localState = PanelUiState.Content(Unit)
+                if (selectedPackId !in localPacks.map { it.id }) {
+                    selectedPackId = localPacks.firstOrNull { it.id != RECENT_PACK_ID }?.id
+                }
+                if (localPackDetailId !in localPacks.map { it.id }) {
+                    localPackDetailId = null
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                if (request != localRequest) return@launch
+                if (showFullLoadingState) {
+                    localState = PanelUiState.Error(error.message ?: "本地表情加载失败")
+                } else {
+                    operationMessage = error.message ?: "本地表情刷新失败"
+                }
             }
         }
     }
@@ -422,6 +439,10 @@ private fun StickerPanelContent(
         operationMessage = null
     }
 
+    LaunchedEffect(Unit) {
+        refreshLocal()
+    }
+
     LaunchedEffect(destination) {
         PanelSettings.stickerLastDestination = destination.name
         if (destination == StickerDestination.ONLINE && onlinePacksState == PanelUiState.Loading) {
@@ -451,6 +472,8 @@ private fun StickerPanelContent(
         else -> emptyList()
     }
     val deletingLocalItems = destination == StickerDestination.PACKS && localDetailPack != null
+    val localCatalogVisible = localPackLayout != StickerPackLayout.TABS && localDetailPack == null
+    val localActionPack = if (localPackLayout == StickerPackLayout.TABS) selectedPack else localDetailPack
     val recentItems = remember(recent?.items, recentMostUsed) {
         recent?.items.orEmpty().let { items ->
             if (recentMostUsed) {
@@ -463,11 +486,18 @@ private fun StickerPanelContent(
     val localSearchResults = remember(localPacks, query) {
         if (query.isBlank()) emptyList()
         else editablePacks.flatMap { pack ->
-            pack.items.filter {
-                it.title.contains(query, true) ||
-                        it.customTitle?.contains(query, true) == true ||
-                        pack.title.contains(query, true)
-            }
+            pack.items.filter { it.matchesLocalSearch(pack, query) }
+        }
+    }
+    val localFilterActive = localPackFilterQuery.trim().isNotEmpty()
+    val visibleLocalPacks = remember(localPacks, localPackFilterQuery, localCatalogVisible) {
+        if (!localCatalogVisible || localPackFilterQuery.isBlank()) editablePacks
+        else editablePacks.filter { it.title.contains(localPackFilterQuery.trim(), ignoreCase = true) }
+    }
+    val visibleLocalActionPack = remember(localActionPack, localPackFilterQuery, localCatalogVisible) {
+        localActionPack?.let { pack ->
+            if (localCatalogVisible || localPackFilterQuery.isBlank()) pack
+            else pack.copy(items = pack.items.filter { it.matchesLocalSearch(pack, localPackFilterQuery) })
         }
     }
 
@@ -498,8 +528,8 @@ private fun StickerPanelContent(
 
     val rail = buildList {
         add(PanelRailItem(StickerDestination.RECENT, MaterialSymbols.Outlined.History, "最近使用"))
-        add(PanelRailItem(StickerDestination.SEARCH, MaterialSymbols.Outlined.Manage_search, "本地搜索"))
         add(PanelRailItem(StickerDestination.PACKS, MaterialSymbols.Outlined.Folder, "本地表情包"))
+        add(PanelRailItem(StickerDestination.SEARCH, MaterialSymbols.Outlined.Manage_search, "本地搜索"))
         add(PanelRailItem(StickerDestination.ONLINE, MaterialSymbols.Outlined.Cloud, "在线表情包"))
         add(PanelRailItem(StickerDestination.ONLINE_SEARCH, MaterialSymbols.Outlined.Travel_explore, "在线搜索"))
         add(PanelRailItem(StickerDestination.SETTINGS, MaterialSymbols.Outlined.Settings, "设置"))
@@ -515,9 +545,6 @@ private fun StickerPanelContent(
         StickerDestination.ONLINE_SEARCH -> "在线搜索"
         StickerDestination.SETTINGS -> "设置"
     }
-    val localCatalogVisible = localPackLayout != StickerPackLayout.TABS && localDetailPack == null
-    val localActionPack = if (localPackLayout == StickerPackLayout.TABS) selectedPack else localDetailPack
-
     fun cancelReorder() {
         reorderTarget = null
         reorderPackId = null
@@ -711,6 +738,31 @@ private fun StickerPanelContent(
 
         else -> emptyList()
     }
+    val actionSearch = when {
+        reorderTarget != null || multiSelectMode -> null
+
+        destination == StickerDestination.PACKS -> PanelActionSearch(
+            expanded = localPackFilterExpanded,
+            value = localPackFilterQuery,
+            label = if (localCatalogVisible) "筛选本地表情包" else "筛选当前表情包",
+            actionIndex = (panelActions.size - 1).coerceAtLeast(0),
+            onValueChange = { localPackFilterQuery = it },
+            onExpandedChange = { localPackFilterExpanded = it },
+        )
+
+        destination == StickerDestination.ONLINE && selectedOnlinePack == null && !showingMyUploads -> {
+            PanelActionSearch(
+                expanded = onlinePackSearchExpanded,
+                value = onlinePackQuery,
+                label = "筛选在线表情包",
+                actionIndex = 2,
+                onValueChange = { onlinePackQuery = it },
+                onExpandedChange = { onlinePackSearchExpanded = it },
+            )
+        }
+
+        else -> null
+    }
 
     Box(Modifier.fillMaxSize()) {
         PanelShell(
@@ -718,6 +770,7 @@ private fun StickerPanelContent(
             selected = destination,
             title = title,
             actions = panelActions,
+            actionSearch = actionSearch,
             wrapActions = wrapActions,
             onSelect = {
                 if (reorderTarget != null) return@PanelShell
@@ -775,82 +828,100 @@ private fun StickerPanelContent(
                 )
 
                 null -> when (destination) {
-                StickerDestination.RECENT -> StickerGridOrEmpty(
-                    stickers = recentItems,
-                    message = "还没有发送过表情",
-                    onSend = ::send,
-                    onLongPress = { previewSticker = it },
-                )
+                StickerDestination.RECENT -> PanelStateContent(localState, ::refreshLocal) {
+                    StickerGridOrEmpty(
+                        stickers = recentItems,
+                        message = "还没有发送过表情",
+                        onSend = ::send,
+                        onLongPress = { previewSticker = it },
+                    )
+                }
 
-                StickerDestination.SEARCH -> SearchStickerContent(
-                    query = query,
-                    onQueryChange = { query = it },
-                    results = localSearchResults,
-                    onSearch = null,
-                    emptyMessage = if (query.isBlank()) "输入文件名或表情包名称" else "没有找到本地表情",
-                    onSend = ::send,
-                    onLongPress = { previewSticker = it },
-                )
+                StickerDestination.SEARCH -> PanelStateContent(localState, ::refreshLocal) {
+                    SearchStickerContent(
+                        query = query,
+                        onQueryChange = { query = it },
+                        results = localSearchResults,
+                        onSearch = null,
+                        emptyMessage = if (query.isBlank()) "输入文件名或表情包名称" else "没有找到本地表情",
+                        onSend = ::send,
+                        onLongPress = { previewSticker = it },
+                    )
+                }
 
-                StickerDestination.PACKS -> LocalPacksContent(
-                    packs = editablePacks,
-                    layout = localPackLayout,
-                    selectedPack = if (localPackLayout == StickerPackLayout.TABS) selectedPack else localDetailPack,
-                    gridState = localPackGridState,
-                    listState = localPackListState,
-                    itemGridState = localItemGridState,
-                    onSelectPack = {
-                        selectedPackId = it.id
-                        if (localPackLayout != StickerPackLayout.TABS) {
-                            localPackDetailId = it.id
-                            scope.launch { localItemGridState.scrollToItem(0) }
+                StickerDestination.PACKS -> PanelStateContent(localState, ::refreshLocal) {
+                    LocalPacksContent(
+                        packs = visibleLocalPacks,
+                        layout = localPackLayout,
+                        selectedPack = visibleLocalActionPack,
+                        filterActive = localFilterActive,
+                        gridState = localPackGridState,
+                        listState = localPackListState,
+                        itemGridState = localItemGridState,
+                        onSelectPack = {
+                            selectedPackId = it.id
+                            if (localPackLayout != StickerPackLayout.TABS) {
+                                localPackFilterQuery = ""
+                                localPackFilterExpanded = false
+                                localPackDetailId = it.id
+                                scope.launch { localItemGridState.scrollToItem(0) }
+                            }
+                        },
+                        onImport = {
+                            prompt = StickerPrompt.Import(localActionPack)
+                        },
+                        onSend = ::send,
+                        onLongPress = { previewSticker = it },
+                        selectable = multiSelectMode && localDetailPack != null,
+                        selectedKeys = selectedStickerKeys,
+                        onToggleSelection = { sticker ->
+                            val key = stickerSelectionKey(sticker)
+                            selectedStickerKeys = selectedStickerKeys.toMutableSet().apply {
+                                if (!add(key)) remove(key)
+                            }
+                        },
+                        onRangeStart = { quickSelectionBase = selectedStickerKeys },
+                        onSelectRange = { first, last ->
+                            val items = localDetailPack?.items.orEmpty()
+                            val range = minOf(first, last)..maxOf(first, last)
+                            selectedStickerKeys = quickSelectionBase +
+                                    range.mapNotNull { index -> items.getOrNull(index)?.let(::stickerSelectionKey) }
                         }
-                    },
-                    onImport = {
-                        prompt = StickerPrompt.Import(localActionPack)
-                    },
-                    onSend = ::send,
-                    onLongPress = { previewSticker = it },
-                    selectable = multiSelectMode && localDetailPack != null,
-                    selectedKeys = selectedStickerKeys,
-                    onToggleSelection = { sticker ->
-                        val key = stickerSelectionKey(sticker)
-                        selectedStickerKeys = selectedStickerKeys.toMutableSet().apply {
-                            if (!add(key)) remove(key)
-                        }
-                    },
-                    onRangeStart = { quickSelectionBase = selectedStickerKeys },
-                    onSelectRange = { first, last ->
-                        val items = localDetailPack?.items.orEmpty()
-                        val range = minOf(first, last)..maxOf(first, last)
-                        selectedStickerKeys = quickSelectionBase +
-                                range.mapNotNull { index -> items.getOrNull(index)?.let(::stickerSelectionKey) }
-                    },
-                )
+                    )
+                }
 
                 StickerDestination.ONLINE -> if (selectedOnlinePack == null) {
                     PanelStateContent(
                         activeOnlineState,
                         if (showingMyUploads) ::loadMyUploads else ::loadOnlinePacks,
                     ) { packs ->
-                        StickerPackCatalog(
-                            packs = when (onlineSortMode) {
-                                1 -> packs.sortedByDescending(StickerPack::uploadTime)
-                                2 -> packs.sortedByDescending(StickerPack::downloadCount)
-                                else -> packs
-                            },
-                            layout = onlinePackLayout,
-                            columnCount = PanelSettings.stickerColumnCount.coerceIn(1, 15),
-                            gridState = onlinePackGridState,
-                            listState = onlinePackListState,
-                            onSelectPack = { pack ->
-                                multiSelectMode = false
-                                selectedStickerKeys = emptySet()
-                                selectedOnlinePackId = pack.id
-                                scope.launch { onlineItemGridState.scrollToItem(0) }
-                                loadOnlinePack(pack)
-                            },
-                        )
+                        val visiblePacks = when (onlineSortMode) {
+                            1 -> packs.sortedByDescending(StickerPack::uploadTime)
+                            2 -> packs.sortedByDescending(StickerPack::downloadCount)
+                            else -> packs
+                        }.filter { pack ->
+                            onlinePackQuery.isBlank() || pack.title.contains(onlinePackQuery, ignoreCase = true)
+                        }
+                        if (visiblePacks.isEmpty() && onlinePackQuery.isNotBlank()) {
+                            PanelEmptyAction("没有找到在线表情包")
+                        } else {
+                            StickerPackCatalog(
+                                packs = visiblePacks,
+                                layout = onlinePackLayout,
+                                columnCount = PanelSettings.stickerColumnCount.coerceIn(1, 15),
+                                gridState = onlinePackGridState,
+                                listState = onlinePackListState,
+                                onSelectPack = { pack ->
+                                    onlinePackSearchExpanded = false
+                                    onlinePackQuery = ""
+                                    multiSelectMode = false
+                                    selectedStickerKeys = emptySet()
+                                    selectedOnlinePackId = pack.id
+                                    scope.launch { onlineItemGridState.scrollToItem(0) }
+                                    loadOnlinePack(pack)
+                                },
+                            )
+                        }
                     }
                 } else {
                     PanelStateContent(
@@ -1286,6 +1357,9 @@ private fun StickerGridOrEmpty(
             )
         }
     } else Modifier
+    val keyedStickers = remember(stickers) {
+        panelItemsWithStableKeys(stickers, ::stickerSelectionKey)
+    }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(PanelSettings.stickerColumnCount.coerceIn(1, 15)),
@@ -1297,11 +1371,13 @@ private fun StickerGridOrEmpty(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        itemsIndexed(stickers, key = { index, it -> "${stickerSelectionKey(it)}#$index" }) { _, sticker ->
+        itemsIndexed(keyedStickers, key = { _, it -> it.first }) { _, keyedSticker ->
+            val sticker = keyedSticker.second
             val context = LocalContext.current
             val imageData = sticker.localPath ?: sticker.thumbnailUrl
             Box(
                 modifier = Modifier
+                    .animateItem()
                     .fillMaxWidth()
                     .aspectRatio(1f)
                     .clip(MaterialTheme.shapes.small)
@@ -1391,11 +1467,20 @@ private fun SearchStickerContent(
     }
 }
 
+private fun StickerItem.matchesLocalSearch(pack: StickerPack, query: String): Boolean {
+    val term = query.trim()
+    return term.isBlank() ||
+            title.contains(term, ignoreCase = true) ||
+            customTitle?.contains(term, ignoreCase = true) == true ||
+            pack.title.contains(term, ignoreCase = true)
+}
+
 @Composable
 private fun LocalPacksContent(
     packs: List<StickerPack>,
     layout: StickerPackLayout,
     selectedPack: StickerPack?,
+    filterActive: Boolean,
     gridState: LazyGridState,
     listState: LazyListState,
     itemGridState: LazyGridState,
@@ -1421,18 +1506,20 @@ private fun LocalPacksContent(
                 )
             }
             Box(Modifier.weight(1f)) {
-                if (selectedPack == null) {
-                    PanelEmptyAction("暂无本地表情包", "新建表情包后即可导入")
-                } else if (selectedPack.items.isEmpty()) {
-                    PanelEmptyAction("这个表情包还是空的", "导入表情", onImport)
-                } else {
+            if (selectedPack == null) {
+                PanelEmptyAction("暂无本地表情包", "新建表情包后即可导入")
+            } else if (selectedPack.items.isEmpty()) {
+                if (filterActive) PanelEmptyAction("当前表情包没有匹配的表情")
+                else PanelEmptyAction("这个表情包还是空的", "导入表情", onImport)
+            } else {
                     StickerGridOrEmpty(selectedPack.items, "暂无表情", onSend, onLongPress)
                 }
             }
         }
     } else if (selectedPack == null) {
         if (packs.isEmpty()) {
-            PanelEmptyAction("暂无本地表情包", "新建表情包后即可导入")
+            if (filterActive) PanelEmptyAction("没有找到本地表情包")
+            else PanelEmptyAction("暂无本地表情包", "新建表情包后即可导入")
         } else {
             StickerPackCatalog(
                 packs = packs,
@@ -1444,7 +1531,8 @@ private fun LocalPacksContent(
             )
         }
     } else if (selectedPack.items.isEmpty()) {
-        PanelEmptyAction("这个表情包还是空的", "导入表情", onImport)
+        if (filterActive) PanelEmptyAction("当前表情包没有匹配的表情")
+        else PanelEmptyAction("这个表情包还是空的", "导入表情", onImport)
     } else {
         StickerGridOrEmpty(
             stickers = selectedPack.items,
@@ -1574,6 +1662,7 @@ private fun StickerPackCatalog(
             items(packs, key = { it.id }) { pack ->
                 Column(
                     modifier = Modifier
+                        .animateItem()
                         .fillMaxWidth()
                         .clickable { onSelectPack(pack) }
                         .padding(4.dp),
@@ -1607,6 +1696,7 @@ private fun StickerPackCatalog(
             items(packs, key = { it.id }) { pack ->
                 Row(
                     modifier = Modifier
+                        .animateItem()
                         .fillMaxWidth()
                         .clickable { onSelectPack(pack) }
                         .padding(horizontal = 8.dp, vertical = 4.dp),
