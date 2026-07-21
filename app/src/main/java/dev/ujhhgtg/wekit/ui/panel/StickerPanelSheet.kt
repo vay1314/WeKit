@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -33,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
@@ -76,6 +78,7 @@ import com.composables.icons.materialsymbols.outlined.Drag_handle
 import com.composables.icons.materialsymbols.outlined.Edit
 import com.composables.icons.materialsymbols.outlined.Folder
 import com.composables.icons.materialsymbols.outlined.History
+import com.composables.icons.materialsymbols.outlined.Image_search
 import com.composables.icons.materialsymbols.outlined.Person
 import com.composables.icons.materialsymbols.outlined.Refresh
 import com.composables.icons.materialsymbols.outlined.Save
@@ -133,6 +136,13 @@ data class StickerPanelActions(
     val loadMyUploads: suspend () -> Result<List<StickerPack>> = { Result.success(emptyList()) },
     val loadOnlineItems: suspend (StickerPack) -> Result<List<StickerItem>> = { Result.success(emptyList()) },
     val searchOnline: suspend (String) -> Result<List<StickerItem>> = { Result.success(emptyList()) },
+    val pickSimilarityImage: ((Result<ByteArray>) -> Unit) -> Unit = {},
+    val loadSimilarityImage: suspend (StickerItem) -> Result<ByteArray> = {
+        Result.failure(UnsupportedOperationException())
+    },
+    val searchSimilar: suspend (ByteArray) -> Result<List<StickerItem>> = {
+        Result.failure(UnsupportedOperationException())
+    },
     val uploadPack: suspend (StickerPack, (Float) -> Unit) -> Result<String> = { _, _ ->
         Result.failure(UnsupportedOperationException())
     },
@@ -166,6 +176,9 @@ enum class StickerImportMode {
     TELEGRAM,
 }
 
+private const val SIMILARITY_SEARCH_PRIVACY_MESSAGE =
+    "所选图片的完整内容将上传至第三方 FunBox API。图片可能包含个人信息或其他隐私内容，确定继续吗？"
+
 fun showStickerPanelSheet(
     context: Context,
     packs: List<StickerPack>,
@@ -191,6 +204,8 @@ private sealed interface StickerPrompt {
     data class SetStickerTitle(val item: StickerItem) : StickerPrompt
     data class DeleteSticker(val item: StickerItem) : StickerPrompt
     data class DeleteStickers(val items: List<StickerItem>) : StickerPrompt
+    data class ConfirmSimilaritySticker(val item: StickerItem) : StickerPrompt
+    class ConfirmSimilarityBytes(val bytes: ByteArray) : StickerPrompt
 }
 
 private enum class StickerReorderTarget {
@@ -375,6 +390,28 @@ private fun StickerPanelContent(
                 refreshLocal()
                 if (PanelSettings.panelAutoClose) onDismiss()
             }
+        }
+    }
+
+    fun searchSimilar(loadImage: suspend () -> Result<ByteArray>) {
+        onlineQuery = ""
+        destination = StickerDestination.ONLINE_SEARCH
+        val request = ++searchRequest
+        searchState = PanelUiState.Loading
+        scope.launch {
+            val imageBytes = loadImage().getOrElse { error ->
+                if (request == searchRequest) {
+                    searchState = PanelUiState.Error(error.message ?: "无法读取搜索图片")
+                }
+                return@launch
+            }
+            if (request != searchRequest) return@launch
+            val result = actions.searchSimilar(imageBytes)
+            if (request != searchRequest) return@launch
+            searchState = result.fold(
+                { if (it.isEmpty()) PanelUiState.Empty("没有找到相似表情") else PanelUiState.Content(it) },
+                { PanelUiState.Error(it.message ?: "相似表情搜索失败") },
+            )
         }
     }
 
@@ -867,6 +904,14 @@ private fun StickerPanelContent(
                             )
                         }
                     },
+                    onImageSearch = {
+                        actions.pickSimilarityImage { result ->
+                            result.fold(
+                                onSuccess = { prompt = StickerPrompt.ConfirmSimilarityBytes(it) },
+                                onFailure = { operationMessage = it.message ?: "无法读取所选图片" },
+                            )
+                        }
+                    },
                     state = searchState,
                     emptyMessage = "输入关键词搜索在线表情",
                     onSend = ::send,
@@ -919,6 +964,10 @@ private fun StickerPanelContent(
                 onSend = {
                     previewSticker = null
                     send(item)
+                },
+                onSearchSimilar = {
+                    previewSticker = null
+                    prompt = StickerPrompt.ConfirmSimilaritySticker(item)
                 },
                 onSetTitle = if (item.localPath != null) ({
                     previewSticker = null
@@ -1096,6 +1145,30 @@ private fun StickerPanelContent(
                             refreshLocal()
                         }
                     }
+                },
+            )
+
+            is StickerPrompt.ConfirmSimilaritySticker -> PanelConfirmation(
+                title = "搜索相似表情",
+                message = SIMILARITY_SEARCH_PRIVACY_MESSAGE,
+                confirmText = "上传并搜索",
+                onDismiss = { prompt = null },
+                onConfirm = {
+                    val item = currentPrompt.item
+                    prompt = null
+                    searchSimilar { actions.loadSimilarityImage(item) }
+                },
+            )
+
+            is StickerPrompt.ConfirmSimilarityBytes -> PanelConfirmation(
+                title = "搜索相似表情",
+                message = SIMILARITY_SEARCH_PRIVACY_MESSAGE,
+                confirmText = "上传并搜索",
+                onDismiss = { prompt = null },
+                onConfirm = {
+                    val bytes = currentPrompt.bytes
+                    prompt = null
+                    searchSimilar { Result.success(bytes) }
                 },
             )
 
@@ -1286,6 +1359,7 @@ private fun SearchStickerContent(
     onQueryChange: (String) -> Unit,
     results: List<StickerItem>,
     onSearch: (() -> Unit)?,
+    onImageSearch: (() -> Unit)? = null,
     emptyMessage: String,
     onSend: (StickerItem) -> Unit,
     onLongPress: (StickerItem) -> Unit,
@@ -1300,6 +1374,11 @@ private fun SearchStickerContent(
                 .fillMaxWidth()
                 .padding(8.dp),
             onSearch = onSearch,
+            extraTrailingIcon = if (onImageSearch == null) null else ({
+                IconButton(onClick = onImageSearch) {
+                    Icon(MaterialSymbols.Outlined.Image_search, "选择图片搜索相似表情")
+                }
+            }),
         )
         if (state != null && state !is PanelUiState.Content) {
             PanelStateContent(state, content = {})
@@ -1643,6 +1722,7 @@ private fun StickerPreviewOverlay(
     sticker: StickerItem,
     onDismiss: () -> Unit,
     onSend: () -> Unit,
+    onSearchSimilar: () -> Unit,
     onSave: (() -> Unit)?,
     onSetTitle: (() -> Unit)?,
     onSetCover: (() -> Unit)?,
@@ -1678,16 +1758,17 @@ private fun StickerPreviewOverlay(
                     .weight(1f)
                     .fillMaxWidth(),
             )
-            Row(
+            FlowRow(
                 modifier = Modifier
                     .padding(top = 12.dp)
+                    .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.88f))
                     .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
             ) {
                 TextButton(onClick = onSend) { Text("发送") }
+                TextButton(onClick = onSearchSimilar) { Text("搜索相似") }
                 if (onSave != null) TextButton(onClick = onSave) { Text("保存到本地") }
                 if (onSetTitle != null) TextButton(onClick = onSetTitle) { Text("设置名称") }
                 if (onSetCover != null) TextButton(onClick = onSetCover) { Text("设置为封面") }

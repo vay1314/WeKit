@@ -11,6 +11,7 @@ import dev.ujhhgtg.wekit.features.items.chat.panel.PickedPanelFile
 import dev.ujhhgtg.wekit.features.items.chat.panel.StickerItem
 import dev.ujhhgtg.wekit.features.items.chat.panel.listPanelTreeFiles
 import dev.ujhhgtg.wekit.features.items.chat.panel.pickPanelDirectory
+import dev.ujhhgtg.wekit.features.items.chat.panel.pickPanelFile
 import dev.ujhhgtg.wekit.features.items.chat.panel.pickPanelFiles
 import dev.ujhhgtg.wekit.features.items.chat.panel.service.FunBoxServiceClient
 import dev.ujhhgtg.wekit.features.items.chat.panel.service.FunBoxStickerRepository
@@ -30,6 +31,7 @@ import java.util.UUID
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.div
+import kotlin.io.path.readBytes
 import kotlin.io.path.writeBytes
 
 @Feature(
@@ -100,6 +102,25 @@ object StickerPanel : SwitchFeature() { // entry implementation in ChatFooterHoo
                         loadMyUploads = FunBoxStickerRepository::loadMyUploads,
                         loadOnlineItems = FunBoxStickerRepository::loadPack,
                         searchOnline = FunBoxStickerRepository::searchText,
+                        pickSimilarityImage = { onComplete ->
+                            pickPanelFile(anchor.context, arrayOf("image/*")) { _, uri, activity ->
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    val result = runCatching {
+                                        activity.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                                            ?: error("无法读取所选图片")
+                                    }.mapCatching { bytes ->
+                                        require(bytes.isNotEmpty()) { "所选图片内容为空" }
+                                        bytes
+                                    }
+                                    withContext(Dispatchers.Main) {
+                                        onComplete(result)
+                                        activity.finish()
+                                    }
+                                }
+                            }
+                        },
+                        loadSimilarityImage = ::resolveStickerBytes,
+                        searchSimilar = FunBoxStickerRepository::searchSimilar,
                         uploadPack = FunBoxStickerRepository::uploadPack,
                         setCustomTitle = StickerPanelRepository::setCustomTitle,
                         setPackCover = StickerPanelRepository::setPackCover,
@@ -138,14 +159,23 @@ object StickerPanel : SwitchFeature() { // entry implementation in ChatFooterHoo
     private suspend fun resolveStickerPath(item: StickerItem): Result<String> = withContext(Dispatchers.IO) {
         cancellableResult {
             item.localPath?.let { return@cancellableResult it }
-            val objectId = item.remoteObjectId ?: error("没有可用表情对象")
-            val bytes = FunBoxServiceClient.downloadObject("image", objectId).getOrThrow()
-            require(bytes.isNotEmpty()) { "服务器未返回表情数据" }
+            val bytes = resolveStickerBytes(item).getOrThrow()
             val extension = StickerPanelRepository.detectImageExtension(bytes)
                 ?: error("服务器返回了不支持的图片格式")
             val path = PanelPaths.panelCacheDir / "sticker-${UUID.randomUUID()}.$extension"
             path.writeBytes(bytes)
             path.absolutePathString()
+        }
+    }
+
+    private suspend fun resolveStickerBytes(item: StickerItem): Result<ByteArray> = withContext(Dispatchers.IO) {
+        cancellableResult {
+            val bytes = item.localPath?.asPath?.readBytes() ?: run {
+                val objectId = item.remoteObjectId ?: error("没有可用表情对象")
+                FunBoxServiceClient.downloadObject("image", objectId).getOrThrow()
+            }
+            require(bytes.isNotEmpty()) { "表情图片内容为空" }
+            bytes
         }
     }
 

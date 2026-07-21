@@ -328,6 +328,7 @@ fun PanelSearchField(
     label: String,
     modifier: Modifier = Modifier.fillMaxWidth(),
     onSearch: (() -> Unit)? = null,
+    extraTrailingIcon: (@Composable () -> Unit)? = null,
 ) {
     OutlinedTextField(
         value = value,
@@ -337,9 +338,18 @@ fun PanelSearchField(
         label = { Text(label) },
         leadingIcon = { Icon(MaterialSymbols.Outlined.Search, null) },
         trailingIcon = when {
-            onSearch != null -> ({
-                IconButton(onClick = onSearch, enabled = value.isNotBlank()) {
-                    Icon(MaterialSymbols.Outlined.Send, "搜索")
+            extraTrailingIcon != null || onSearch != null -> ({
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    extraTrailingIcon?.invoke()
+                    if (onSearch != null) {
+                        IconButton(onClick = onSearch, enabled = value.isNotBlank()) {
+                            Icon(MaterialSymbols.Outlined.Send, "搜索")
+                        }
+                    } else if (value.isNotEmpty()) {
+                        IconButton(onClick = { onValueChange("") }) {
+                            Icon(MaterialSymbols.Outlined.Close, "清除搜索")
+                        }
+                    }
                 }
             })
 
