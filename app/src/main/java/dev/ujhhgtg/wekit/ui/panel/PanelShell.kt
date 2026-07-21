@@ -9,6 +9,9 @@ import android.view.Window
 import android.view.WindowManager
 import androidx.activity.ComponentDialog
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -30,6 +33,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,6 +52,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
@@ -216,6 +223,29 @@ fun <T> PanelShell(
     content: @Composable () -> Unit,
 ) {
     BackHandler(onBack = onBack)
+    val railListState = rememberLazyListState()
+    val selectedRailIndex = railItems.indexOfFirst { it.destination == selected }
+    val selectedRailOffset by remember(railListState, selectedRailIndex) {
+        derivedStateOf {
+            railListState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.index == selectedRailIndex }
+                ?.offset
+        }
+    }
+    val indicatorOffset = remember { Animatable(0f) }
+    var indicatorPositioned by remember { mutableStateOf(false) }
+    LaunchedEffect(selectedRailOffset, railListState.isScrollInProgress) {
+        val target = selectedRailOffset?.toFloat() ?: return@LaunchedEffect
+        if (!indicatorPositioned || railListState.isScrollInProgress) {
+            indicatorOffset.snapTo(target)
+            indicatorPositioned = true
+        } else {
+            indicatorOffset.animateTo(
+                targetValue = target,
+                animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+            )
+        }
+    }
     Surface(
         modifier = Modifier.fillMaxSize(),
         shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
@@ -228,32 +258,41 @@ fun <T> PanelShell(
                 .fillMaxSize()
                 .navigationBarsPadding(),
         ) {
-            LazyColumn(
+            Box(
                 modifier = Modifier
                     .width(64.dp)
                     .fillMaxHeight()
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.72f)),
-                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                items(railItems) { item ->
-                    val isSelected = item.destination == selected
+                if (selectedRailOffset != null) {
                     Box(
                         modifier = Modifier
                             .size(64.dp)
-                            .background(
-                                if (isSelected) MaterialTheme.colorScheme.secondaryContainer
-                                else androidx.compose.ui.graphics.Color.Transparent,
+                            .graphicsLayer { translationY = indicatorOffset.value }
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                    )
+                }
+                LazyColumn(
+                    state = railListState,
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    items(railItems) { item ->
+                        val isSelected = item.destination == selected
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clickable { onSelect(item.destination) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.label,
+                                tint = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(28.dp),
                             )
-                            .clickable { onSelect(item.destination) },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.label,
-                            tint = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(28.dp),
-                        )
+                        }
                     }
                 }
             }
